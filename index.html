@@ -299,7 +299,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.2 – Local File Storage</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.4 – Cross-breeding</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -553,6 +553,13 @@ const SPECIES_DATA = {
     {label:'Slinker P3', weight:5},
     {label:'Slinker P4', weight:50}, {label:'Slinker P5', weight:50},
     {label:'Slinker P6', weight:5}]}
+};
+
+// ── CROSS-BREEDING CONFIG ─────────────────────────────────────────
+// Add species pairs here if more cross-breed combinations are introduced in future.
+const CROSS_BREEDS = {
+  'Dune Raptor':  ['Swamp Raptor'],
+  'Swamp Raptor': ['Dune Raptor'],
 };
 
 // ── STORAGE KEYS ─────────────────────────────────────────────────
@@ -1833,19 +1840,42 @@ function renderPairs() {
   const grid = $id('pairs-grid');
   grid.innerHTML = '';
 
+  // Build a global set of used animal names (for cross-species exclusivity)
+  const globalUsed = (slot_sp, slot_idx) => {
+    const used = new Set();
+    for (const [s, ps] of Object.entries(pairsMap)) {
+      (ps || []).forEach((p, j) => {
+        if (s === slot_sp && j === slot_idx) return; // skip current slot
+        if (p.m) used.add(p.m);
+        if (p.f) used.add(p.f);
+      });
+    }
+    return used;
+  };
+
   for (const [sp, cfg] of Object.entries(SPECIES_DATA)) {
     const n = pairCounts[sp] || 1;
     const pairs = (pairsMap[sp] || []).slice(0, n);
     const goals = goalsMap[sp] || {};
+    const crossPartners = CROSS_BREEDS[sp] || [];
+
+    // Own-species animals
     const spAnimals = animals.filter(a => a.sp === sp && a.status !== 'Dead');
-    const males   = spAnimals.filter(a => a.sex === 'M').sort((a,b) => getTotal(b.stats,sp) - getTotal(a.stats,sp));
-    const females = spAnimals.filter(a => a.sex === 'F').sort((a,b) => getTotal(b.stats,sp) - getTotal(a.stats,sp));
+    // Cross-breed partner animals (labelled with species short code)
+    const crossAnimals = crossPartners.flatMap(csp =>
+      animals.filter(a => a.sp === csp && a.status !== 'Dead')
+    );
+    const allPairAnimals = [...spAnimals, ...crossAnimals];
+
+    const males   = allPairAnimals.filter(a => a.sex === 'M').sort((a,b) => getTotal(b.stats,a.sp) - getTotal(a.stats,a.sp));
+    const females = allPairAnimals.filter(a => a.sex === 'F').sort((a,b) => getTotal(b.stats,a.sp) - getTotal(a.stats,a.sp));
     const card = document.createElement('div');
     card.className = 'pair-species-card';
 
-    const breeders = pairs.flatMap(p => [p.m, p.f]).filter(Boolean);
-    const freeM = males.filter(a => !breeders.includes(a.name) && ['Keep','?','Breed'].includes(a.status));
-    const freeF = females.filter(a => !breeders.includes(a.name) && ['Keep','?','Breed'].includes(a.status));
+    // For upgrade recommendations use own-species only
+    const allPaired = new Set(Object.values(pairsMap).flatMap(ps => (ps||[]).flatMap(p => [p.m, p.f])).filter(Boolean));
+    const freeM = spAnimals.filter(a => a.sex === 'M' && !allPaired.has(a.name) && ['Keep','?','Breed'].includes(a.status));
+    const freeF = spAnimals.filter(a => a.sex === 'F' && !allPaired.has(a.name) && ['Keep','?','Breed'].includes(a.status));
 
     const makeBadge = (animal, g) => {
       if (!g.bl) return `<span class="pair-goal-badge goal-empty">No goal</span>`;
@@ -1858,13 +1888,22 @@ function renderPairs() {
     };
 
     const pairRows = pairs.map((p, i) => {
-      const goal     = (goals.pairs || [])[i] || {};
-      const mAnimal  = spAnimals.find(a => a.name === p.m);
-      const fAnimal  = spAnimals.find(a => a.name === p.f);
+      const goal    = (goals.pairs || [])[i] || {};
+      const mAnimal = allPairAnimals.find(a => a.name === p.m);
+      const fAnimal = allPairAnimals.find(a => a.name === p.f);
+      // Global exclusivity — exclude animals used anywhere else across all species
+      const usedElsewhere = globalUsed(sp, i);
+      const availM = males.filter(a => !usedElsewhere.has(a.name));
+      const availF = females.filter(a => !usedElsewhere.has(a.name));
+      const optLabel = a => {
+        const isCross = a.sp !== sp;
+        const tag = isCross ? `[${SPECIES_DATA[a.sp].short}] ` : '';
+        return `${tag}${a.name} (${getTotal(a.stats, a.sp)})${a.status==='Temp'?' T':''}`;
+      };
       const mOpts = `<option value="">-- none --</option>` +
-        males.map(a => `<option value="${a.name}"${p.m===a.name?' selected':''}>${a.name} (${getTotal(a.stats,sp)})${a.status==='Temp'?' T':''}</option>`).join('');
+        availM.map(a => `<option value="${a.name}"${p.m===a.name?' selected':''}>${optLabel(a)}</option>`).join('');
       const fOpts = `<option value="">-- none --</option>` +
-        females.map(a => `<option value="${a.name}"${p.f===a.name?' selected':''}>${a.name} (${getTotal(a.stats,sp)})${a.status==='Temp'?' T':''}</option>`).join('');
+        availF.map(a => `<option value="${a.name}"${p.f===a.name?' selected':''}>${optLabel(a)}</option>`).join('');
       const score = (mAnimal && fAnimal) ? `S:${getTotal(mAnimal.stats,sp) + getTotal(fAnimal.stats,sp)}` : '';
       return `<div class="pair-row">
         <span class="pair-num">${i+1}</span>
@@ -1902,6 +1941,13 @@ function renderPairs() {
     if (!upgHtml) upgHtml = `<div style="color:var(--dim);font-size:11px;padding:4px 0">Add animals to see recommendations.</div>`;
 
     const bo = getBreedOut(sp);
+    const crossNote = crossPartners.length ? `
+      <div style="font-size:11px;color:var(--yel);background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.2);border-radius:4px;padding:5px 10px;margin-bottom:8px;">
+        🔀 <strong>Cross-breeding:</strong> ${crossPartners.map(s => SPECIES_DATA[s].short).join('/')} animals can be placed in these slots.
+        Offspring will be <strong>${cfg.short}</strong>. &nbsp;
+        <span style="color:var(--dim);">⚠ The developers have stated this mechanic will change in a future update when DR and SR receive separate skill trees.</span>
+      </div>` : '';
+
     card.innerHTML = `
       <h3>${cfg.icon} ${sp} <span class="goals-shortcode">${cfg.short}</span>
         <span style="font-size:10px;color:#888;font-weight:normal;text-transform:none;margin-left:4px">breed out: <span style="color:var(--red)">${bo}</span></span>
@@ -1911,6 +1957,7 @@ function renderPairs() {
           <button class="btn-rem" onclick="removePairSlot('${sp}')">−</button>
         </span>
       </h3>
+      ${crossNote}
       ${pairRows}
       <div class="upgrade-box">
         <div style="color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Stat Upgrade Recommendations</div>
@@ -1922,6 +1969,19 @@ function renderPairs() {
 
 function updatePair(sp, idx, sex, name) {
   if (!pairsMap[sp]) initPairs();
+  // Guard: global exclusivity — reject if animal is already assigned anywhere else
+  if (name) {
+    for (const [s, ps] of Object.entries(pairsMap)) {
+      for (let j = 0; j < (ps || []).length; j++) {
+        if (s === sp && j === idx) continue;
+        if (ps[j].m === name || ps[j].f === name) {
+          showToast(`${name} is already in another pair — remove them first`);
+          renderPairs();
+          return;
+        }
+      }
+    }
+  }
   pairsMap[sp][idx][sex] = name;
   save(); renderPairs();
 }

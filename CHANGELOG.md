@@ -4,6 +4,26 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.4 – Cross-breeding
+**2026-04-05**
+
+- DR and SR animals can now be placed in each other's pair slots for cross-breeding
+- Cross-species animals shown in dropdowns with a [SR]/[DR] tag to distinguish them
+- Offspring species is implied by which tab the pair lives in
+- Added disclaimer in DR/SR pair sections noting the mechanic will change in a future update
+- `CROSS_BREEDS` config added — extend with one line if new cross-breed species are added
+- Pair exclusivity is now global across all species (not just within one species)
+
+---
+
+## v0.3 – Pair Exclusivity
+**2026-04-05**
+
+- Animals assigned to a pair are no longer available in other pair dropdowns
+- Added safety guard in updatePair to reject duplicate assignments with a toast message
+
+---
+
 ## v0.2 – Local File Storage
 **2026-04-05**
 
