@@ -4,6 +4,19 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.6 – Sort & Filter
+**2026-04-05**
+
+- Sort arrows on every column header, updating live to show ↑/↓ on the active column
+- Fixed sort for Species, Bloodline, Phenotype and Sex (were falling through to wrong fields)
+- New filter row: Sex (All / ♂ M / ♀ F)
+- New filter row: Bloodline — dynamic pills built from animals currently in the herd
+- New filter row: Phenotype — dynamic pills built from animals currently in the herd
+- New filter: Min Total ≥ number input
+- Added Sex column to herd table (♂/♀ with gender colours)
+
+---
+
 ## v0.5 – Data Migration
 **2026-04-05**
 

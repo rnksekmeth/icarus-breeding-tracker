@@ -148,10 +148,16 @@ td.name-cell{font-family:monospace;font-weight:bold;color:var(--yel);font-size:1
 td.total-cell{font-weight:bold;font-size:13px;}
 .aid-badge{color:#4a5a7a;font-size:10px;font-family:monospace;margin-right:3px;font-weight:normal;}
 .species-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}
-.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
-.filter-btn{background:var(--panel);color:var(--dim);padding:5px 12px;border:1px solid var(--bdr);border-radius:20px;}
+.filters{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.filter-label{color:var(--dim);font-size:11px;white-space:nowrap;min-width:78px;text-align:right;}
+.filter-btn{background:var(--panel);color:var(--dim);padding:4px 11px;border:1px solid var(--bdr);border-radius:20px;font-size:12px;}
 .filter-btn.active{background:var(--acc);color:#000;border-color:var(--acc);font-weight:bold;}
-.filter-sep{color:var(--bdr);}
+.filter-sep{color:var(--bdr);margin:0 2px;}
+.filter-input{background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:3px 8px;font-size:12px;width:64px;outline:none;}
+.filter-input:focus{border-color:var(--acc);}
+th .sort-arrow{color:var(--dim);font-size:10px;margin-left:2px;opacity:.4;}
+th .sort-arrow.on{color:var(--acc);opacity:1;}
 .pairs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:16px;}
 .pair-species-card{background:var(--panel);border:1px solid var(--bdr);border-radius:8px;padding:14px;}
 .pair-species-card h3{font-size:13px;margin-bottom:10px;color:var(--acc);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:8px;}
@@ -299,7 +305,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.5 – Data Migration</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.6 – Sort & Filter</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -407,39 +413,58 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
     <span id="herd-count" class="text-dim" style="font-size:12px"></span>
   </div>
   <div class="filters" id="filters-bar">
-    <span class="text-dim" style="font-size:11px">SPECIES:</span>
-    <button class="filter-btn active" data-filter-type="species" onclick="setFilter('species','all',this)">All</button>
-    <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Dune Raptor',this)">&#x1F996; DR</button>
-    <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Swamp Raptor',this)">&#x1F995; SR</button>
-    <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Moa',this)">&#x1F426; BM</button>
-    <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Slinker',this)">&#x1F98E; SL</button>
-    <span class="filter-sep">|</span>
-    <span class="text-dim" style="font-size:11px">STATUS:</span>
-    <button class="filter-btn active" data-filter-type="status" onclick="setFilter('status','all',this)">All</button>
-    <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Keep',this)">Keep</button>
-    <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Breed',this)">Breed</button>
-    <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Temp',this)">&#x26A1; Temp</button>
-    <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Reserve',this)">&#x1F4E6; Reserve</button>
-    <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Discard',this)">Discard</button>
+    <div class="filter-row">
+      <span class="filter-label">SPECIES:</span>
+      <button class="filter-btn active" data-filter-type="species" onclick="setFilter('species','all',this)">All</button>
+      <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Dune Raptor',this)">&#x1F996; DR</button>
+      <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Swamp Raptor',this)">&#x1F995; SR</button>
+      <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Moa',this)">&#x1F426; BM</button>
+      <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Slinker',this)">&#x1F98E; SL</button>
+      <span class="filter-sep">|</span>
+      <span class="filter-label">STATUS:</span>
+      <button class="filter-btn active" data-filter-type="status" onclick="setFilter('status','all',this)">All</button>
+      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Keep',this)">Keep</button>
+      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Breed',this)">Breed</button>
+      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Temp',this)">&#x26A1; Temp</button>
+      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Reserve',this)">&#x1F4E6; Reserve</button>
+      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Discard',this)">Discard</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">SEX:</span>
+      <button class="filter-btn active" data-filter-type="sex" onclick="setFilter('sex','all',this)">All</button>
+      <button class="filter-btn" data-filter-type="sex" onclick="setFilter('sex','M',this)">&#x2642; M</button>
+      <button class="filter-btn" data-filter-type="sex" onclick="setFilter('sex','F',this)">&#x2640; F</button>
+      <span class="filter-sep">|</span>
+      <span class="filter-label">BLOODLINE:</span>
+      <span id="filter-bloodline-pills"></span>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">PHENOTYPE:</span>
+      <span id="filter-phenotype-pills"></span>
+      <span class="filter-sep">|</span>
+      <span class="filter-label">MIN TOTAL ≥</span>
+      <input type="number" class="filter-input" id="filter-min-total" min="0" max="60" placeholder="0" oninput="setMinTotal(this.value)">
+    </div>
   </div>
   <div class="table-wrap">
     <table>
       <thead><tr>
-        <th onclick="sortBy('name')">Name <span class="sort-arrow">&#x2195;</span></th>
-        <th onclick="sortBy('species')">Species</th>
-        <th onclick="sortBy('bloodline')">Bloodline</th>
-        <th onclick="sortBy('phenotype')">Phenotype</th>
-        <th onclick="sortBy('gen')">Gen</th>
+        <th data-col="name"      onclick="sortBy('name')">Name <span class="sort-arrow"></span></th>
+        <th data-col="species"   onclick="sortBy('species')">Species <span class="sort-arrow"></span></th>
+        <th data-col="sex"       onclick="sortBy('sex')">Sex <span class="sort-arrow"></span></th>
+        <th data-col="bloodline" onclick="sortBy('bloodline')">Bloodline <span class="sort-arrow"></span></th>
+        <th data-col="phenotype" onclick="sortBy('phenotype')">Phenotype <span class="sort-arrow"></span></th>
+        <th data-col="gen"       onclick="sortBy('gen')">Gen <span class="sort-arrow"></span></th>
         <th>Parents</th>
-        <th onclick="sortBy('vig')">VIG</th>
-        <th onclick="sortBy('fit')">FIT</th>
-        <th onclick="sortBy('phy')">PHY</th>
-        <th onclick="sortBy('ref')">REF</th>
-        <th onclick="sortBy('tgh')">TGH</th>
-        <th onclick="sortBy('adp')">ADP</th>
-        <th onclick="sortBy('ins')">INS</th>
-        <th onclick="sortBy('total')">Total <span class="sort-arrow">&#x2193;</span></th>
-        <th onclick="sortBy('status')">Status</th>
+        <th data-col="vig" onclick="sortBy('vig')">VIG <span class="sort-arrow"></span></th>
+        <th data-col="fit" onclick="sortBy('fit')">FIT <span class="sort-arrow"></span></th>
+        <th data-col="phy" onclick="sortBy('phy')">PHY <span class="sort-arrow"></span></th>
+        <th data-col="ref" onclick="sortBy('ref')">REF <span class="sort-arrow"></span></th>
+        <th data-col="tgh" onclick="sortBy('tgh')">TGH <span class="sort-arrow"></span></th>
+        <th data-col="adp" onclick="sortBy('adp')">ADP <span class="sort-arrow"></span></th>
+        <th data-col="ins" onclick="sortBy('ins')">INS <span class="sort-arrow"></span></th>
+        <th data-col="total"  onclick="sortBy('total')">Total <span class="sort-arrow"></span></th>
+        <th data-col="status" onclick="sortBy('status')">Status <span class="sort-arrow"></span></th>
         <th>Actions</th>
       </tr></thead>
       <tbody id="herd-tbody"></tbody>
@@ -576,7 +601,9 @@ const KEYS = {
 let animals = [], pairsMap = {}, goalsMap = {}, pairCounts = {}, phenoStats = {};
 let nextSpAid = {};       // per-species sequential counters { DR:1, SR:1, ... }
 let sortCol = 'total', sortAsc = false;
-let filterSpecies = 'all', filterStatus = 'all', showDead = false;
+let filterSpecies = 'all', filterStatus = 'all', filterSex = 'all';
+let filterBloodline = 'all', filterPhenotype = 'all', filterMinTotal = 0;
+let showDead = false;
 let editingId = null;
 
 // ── DOM HELPERS ──────────────────────────────────────────────────
@@ -1715,16 +1742,20 @@ function saveAnimal() {
 
 // ── HERD TABLE ───────────────────────────────────────────────────
 function setFilter(type, val, btn) {
-  if (type === 'species') filterSpecies = val;
-  else if (type === 'status') filterStatus = val;
-
-  // Update active state for the correct filter group
+  if (type === 'species')   filterSpecies   = val;
+  if (type === 'status')    filterStatus    = val;
+  if (type === 'sex')       filterSex       = val;
+  if (type === 'bloodline') filterBloodline = val;
+  if (type === 'phenotype') filterPhenotype = val;
+  // Update active state only for buttons in the same filter group
   document.querySelectorAll('#filters-bar .filter-btn').forEach(b => {
-    const isSpeciesBtn = b.dataset.filterType === 'species';
-    const isStatusBtn  = b.dataset.filterType === 'status';
-    if (type === 'species' && isSpeciesBtn) b.classList.toggle('active', b === btn);
-    if (type === 'status'  && isStatusBtn)  b.classList.toggle('active', b === btn);
+    if (b.dataset.filterType === type) b.classList.toggle('active', b === btn);
   });
+  renderHerd();
+}
+
+function setMinTotal(val) {
+  filterMinTotal = parseInt(val) || 0;
   renderHerd();
 }
 
@@ -1741,12 +1772,33 @@ function sortBy(col) {
   renderHerd();
 }
 
+function updateSortArrows() {
+  document.querySelectorAll('thead th[data-col]').forEach(th => {
+    const span = th.querySelector('.sort-arrow');
+    if (!span) return;
+    const col = th.dataset.col;
+    if (col === sortCol) {
+      span.textContent = sortAsc ? '↑' : '↓';
+      span.classList.add('on');
+    } else {
+      span.textContent = '↕';
+      span.classList.remove('on');
+    }
+  });
+}
+
 function getSortVal(a, col) {
-  if (col === 'total') return getTotal(a.stats, a.sp) || 0;
-  if (col === 'gen')   return a.gen || 0;
+  if (col === 'total')     return getTotal(a.stats, a.sp) || 0;
+  if (col === 'gen')       return a.gen || 0;
+  if (col === 'species')   return (a.sp  || '').toLowerCase();
+  if (col === 'bloodline') return (a.bl  || '').toLowerCase();
+  if (col === 'phenotype') return (a.ph  || '').toLowerCase();
+  if (col === 'sex')       return (a.sex || '').toLowerCase();
+  if (col === 'name')      return (a.name || '').toLowerCase();
+  if (col === 'status')    return (a.status || '').toLowerCase();
   const stL = STATS.map(s => s.toLowerCase());
   if (stL.includes(col)) return a.stats[col.toUpperCase()] || 0;
-  return (a[col] || a.bl || '').toString().toLowerCase();
+  return '';
 }
 
 function renderHerd() {
@@ -1754,9 +1806,33 @@ function renderHerd() {
   const empty = $id('herd-empty');
   let list = animals.slice();
 
-  if (!showDead) list = list.filter(a => a.status !== 'Dead');
-  if (filterSpecies !== 'all') list = list.filter(a => a.sp === filterSpecies);
-  if (filterStatus  !== 'all') list = list.filter(a => a.status === filterStatus);
+  // ── Build dynamic bloodline + phenotype filter pills ─────────────
+  const baseAnimals = showDead ? animals : animals.filter(a => a.status !== 'Dead');
+  const buildDynamicPills = (containerId, filterType, currentVal, getVal) => {
+    const container = $id(containerId);
+    if (!container) return;
+    const vals = [...new Set(baseAnimals.map(getVal).filter(Boolean))].sort();
+    const makeBtn = v => {
+      const active = currentVal === v ? ' active' : '';
+      return `<button class="filter-btn${active}" data-filter-type="${filterType}" onclick="setFilter('${filterType}','${v.replace(/'/g,"\\'")}',this)">${v}</button>`;
+    };
+    const allActive = currentVal === 'all' ? ' active' : '';
+    container.innerHTML = `<button class="filter-btn${allActive}" data-filter-type="${filterType}" onclick="setFilter('${filterType}','all',this)">All</button>` +
+      vals.map(makeBtn).join('');
+  };
+  buildDynamicPills('filter-bloodline-pills', 'bloodline', filterBloodline, a => a.bl);
+  buildDynamicPills('filter-phenotype-pills', 'phenotype', filterPhenotype, a => a.ph ? phenoDisplay(a.sp, a.ph) || a.ph : null);
+
+  // ── Apply filters ─────────────────────────────────────────────────
+  if (!showDead)              list = list.filter(a => a.status !== 'Dead');
+  if (filterSpecies   !== 'all') list = list.filter(a => a.sp === filterSpecies);
+  if (filterStatus    !== 'all') list = list.filter(a => a.status === filterStatus);
+  if (filterSex       !== 'all') list = list.filter(a => a.sex === filterSex);
+  if (filterBloodline !== 'all') list = list.filter(a => a.bl === filterBloodline);
+  if (filterPhenotype !== 'all') list = list.filter(a => (a.ph ? phenoDisplay(a.sp, a.ph) || a.ph : null) === filterPhenotype);
+  if (filterMinTotal  > 0)       list = list.filter(a => getTotal(a.stats, a.sp) >= filterMinTotal);
+
+  updateSortArrows();
 
   list.sort((a, b) => {
     const av = getSortVal(a, sortCol), bv = getSortVal(b, sortCol);
@@ -1800,9 +1876,11 @@ function renderHerd() {
     const parents = [a.p1, a.p2].filter(p => p && p !== 'Unknown').join(' × ') ||
       ([a.p1, a.p2].filter(Boolean).join(' × ') || '—');
 
+    const sexColor = a.sex === 'M' ? '#88aaff' : a.sex === 'F' ? '#ff88aa' : '#888';
     return `<tr style="${deadStyle}">
       <td class="name-cell">${spIdBadge}<button class="btn-copy" style="padding:2px 6px;font-size:11px;margin-right:4px" onclick="quickCopy('${$esc(a.name)}')">copy</button>${a.name}${tempBadge}${reserveBadge}</td>
       <td>${dot}${spCfg.short || a.sp}</td>
+      <td style="text-align:center;color:${sexColor};font-weight:bold">${a.sex === 'M' ? '♂' : a.sex === 'F' ? '♀' : a.sex || '?'}</td>
       <td class="${blCls}">${a.bl}</td>
       <td style="color:${phColor};font-size:11px">${phDisp}</td>
       <td style="text-align:center;color:#aaa">${a.gen || 1}</td>
