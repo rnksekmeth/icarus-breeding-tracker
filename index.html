@@ -299,7 +299,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.4 – Cross-breeding</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.5 – Data Migration</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -739,14 +739,27 @@ let storageMode = 'localStorage';
 let fileHandle  = null;
 let _saveTimer  = null;
 
+// ── DATA VERSION ─────────────────────────────────────────────────
+// Bump this whenever a schema change requires a migration step below.
+// v1 – original localStorage format (no version field)
+// v2 – single JSON file; version field introduced
+// v3 – no schema change (pair exclusivity was UI-only)
+// v4 – no schema change (cross-breeding was config + UI-only)
+const DATA_VERSION = 4;
+
+// The version of the data that was last loaded from disk/storage.
+// Set by applyData() and loadFromLocalStorage(); used by migrateMemory().
+let loadedDataVersion = 0;
+
 /** Bundle all in-memory state into one object */
 function getAllData() {
-  return { version: 2, herd: animals, pairs: pairsMap, goals: goalsMap,
+  return { version: DATA_VERSION, herd: animals, pairs: pairsMap, goals: goalsMap,
            pairCounts, nextSpAid, phenoStats };
 }
 
 /** Apply a loaded data object to in-memory state */
 function applyData(d) {
+  loadedDataVersion = d.version || 1;
   animals    = d.herd       || [];
   pairsMap   = d.pairs      || {};
   goalsMap   = d.goals      || {};
@@ -800,23 +813,51 @@ function savePhenoStats() {
   localStorage.setItem(KEYS.PHENO_STATS, JSON.stringify(phenoStats));
 }
 
-/** Migrate in-memory state (post-load): fill gaps, ensure fields */
+/**
+ * Run all necessary migrations to bring loaded data up to DATA_VERSION.
+ * Add a new "if (loadedDataVersion < N)" block here whenever a schema
+ * change is introduced. Each block should be idempotent and safe to
+ * run on data that already has the field.
+ *
+ * Always-run baseline checks (missing fields, new defaults) live at the
+ * bottom and do not require a version bump.
+ */
 function migrateMemory() {
   loadSpAids();
-  let dirty = false;
+  let dirty = loadedDataVersion < DATA_VERSION;
+
+  // ── v1 → v2: no structural change; file format only ──────────────
+  // (handled by applyData defaults)
+
+  // ── v2 → v3: no structural change ────────────────────────────────
+
+  // ── v3 → v4: no structural change ────────────────────────────────
+
+  // ── Future example (do not remove — shows the pattern) ───────────
+  // if (loadedDataVersion < 5) {
+  //   // e.g. add a new 'temperament' field to every animal
+  //   animals.forEach(a => { if (a.temperament === undefined) a.temperament = 'unknown'; });
+  //   dirty = true;
+  // }
+
+  // ── Always-run baseline: fill required fields on all animals ──────
   animals.forEach(a => {
-    if (!a.stats)          a.stats  = {};
-    if (a.id === undefined) { a.id  = Date.now() + Math.random(); dirty = true; }
-    if (a.spId === undefined) { a.spId = getNextSpId(a.sp); dirty = true; }
-    if (!a.status)         a.status = '?';
+    if (!a.stats)           a.stats  = {};
+    if (a.id === undefined) { a.id   = Date.now() + Math.random(); dirty = true; }
+    if (a.spId === undefined) { a.spId = getNextSpId(a.sp);        dirty = true; }
+    if (!a.status)          a.status = '?';
   });
+
+  // If anything changed, persist immediately so the file is up to date
   if (dirty) save();
+
   initGoals();
   initPairCounts();
 }
 
 /** Load from localStorage (fallback / legacy) */
 function loadFromLocalStorage() {
+  loadedDataVersion = 1; // localStorage data predates the version field
   try { animals    = JSON.parse(localStorage.getItem(KEYS.HERD))        || []; } catch { animals    = []; }
   try { pairsMap   = JSON.parse(localStorage.getItem(KEYS.PAIRS))       || {}; } catch { pairsMap   = {}; }
   try { goalsMap   = JSON.parse(localStorage.getItem(KEYS.GOALS))       || {}; } catch { goalsMap   = {}; }

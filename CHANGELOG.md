@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.5 – Data Migration
+**2026-04-05**
+
+- Add `DATA_VERSION` constant — bump this whenever a schema change requires migration
+- `loadedDataVersion` captured on load so migrations know where to start
+- `migrateMemory()` now runs versioned steps in order (v1→v2→v3→...→current)
+- localStorage fallback correctly treated as v1 (pre-version-field data)
+- Future schema changes need only a single `if (loadedDataVersion < N)` block
+- Data automatically re-saved after migration so the file is always up to date
+
+---
+
 ## v0.4 – Cross-breeding
 **2026-04-05**
 
