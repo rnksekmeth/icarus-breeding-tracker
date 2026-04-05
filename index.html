@@ -1812,7 +1812,35 @@ function buildOptimizePlanForSpecies(sp, globallyAssigned) {
     if (f) usedIds.add(f.id);
   }
 
-  // Register assigned names globally
+  // Phase 3: cross-breed constraint — ensure each pair has at least one native animal.
+  // Without this, the optimizer can fill all slots with cross-species animals if they
+  // score higher, which breaks native bloodline continuity for that species.
+  if (crossPartners.length) {
+    proposedPairs.forEach(p => {
+      const mA = allUsable.find(a => a.name === p.m);
+      const fA = allUsable.find(a => a.name === p.f);
+      // Slot is fine if either animal is native (or slot is empty)
+      const mNative = !mA || mA.sp === sp;
+      const fNative = !fA || fA.sp === sp;
+      if (mNative || fNative) return;
+      // Both are cross-species: replace the lower-scoring one with the best available native
+      const mScore = scoreForOptimize(sp, mA);
+      const fScore = scoreForOptimize(sp, fA);
+      const replaceSex = fScore <= mScore ? 'F' : 'M';
+      const toReplace  = replaceSex === 'F' ? fA : mA;
+      const replacement = ownAnimals
+        .filter(a => a.sex === replaceSex && !usedIds.has(a.id) && !globallyAssigned.has(a.name))
+        .sort((a, b) => scoreForOptimize(sp, b) - scoreForOptimize(sp, a))[0];
+      if (replacement) {
+        usedIds.delete(toReplace.id);
+        if (replaceSex === 'F') p.f = replacement.name;
+        else                    p.m = replacement.name;
+        usedIds.add(replacement.id);
+      }
+    });
+  }
+
+  // Register final assigned names globally (after any Phase 3 corrections)
   proposedPairs.forEach(p => {
     if (p.m) globallyAssigned.add(p.m);
     if (p.f) globallyAssigned.add(p.f);
@@ -1872,6 +1900,7 @@ function showOptimizeModal(sp) {
   if (!speciesList.length) { showToast('No animals to optimize'); return; }
 
   _optimizePlan = speciesList.map(s => buildOptimizePlanForSpecies(s, globallyAssigned));
+  const planIndexOf = plan => _optimizePlan.indexOf(plan);
 
   const title = sp ? `⚡ Optimize — ${sp}` : '⚡ Optimize All Breeding Pairs';
 
@@ -1890,7 +1919,8 @@ function showOptimizeModal(sp) {
             ? `<span style="color:#ff88aa">♀ ${displayName(fA)}</span><span style="color:#555;font-size:10px"> (${getTotal(fA.stats, plan.sp)})</span>`
             : '<span style="color:#555">— empty —</span>';
           const badge = p.goalLabel ? `<span class="opt-goal-badge">${p.goalLabel}</span>` : '';
-          return `<div class="opt-pair-row"><span class="opt-pair-num">${i+1}</span><span class="opt-pair-names">${mD} × ${fD}${badge}</span></div>`;
+          const pi = planIndexOf(plan);
+          return `<div class="opt-pair-row"><span class="opt-pair-num">${i+1}</span><span class="opt-pair-names">${mD} × ${fD}${badge}</span><button class="btn-sm" style="font-size:10px;padding:1px 8px;margin-left:auto" onclick="applyOptimizeSinglePair(${pi},${i},this)">Apply</button></div>`;
         }).join('')
       : `<div class="opt-none">No pair slots configured — add pairs first</div>`;
 
@@ -1901,10 +1931,12 @@ function showOptimizeModal(sp) {
           const fav = s.animal.favorite ? '⭐ ' : '';
           const cls = `opt-badge opt-${s.action}`;
           const lbl = s.action === 'cull' ? 'Cull' : s.action === 'store' ? 'Store' : s.action === 'reserve' ? 'Reserve' : 'Keep';
+          const pii = planIndexOf(plan);
           return `<div class="opt-action-row">
             <span class="opt-action-name">${fav}${displayName(s.animal)} <span style="color:#555;font-size:10px">(${tot})</span></span>
             <span class="${cls}">${actionIcons[s.action]} ${lbl}</span>
             <span class="opt-reason">${s.reason}</span>
+            <button class="btn-sm" style="font-size:10px;padding:1px 8px;flex-shrink:0" onclick="applyOptimizeSingleSuggestion(${pii},${si},this)">Apply</button>
           </div>`;
         }).join('')
       : `<div class="opt-none">No status changes suggested</div>`;
@@ -1933,6 +1965,46 @@ function showOptimizeModal(sp) {
     </div>
   </div>`;
   document.body.appendChild(overlay);
+}
+
+
+/**
+ * Apply a single proposed pair from the optimize modal without closing it.
+ * planIdx/pairIdx index into _optimizePlan.
+ */
+function applyOptimizeSinglePair(planIdx, pairIdx, btn) {
+  if (!_optimizePlan?.[planIdx]) return;
+  const plan = _optimizePlan[planIdx];
+  const p    = plan.proposedPairs[pairIdx];
+  if (!pairsMap[plan.sp]) initPairs();
+  while (pairsMap[plan.sp].length <= pairIdx) pairsMap[plan.sp].push({ m: '', f: '' });
+  pairsMap[plan.sp][pairIdx].m = p.m;
+  pairsMap[plan.sp][pairIdx].f = p.f;
+  saveAndRefresh();
+  addLog(`⚡ Optimized ${plan.sp} Pair ${pairIdx + 1}: ♂ ${p.m || '—'} × ♀ ${p.f || '—'}`, 'pair');
+  btn.textContent = '✓ Applied';
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+}
+
+/**
+ * Apply a single status suggestion from the optimize modal without closing it.
+ * planIdx/suggIdx index into _optimizePlan.
+ */
+function applyOptimizeSingleSuggestion(planIdx, suggIdx, btn) {
+  if (!_optimizePlan?.[planIdx]) return;
+  const s   = _optimizePlan[planIdx].suggestions[suggIdx];
+  const tgt = animals.find(a => a.id === s.animal.id);
+  if (!tgt) return;
+  if      (s.action === 'cull')    tgt.status = 'Dead';
+  else if (s.action === 'store')   tgt.status = 'Station';
+  else if (s.action === 'reserve') tgt.status = 'Reserve';
+  saveAndRefresh();
+  const label = { cull:'Dead/Culled', store:'On Station', reserve:'Reserve', keep:'Keep' }[s.action] || s.action;
+  addLog(`⚡ ${displayName(tgt)} → ${label} (optimizer)`, 'status');
+  btn.textContent = '✓ Applied';
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
 }
 
 function closeOptimizeModal() {
@@ -4168,7 +4240,7 @@ function renderPairs() {
     const crossNote = crossPartners.length ? `
       <div style="font-size:11px;color:var(--yel);background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.2);border-radius:4px;padding:5px 10px;margin-bottom:8px;">
         🔀 <strong>Cross-breeding:</strong> ${crossPartners.map(s => SPECIES_DATA[s].short).join('/')} animals can be placed in these slots.
-        Offspring will be <strong>${cfg.short}</strong>. &nbsp;
+        Offspring will be <strong>${[cfg.short, ...crossPartners.map(s => SPECIES_DATA[s].short)].join(" or ")}</strong>. &nbsp;
         <span style="color:var(--dim);">⚠ The developers have stated this mechanic will change in a future update when DR and SR receive separate skill trees.</span>
       </div>` : '';
 
