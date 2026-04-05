@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.8 – Pair Assignment
+**2026-04-05**
+
+- After saving a new animal, a "Place in Breeding Pair" panel appears below the form
+- App scores all compatible pair slots and highlights the best suggestion (empty slots prioritised, then by score improvement)
+- Dropdown selectors for species and pair number let the user override the suggestion; sex slot is fixed to the animal's sex
+- If the chosen slot already has an occupant, the panel shows their name and score with three options: keep their status unchanged, move them to Reserve, or mark as Discard
+- Placing an animal auto-updates their status from ❓/Keep to 🐣 Breed
+- Panel is dismissed when the user starts a new entry or clicks Skip
+
+---
+
 ## v0.7 – Inline Status & Settings
 **2026-04-05**
 

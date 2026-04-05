@@ -160,6 +160,19 @@ th .sort-arrow{color:var(--dim);font-size:10px;margin-left:2px;opacity:.4;}
 .status-inline{background:var(--inp);border:1px solid var(--bdr);border-radius:4px;padding:3px 5px;font-size:11px;cursor:pointer;min-width:116px;outline:none;color:inherit;}
 .status-inline:hover{border-color:var(--acc);}
 .status-inline:focus{border-color:var(--acc);}
+/* Pair-assign panel */
+.pa-panel{background:var(--panel);border:1px solid var(--acc);border-radius:8px;padding:14px;margin-top:10px;}
+.pa-panel h3{color:var(--acc);font-size:13px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+.pa-suggestion{background:var(--card);border:1px solid var(--bdr);border-radius:5px;padding:7px 12px;font-size:12px;color:#aaa;margin-bottom:10px;}
+.pa-suggestion strong{color:var(--wht);}
+.pa-suggestion .pa-sugg-good{color:var(--grn);}
+.pa-suggestion .pa-sugg-empty{color:var(--grn);}
+.pa-suggestion .pa-sugg-bad{color:var(--red);}
+.pa-occupant{background:var(--card);border:1px solid #4a2e08;border-radius:5px;padding:10px 12px;margin:8px 0;}
+.pa-occupant .pa-occ-name{font-family:monospace;color:var(--yel);font-size:12px;margin:4px 0 8px;}
+.pa-radio-group{display:flex;flex-direction:column;gap:5px;}
+.pa-radio-group label{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:#bbb;}
+.pa-radio-group label:hover{color:var(--wht);}
 th .sort-arrow.on{color:var(--acc);opacity:1;}
 .pairs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:16px;}
 .pair-species-card{background:var(--panel);border:1px solid var(--bdr);border-radius:8px;padding:14px;}
@@ -308,7 +321,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.7 – Inline Status & Settings</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.8 – Pair Assignment</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -407,6 +420,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
     </div>
   </div>
   <div id="save-feedback" style="color:var(--grn);font-size:12px;margin-top:6px;display:none"></div>
+  <div id="pair-assign-panel" style="display:none"></div>
 </div>
 </div>
 
@@ -1565,6 +1579,7 @@ function buildStatsRow() {
 }
 
 function onSpeciesChange() {
+  dismissPairAssign();
   const sp  = $val('f-species');
   const sel = $id('f-phenotype');
   sel.innerHTML = '';
@@ -1788,6 +1803,10 @@ function saveAnimal() {
   $id('total-val').textContent = '—';
   $id('total-pct').textContent = '';
   $id('advice-panel').classList.remove('show');
+
+  // For new animals, offer pair placement
+  if (!editingId) showPairAssignPanel(id);
+
   $id('stat-VIG')?.focus();
 }
 
@@ -2033,6 +2052,210 @@ function cancelEdit() {
   $id('total-pct').textContent = '';
   $id('advice-panel').classList.remove('show');
   showTab('herd', document.querySelector('nav button'));
+}
+
+// ── PAIR ASSIGNMENT AFTER SAVE ───────────────────────────────────
+let _paAnimalId = null;
+
+/**
+ * Compute ranked pair-slot options for a given animal.
+ * Returns array sorted: empty slots first (by score desc), then by delta desc.
+ */
+function computePairSuggestions(animal) {
+  const sexKey = animal.sex === 'M' ? 'm' : 'f';
+  const compatSp = [animal.sp, ...(CROSS_BREEDS[animal.sp] || [])];
+  const results = [];
+
+  // Check if this animal is already placed in any pair
+  for (const [s, ps] of Object.entries(pairsMap)) {
+    for (const p of (ps || [])) {
+      if (p.m === animal.name || p.f === animal.name) return []; // already placed
+    }
+  }
+
+  for (const sp of compatSp) {
+    const n = pairCounts[sp] || 1;
+    const pairs = pairsMap[sp] || [];
+    for (let i = 0; i < n; i++) {
+      const pair = pairs[i] || { m:'', f:'' };
+      const curName = pair[sexKey] || '';
+      const curAnimal = curName ? animals.find(a => a.name === curName) : null;
+      const newScore = scoreFor(sp, animal.bl, animal.ph, getTotal(animal.stats, animal.sp), i);
+      const curScore = curAnimal ? scoreFor(sp, curAnimal.bl, curAnimal.ph, getTotal(curAnimal.stats, sp), i) : 0;
+      const isEmpty = !curName;
+      const delta = isEmpty ? newScore : newScore - curScore;
+      results.push({ sp, pairIdx: i, sexKey, newScore, curScore, delta, isEmpty, curName, curAnimal });
+    }
+  }
+
+  results.sort((a, b) => {
+    if (a.isEmpty !== b.isEmpty) return a.isEmpty ? -1 : 1;
+    return b.delta - a.delta;
+  });
+  return results;
+}
+
+function showPairAssignPanel(animalId) {
+  const animal = animals.find(a => a.id === animalId);
+  const panel  = $id('pair-assign-panel');
+  if (!animal || !panel) return;
+  if (['Dead','Discard'].includes(animal.status)) { panel.style.display = 'none'; return; }
+
+  const suggestions = computePairSuggestions(animal);
+  if (!suggestions.length) { panel.style.display = 'none'; return; }
+
+  _paAnimalId = animalId;
+  panel.style.display = 'block';
+  panel.innerHTML = buildPairAssignHTML(animal, suggestions, suggestions[0]);
+}
+
+function buildPairAssignHTML(animal, suggestions, sel) {
+  const compatSp = [animal.sp, ...(CROSS_BREEDS[animal.sp] || [])];
+
+  // Suggestion notice
+  let suggMsg;
+  if (sel.isEmpty) {
+    suggMsg = `<span class="pa-sugg-empty">✓ Empty slot — just fill it in</span>`;
+  } else if (sel.delta >= 0) {
+    suggMsg = `<span class="pa-sugg-good">▲ +${sel.delta} score</span> over current occupant`;
+  } else {
+    suggMsg = `<span class="pa-sugg-bad">▼ ${sel.delta} score</span> vs current (no upgrade, but slot available)`;
+  }
+  const spShort = SPECIES_DATA[sel.sp]?.short || sel.sp;
+  const suggLine = `💡 Best match: <strong>${spShort} · Pair ${sel.pairIdx + 1}</strong> &nbsp; ${suggMsg}`;
+
+  // Species dropdown
+  const spOpts = compatSp.map(sp =>
+    `<option value="${sp}"${sp === sel.sp ? ' selected' : ''}>${SPECIES_DATA[sp]?.short || sp} – ${sp}</option>`
+  ).join('');
+
+  // Pair dropdown (for selected species)
+  const n = pairCounts[sel.sp] || 1;
+  const pairOpts = Array.from({length: n}, (_, i) =>
+    `<option value="${i}"${i === sel.pairIdx ? ' selected' : ''}>Pair ${i + 1}</option>`
+  ).join('');
+
+  const sexLabel = animal.sex === 'M' ? '♂ Male' : '♀ Female';
+
+  return `<div class="pa-panel">
+    <h3>🔀 Place in Breeding Pair</h3>
+    <div class="pa-suggestion">${suggLine}</div>
+    <div class="form-row" style="gap:8px;margin-bottom:4px;">
+      <div class="field"><label>Species</label>
+        <select id="pa-sp" onchange="onPaSpChange()" style="background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:5px 8px;font-size:12px;outline:none;">${spOpts}</select>
+      </div>
+      <div class="field"><label>Pair</label>
+        <select id="pa-pair" onchange="onPaPairChange()" style="background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:5px 8px;font-size:12px;outline:none;min-width:80px;">${pairOpts}</select>
+      </div>
+      <div class="field"><label>Slot</label>
+        <div style="background:var(--inp);border:1px solid var(--bdr);border-radius:4px;padding:6px 10px;font-size:12px;color:var(--dim)">${sexLabel}</div>
+      </div>
+      <div class="field" style="justify-content:flex-end;padding-bottom:2px;">
+        <div id="pa-delta-badge" style="font-size:11px">${paDeltaBadge(sel)}</div>
+      </div>
+    </div>
+    <div id="pa-occupant-wrap">${paOccupantHtml(sel)}</div>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="btn" onclick="confirmPairAssignment()" style="padding:6px 20px;font-size:12px;">✓ Place Animal</button>
+      <button class="btn-sm" onclick="dismissPairAssign()" style="padding:6px 14px;font-size:12px;">✗ Skip</button>
+    </div>
+  </div>`;
+}
+
+function paDeltaBadge(slot) {
+  if (slot.isEmpty) return `<span style="color:var(--grn)">✓ Empty slot</span>`;
+  const sign = slot.delta >= 0 ? `▲ +` : `▼ `;
+  const col  = slot.delta >= 0 ? 'var(--grn)' : 'var(--red)';
+  return `<span style="color:${col}">${sign}${Math.abs(slot.delta)} score</span>`;
+}
+
+function paOccupantHtml(slot) {
+  if (slot.isEmpty) return '';
+  const cur = slot.curAnimal;
+  const curTotal = cur ? getTotal(cur.stats, cur.sp) : '?';
+  const curStatus = cur ? (STATUS_ICON[cur.status] || '') + ' ' + (cur.status || '') : '';
+  return `<div class="pa-occupant">
+    <div style="font-size:11px;color:var(--dim);">Current occupant in this slot:</div>
+    <div class="pa-occ-name">${slot.curName} <span style="color:#888;font-size:10px">(${curTotal} pts · ${curStatus})</span></div>
+    <div style="font-size:11px;color:#aaa;margin-bottom:6px;">What to do with the displaced animal?</div>
+    <div class="pa-radio-group">
+      <label><input type="radio" name="pa-displace" value="none" checked> Keep their current status (just remove from pair)</label>
+      <label style="color:#88aaff;"><input type="radio" name="pa-displace" value="Reserve"> 🔶 Move to Reserve</label>
+      <label style="color:#888;"><input type="radio" name="pa-displace" value="Discard"> 🗑️ Mark as Discard</label>
+    </div>
+  </div>`;
+}
+
+function paGetCurrentSlot() {
+  const animal = animals.find(a => a.id === _paAnimalId);
+  if (!animal) return null;
+  const sp      = $val('pa-sp');
+  const pairIdx = parseInt($val('pa-pair') || '0');
+  const sexKey  = animal.sex === 'M' ? 'm' : 'f';
+  const pair    = (pairsMap[sp] || [])[pairIdx] || {};
+  const curName = pair[sexKey] || '';
+  const curAnimal = curName ? animals.find(a => a.name === curName) : null;
+  const newScore  = scoreFor(sp, animal.bl, animal.ph, getTotal(animal.stats, animal.sp), pairIdx);
+  const curScore  = curAnimal ? scoreFor(sp, curAnimal.bl, curAnimal.ph, getTotal(curAnimal.stats, sp), pairIdx) : 0;
+  return { sp, pairIdx, sexKey, isEmpty: !curName, curName, curAnimal, newScore, curScore, delta: curName ? newScore - curScore : newScore };
+}
+
+function onPaSpChange() {
+  // Rebuild pair dropdown for new species, then refresh occupant
+  const sp   = $val('pa-sp');
+  const n    = pairCounts[sp] || 1;
+  const pSel = $id('pa-pair');
+  if (!pSel) return;
+  pSel.innerHTML = Array.from({length: n}, (_, i) =>
+    `<option value="${i}">Pair ${i + 1}</option>`
+  ).join('');
+  onPaPairChange();
+}
+
+function onPaPairChange() {
+  const slot = paGetCurrentSlot();
+  if (!slot) return;
+  const badge = $id('pa-delta-badge');
+  if (badge) badge.innerHTML = paDeltaBadge(slot);
+  const wrap = $id('pa-occupant-wrap');
+  if (wrap) wrap.innerHTML = paOccupantHtml(slot);
+}
+
+function confirmPairAssignment() {
+  const animal = animals.find(a => a.id === _paAnimalId);
+  if (!animal) return;
+  const slot = paGetCurrentSlot();
+  if (!slot) return;
+
+  const displaceAction = document.querySelector('input[name="pa-displace"]:checked')?.value || 'none';
+
+  // Handle displaced animal
+  if (slot.curName && displaceAction !== 'none') {
+    const displaced = animals.find(a => a.name === slot.curName);
+    if (displaced) displaced.status = displaceAction;
+  }
+
+  // Ensure pair slot exists
+  if (!pairsMap[slot.sp]) initPairs();
+  while (pairsMap[slot.sp].length <= slot.pairIdx) pairsMap[slot.sp].push({ m:'', f:'' });
+
+  // Place the animal
+  pairsMap[slot.sp][slot.pairIdx][slot.sexKey] = animal.name;
+
+  // Bump status to Breed if was undecided/keep
+  if (['?','Keep'].includes(animal.status)) {
+    animal.status = 'Breed';
+  }
+
+  save(); renderHerd(); renderPairs();
+  dismissPairAssign();
+  showToast(`✓ ${animal.name} → ${SPECIES_DATA[slot.sp]?.short || slot.sp} Pair ${slot.pairIdx + 1}`);
+}
+
+function dismissPairAssign() {
+  _paAnimalId = null;
+  const panel = $id('pair-assign-panel');
+  if (panel) panel.style.display = 'none';
 }
 
 // ── SETTINGS HELPERS ─────────────────────────────────────────────
