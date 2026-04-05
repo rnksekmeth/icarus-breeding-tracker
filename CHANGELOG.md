@@ -4,6 +4,20 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.17 – Species Goals & Smart Layout
+**2026-04-05**
+
+- Goals: per-pair goals replaced with species-level goals (add/remove freely, not tied to pair count) — pairs tab badges now show "✓ Goal N" matches against species goals
+- Goals: Pair recommendations in Breeding Suggestions now show one suggestion per species goal, not per pair slot
+- Goals: Negative star priorities added (−1/−2/−3, shown in red) for both bloodlines and phenotypes — animals with negative-starred traits show ⚠ warning badges in Pairs tab
+- Suggestions: new "⚠ Negative-trait animals worth considering as Temp breeders" section — flags animals with bad traits but ≥20% better stats than best clean animal of same sex; warns if both suggested animals share the same negative trait (increased inheritance risk)
+- Suggestions: stats target input added (default 60) — priority animals below target are flagged
+- Defaults: Unstable bloodline initialises to ★★ priority for all new species; stats target defaults to 60
+- Layout: masonry grid layout for both Pairs and Goals — shorter cards fill the vertical space under taller neighbours rather than always defaulting to the leftmost column; re-runs on window resize
+- Data: version bumped to 5 with migration (old per-pair goals promoted to species goals)
+
+---
+
 ## v0.16 – Chips & Dynamic Height
 **2026-04-05**
 

@@ -80,22 +80,44 @@ Shows all your animals in a sortable, filterable table. Key features:
 - **Filter** by species, status, sex, bloodline, phenotype, and minimum total score
 - **Change status inline** — each row has a status dropdown; no need to open Edit Animal
 - **Edit** an animal with the edit button; a **Cancel** button lets you exit without saving changes
-- **🪦 Show Dead** toggle to include or exclude dead/culled animals from the view
+- **🪦 Show Dead** / **🛸 Show Station** toggles to include or exclude those animals from the view
 
 ### 🔀 Breeding Pairs
 
 Set up your active breeding pairs per species. The app enforces global exclusivity — an animal can only appear in one pair slot at a time. Dune Raptors and Swamp Raptors can be cross-bred; their animals appear in each other's pair slots.
 
-Each pair shows a goal badge indicating whether the current animals match your set bloodline and phenotype goals. An upgrade recommendation panel below suggests free animals that could improve the weakest pair slot.
+Each pair slot shows a goal badge:
+- **✓ Goal N** — this animal matches one of your species goals
+- **⚠ bloodline** — this animal has a negatively-starred trait (see Goals)
+- **★★ Bold** — this animal has a positively-starred trait but doesn't directly match a goal
+
+A stat upgrade recommendation panel below each species card suggests free animals that would improve the weakest pair slot.
+
+Cards can be collapsed to compact chips using the **▼ Hide / ▶ Show** button, and toggled between Narrow and Wide layout. The grid uses a masonry layout — shorter cards automatically fill the vertical space under taller ones rather than wrapping to the leftmost column.
 
 ### ⚙ Goals
 
-Per-species configuration:
+Per-species configuration. Each section can be collapsed or expanded independently.
 
-- **Breed-out stat** — the stat you are breeding toward 0 (excluded from the total score and animal name). Default is VIG. For animals that cannot be ridden or don't produce resources, consider INS instead.
-- **Pair goals** — set a target bloodline and phenotype for each pair slot
-- **Priority weights** — star-rate bloodlines and phenotypes to influence the scoring and advice system
-- **Phenotype sightings** — tracks how many tamed vs bred animals of each phenotype you've seen
+**Breed-Out Stat** — the stat you are breeding toward 0 (excluded from the total score and animal name). Default is VIG. For animals that cannot be ridden or don't produce resources, consider INS instead.
+
+**Species Goals** — define what offspring you are trying to produce. Each goal is a target bloodline × phenotype combination (either or both can be left as "any"). Add as many goals as you like. The Breeding Suggestions panel recommends specific pair pairings for each goal.
+
+**Phenotype Priority** — star-rate each phenotype from −3 to +3:
+- **+1 to +3 (gold stars)** — desired phenotype; animals with this trait are prioritised for breeding
+- **−1 to −3 (red stars)** — undesirable phenotype to breed out; animals carrying it get ⚠ warnings in the Pairs tab, and the suggestions engine avoids pairing two carriers together (to reduce inheritance chance)
+
+**Bloodline Priority** — same −3 to +3 rating for bloodlines. Unstable defaults to ★★ as it provides a breeding multiplier bonus. Setting a bloodline to negative (e.g. Wild −2) will flag carriers and suggest keeping them as temporary breeders only if their stats significantly exceed cleaner alternatives.
+
+**Phenotype Sightings / Bloodline Sightings** — tracks how many tamed vs bred animals of each type you've recorded.
+
+**Breeding Suggestions** — automatically generated based on your priorities:
+- *Pair recommendations* — one per species goal, showing the best M × F combination available to achieve it
+- *Priority animals not in pairs* — high-value unassigned animals that should be placed
+- *⚠ Negative-trait temp breeders* — animals with bad traits but stats ≥20% above the best clean alternative; flagged for temporary use with a warning if both parents share the same negative trait
+- *Consider reserving* — animals with desired traits but below-average stats, worth holding until a better partner is available
+- **Stats target** — adjustable baseline (default 60 total); animals below this are flagged in suggestions
+- **Reserve target** — set how many reserve animals you want to maintain per species
 
 ### 🧬 Lineage
 

@@ -174,7 +174,7 @@ th .sort-arrow{color:var(--dim);font-size:10px;margin-left:2px;opacity:.4;}
 .pa-radio-group label{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:#bbb;}
 .pa-radio-group label:hover{color:var(--wht);}
 th .sort-arrow.on{color:var(--acc);opacity:1;}
-.pairs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:16px;align-items:start;}
+.pairs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));grid-auto-rows:1px;gap:16px;}
 .pair-species-card{background:var(--panel);border:1px solid var(--bdr);border-radius:8px;padding:14px;}
 .pair-species-card h3{font-size:13px;margin-bottom:10px;color:var(--acc);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:8px;}
 .pair-species-card.collapsed .pair-card-body{display:none;}
@@ -221,7 +221,7 @@ th .sort-arrow.on{color:var(--acc);opacity:1;}
 .upg-action.ok{color:var(--dim);}
 .pairs-controls{display:flex;align-items:center;gap:6px;margin-left:auto;}
 .pairs-count{font-size:11px;color:var(--dim);}
-.goals-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;align-items:start;}
+.goals-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));grid-auto-rows:1px;gap:16px;}
 .goals-card{background:var(--panel);border:1px solid var(--bdr);border-radius:8px;padding:14px;}
 .goals-card.collapsed{padding-bottom:10px;}
 .goals-card.collapsed .goals-card-body{display:none;}
@@ -253,6 +253,14 @@ th .sort-arrow.on{color:var(--acc);opacity:1;}
 .star-btn{background:none;border:none;font-size:15px;padding:1px 3px;cursor:pointer;color:#444;line-height:1;transition:color .1s;}
 .star-btn.on{color:var(--yel);}
 .star-btn:hover{color:var(--acc);}
+.star-btn.neg{color:#444;}
+.star-btn.neg.on{color:#e74c3c;}
+.star-btn.neg:hover{color:#e74c3c;}
+.star-sep{display:inline-block;width:6px;}
+.goal-remove-btn{background:none;border:none;color:#666;font-size:14px;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0;}
+.goal-remove-btn:hover{color:#e74c3c;}
+.goal-add-btn{background:none;border:1px dashed var(--bdr);color:var(--dim);border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;margin-top:4px;width:100%;}
+.goal-add-btn:hover{color:var(--wht);border-color:#888;}
 /* Phenotype sightings */
 .pheno-sightings{margin-top:4px;}
 .sighting-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid #1a2a3a;}
@@ -350,7 +358,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.16 – Chips & Dynamic Height</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.17 – Species Goals & Smart Layout</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -996,7 +1004,8 @@ let _saveTimer  = null;
 // v2 – single JSON file; version field introduced
 // v3 – no schema change (pair exclusivity was UI-only)
 // v4 – no schema change (cross-breeding was config + UI-only)
-const DATA_VERSION = 4;
+// v5 – goals[]: species-level goals replace per-pair bl/ph; phenoWeights/blPriority extended to -3..3; statGoal added
+const DATA_VERSION = 5;
 
 // The version of the data that was last loaded from disk/storage.
 // Set by applyData() and loadFromLocalStorage(); used by migrateMemory().
@@ -1088,12 +1097,28 @@ function migrateMemory() {
 
   // ── v3 → v4: no structural change ────────────────────────────────
 
-  // ── Future example (do not remove — shows the pattern) ───────────
-  // if (loadedDataVersion < 5) {
-  //   // e.g. add a new 'temperament' field to every animal
-  //   animals.forEach(a => { if (a.temperament === undefined) a.temperament = 'unknown'; });
-  //   dirty = true;
-  // }
+  // ── v4 → v5: migrate per-pair goals → species goals ──────────────
+  if (loadedDataVersion < 5) {
+    for (const [sp, g] of Object.entries(goalsMap || {})) {
+      if (!g.goals) g.goals = [];
+      // Move any non-empty per-pair bl/ph entries into species goals
+      if (Array.isArray(g.pairs)) {
+        g.pairs.forEach(p => {
+          if (p && (p.bl || p.ph)) {
+            // Avoid duplicates
+            const exists = g.goals.some(gl => gl.bl === p.bl && gl.ph === p.ph);
+            if (!exists) g.goals.push({ bl: p.bl || '', ph: p.ph || '' });
+          }
+        });
+        // Clear old per-pair goal data (keep array length for slot tracking)
+        g.pairs = g.pairs.map(() => ({ bl: '', ph: '' }));
+      }
+      if (g.statGoal === undefined) g.statGoal = 60;
+      if (!g.blPriority) g.blPriority = {};
+      if (!g.blPriority.Unstable) g.blPriority.Unstable = 2;
+    }
+    dirty = true;
+  }
 
   // ── Always-run baseline: fill required fields on all animals ──────
   animals.forEach(a => {
@@ -1373,6 +1398,12 @@ function toggleGoalSection(sp, secId) {
   else collapsedGoalSections.add(key);
   renderGoals();
 }
+
+// Re-run masonry on resize so layout stays accurate as window changes
+window.addEventListener('resize', () => {
+  applyMasonry('goals-grid');
+  applyMasonry('pairs-grid');
+});
 function isGSecCollapsed(sp, secId) { return collapsedGoalSections.has(`${sp}::${secId}`); }
 
 function addPairFromTopBar() {
@@ -1427,11 +1458,15 @@ function initGoals() {
   for (const [sp, cfg] of Object.entries(SPECIES_DATA)) {
     if (!goalsMap[sp]) goalsMap[sp] = {};
     const g = goalsMap[sp];
-    if (!g.pairs)        g.pairs        = [];
+    if (!g.pairs)        g.pairs        = [];   // kept for pair-slot count tracking
+    if (!g.goals)        g.goals        = [];   // species-level breeding goals
     if (!g.phenoWeights) g.phenoWeights = {};
     if (!g.blPriority)   g.blPriority   = {};
     if (!g.breedOutStat) g.breedOutStat = 'VIG';
-    if (g.reserveTarget === undefined) g.reserveTarget = 0;
+    if (g.reserveTarget  === undefined) g.reserveTarget = 0;
+    if (g.statGoal       === undefined) g.statGoal      = 60;
+    // Default: Unstable is always a breeding priority (value 2 = ★★) unless user overrides
+    if (!g.blPriority.Unstable) g.blPriority.Unstable = 2;
     const n = pairCounts[sp] || cfg.defaultPairs;
     while (g.pairs.length < n) g.pairs.push({ bl:'', ph:'' });
   }
@@ -1447,10 +1482,18 @@ function scoreAnimalForGoals(sp, animal) {
   const blP = g.blPriority  || {};
   const phW = g.phenoWeights || {};
   let score = getTotal(animal.stats, sp);
-  if (animal.bl === 'Unstable') score += 12;    // breeding multiplier bonus
-  else score += (blP[animal.bl] || 0) * 10;
-  score += (phW[animal.ph] || 0) * 8;
+  // Unstable always gets priority bonus (hardcoded floor) unless user sets it negative
+  const blPriority = blP[animal.bl] !== undefined ? blP[animal.bl] : 0;
+  if (animal.bl === 'Unstable' && blPriority >= 0) score += 12;
+  score += blPriority * 10;       // can be negative (bad bloodline) → reduces score
+  score += (phW[animal.ph] || 0) * 8;  // can be negative (bad phenotype) → reduces score
   return score;
+}
+
+/** Returns true if an animal has any negatively-starred trait */
+function hasNegativeTrait(sp, animal) {
+  const g = goalsMap[sp] || {};
+  return (g.blPriority?.[animal.bl] || 0) < 0 || (g.phenoWeights?.[animal.ph] || 0) < 0;
 }
 
 /**
@@ -1464,6 +1507,8 @@ function buildBreedingSuggestions(sp) {
   const pairs  = (pairsMap[sp] || []).slice(0, n);
   const blP    = g.blPriority  || {};
   const phW    = g.phenoWeights || {};
+  const spGoals = g.goals || [];
+  const statGoal = g.statGoal ?? 60;
 
   const active = animals.filter(a =>
     a.sp === sp && a.status !== 'Dead' && a.status !== 'Discard');
@@ -1473,16 +1518,21 @@ function buildBreedingSuggestions(sp) {
   const unassigned = active.filter(a => !assigned.has(a.name));
   const bestStatTotal = Math.max(0, ...active.map(a => getTotal(a.stats, sp)));
 
-  // Priority candidates: unassigned animals with any starred bloodline/phenotype
+  // Priority candidates: unassigned animals with any positive starred bl/ph (or Unstable)
   const priorityCandidates = unassigned
-    .map(a => ({
-      animal: a,
-      score: scoreAnimalForGoals(sp, a),
-      blStars: a.bl === 'Unstable' ? '★ (breed)' : blP[a.bl] > 0 ? '★'.repeat(blP[a.bl]) : '',
-      phStars: phW[a.ph] > 0 ? '★'.repeat(phW[a.ph]) : '',
-    }))
-    .filter(({ animal, blStars, phStars }) =>
-      blStars || phStars || animal.bl === 'Unstable')
+    .map(a => {
+      const blW = blP[a.bl] ?? 0;
+      const phW_ = phW[a.ph] ?? 0;
+      return {
+        animal: a,
+        score: scoreAnimalForGoals(sp, a),
+        blStars: a.bl === 'Unstable' && blW >= 0 ? '★ (breed)' : blW > 0 ? '★'.repeat(blW) : '',
+        phStars: phW_ > 0 ? '★'.repeat(phW_) : '',
+        isNeg:   blW < 0 || phW_ < 0,
+      };
+    })
+    .filter(({ blStars, phStars, animal }) =>
+      blStars || phStars || (animal.bl === 'Unstable' && (blP['Unstable'] ?? 0) >= 0))
     .sort((a, b) => b.score - a.score)
     .slice(0, 6);
 
@@ -1491,79 +1541,129 @@ function buildBreedingSuggestions(sp) {
   const reserveCandidates = unassigned
     .filter(a => {
       const tot = getTotal(a.stats, sp);
-      const desired = blP[a.bl] > 0 || phW[a.ph] > 0 || a.bl === 'Unstable';
+      const desired = (blP[a.bl] ?? 0) > 0 || (phW[a.ph] ?? 0) > 0 || a.bl === 'Unstable';
       return desired && tot < threshold && a.status !== 'Reserve';
     })
     .sort((a, b) => getTotal(b.stats, sp) - getTotal(a.stats, sp))
     .slice(0, 4);
 
-  // Per-pair recommendations
+  // Negative-trait candidates: have bad trait but stats significantly exceed threshold
+  const negativeCandidates = active
+    .filter(a => {
+      if (!hasNegativeTrait(sp, a)) return false;
+      const tot = getTotal(a.stats, sp);
+      // "Significantly better": at least 20% above best clean animal of same sex
+      const bestClean = Math.max(0, ...active
+        .filter(b => b.sex === a.sex && !hasNegativeTrait(sp, b))
+        .map(b => getTotal(b.stats, sp)));
+      return bestClean === 0 || tot >= bestClean * 1.20;
+    })
+    .sort((a, b) => getTotal(b.stats, sp) - getTotal(a.stats, sp))
+    .slice(0, 4);
+
+  // Per-species-goal recommendations: for each goal, find best M+F that could produce it
+  const goalRecs = spGoals.map((goal, goalIdx) => {
+    const allM = active.filter(a => a.sex === 'M').sort((a,b) => scoreAnimalForGoals(sp,b) - scoreAnimalForGoals(sp,a));
+    const allF = active.filter(a => a.sex === 'F').sort((a,b) => scoreAnimalForGoals(sp,b) - scoreAnimalForGoals(sp,a));
+
+    // Prefer animals that match the goal bl/ph and aren't negatively starred
+    const pickBest = (pool, goalBl, goalPh) => {
+      // Filter negative-trait animals out first unless they're the only option
+      const clean = pool.filter(a => !hasNegativeTrait(sp, a));
+      const search = clean.length ? clean : pool;
+      if (goalBl || goalPh) {
+        const matching = search.filter(a =>
+          (!goalBl || a.bl === goalBl) && (!goalPh || a.ph === goalPh));
+        if (matching.length) return matching[0];
+      }
+      return search[0] || null;
+    };
+
+    const sugM = pickBest(allM, goal.bl, goal.ph);
+    const sugF = pickBest(allF, goal.bl, goal.ph);
+    // Warn if both suggestions share the same negative bloodline (increases inheritance)
+    const sameNegBl = sugM && sugF && sugM.bl === sugF.bl && (blP[sugM.bl] ?? 0) < 0;
+    const sameNegPh = sugM && sugF && sugM.ph === sugF.ph && (phW[sugM.ph] ?? 0) < 0;
+
+    return { goalIdx, goal, sugM, sugF, sameNegBl, sameNegPh };
+  });
+
+  // Per-pair slot recs (show what's currently in each slot vs what's optimal)
   const pairRecs = pairs.map((p, i) => {
-    const pairGoal = (g.pairs || [])[i] || {};
-    // Build pool for this slot (global exclusivity: exclude animals already in other slots)
     const usedElsewhere = new Set(
       pairs.flatMap((pp, j) => j === i ? [] : [pp.m, pp.f]).filter(Boolean)
     );
     const pool = active.filter(a => !usedElsewhere.has(a.name));
     const males   = pool.filter(a => a.sex === 'M').sort((a,b) => scoreAnimalForGoals(sp,b) - scoreAnimalForGoals(sp,a));
     const females = pool.filter(a => a.sex === 'F').sort((a,b) => scoreAnimalForGoals(sp,b) - scoreAnimalForGoals(sp,a));
-
-    // If pair already has animals assigned and they're the best → no change needed
     const curM = active.find(a => a.name === p.m);
     const curF = active.find(a => a.name === p.f);
-
-    const pickBest = (candidates, goalBl, goalPh) => {
-      if (goalBl || goalPh) {
-        const matching = candidates.filter(a =>
-          (!goalBl || a.bl === goalBl) && (!goalPh || a.ph === goalPh));
-        if (matching.length) return matching[0];
-      }
-      return candidates[0] || null;
-    };
-
-    const sugM = pickBest(males,   pairGoal.bl, pairGoal.ph);
-    const sugF = pickBest(females, pairGoal.bl, pairGoal.ph);
-
-    const hasGoal = pairGoal.bl || pairGoal.ph;
-    const alreadyOptimal = curM && curF
-      && curM === sugM && curF === sugF;
-
-    return { idx: i, pairGoal, sugM, sugF, curM, curF, alreadyOptimal, hasGoal };
+    const sugM = males[0] || null;
+    const sugF = females[0] || null;
+    const alreadyOptimal = curM && curF && curM === sugM && curF === sugF;
+    return { idx: i, sugM, sugF, curM, curF, alreadyOptimal };
   });
 
   const currentReserve = animals.filter(a => a.sp === sp && a.status === 'Reserve').length;
   const reserveTarget  = g.reserveTarget ?? 0;
 
-  return { priorityCandidates, pairRecs, reserveCandidates, currentReserve, reserveTarget };
+  return { priorityCandidates, goalRecs, pairRecs, reserveCandidates, negativeCandidates,
+           currentReserve, reserveTarget, statGoal };
 }
 
 function renderSuggestions(sp) {
   const s = buildBreedingSuggestions(sp);
+  const blP = (goalsMap[sp] || {}).blPriority || {};
+  const phW = (goalsMap[sp] || {}).phenoWeights || {};
   let html = '';
 
-  // Reserve status
+  // Reserve + stat goal status line
   const rCol = s.currentReserve >= s.reserveTarget ? 'var(--grn)' : 'var(--yel)';
-  html += `<div style="font-size:11px;color:#aaa;margin-bottom:8px;">
-    🔶 Reserve: <span style="color:${rCol};font-weight:bold">${s.currentReserve}</span>
+  html += `<div style="font-size:11px;color:#aaa;margin-bottom:8px;display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+    <span>🔶 Reserve: <span style="color:${rCol};font-weight:bold">${s.currentReserve}</span>
     <span style="color:#555"> / ${s.reserveTarget} target</span>
-    &nbsp;
-    <label style="font-size:10px;">Target: <input type="number" min="0" max="99" value="${s.reserveTarget}"
+    <label style="font-size:10px;margin-left:6px">Target: <input type="number" min="0" max="99" value="${s.reserveTarget}"
       onchange="updateReserveTarget('${$esc(sp)}',this.value)"
-      style="width:44px;background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:1px 5px;font-size:11px;"></label>
+      style="width:44px;background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:1px 5px;font-size:11px;"></label></span>
+    <span>🎯 Stats target: <label style="font-size:10px"><input type="number" min="0" max="999" value="${s.statGoal}"
+      onchange="updateStatGoal('${$esc(sp)}',this.value)"
+      style="width:52px;background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:1px 5px;font-size:11px;"> total</label></span>
   </div>`;
 
-  // Priority candidates not in pairs
+  // ── Species Goal Pair Recommendations ──────────────────────────
+  if (s.goalRecs.length) {
+    html += `<div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin-bottom:4px">Pair recommendations</div>`;
+    s.goalRecs.forEach(r => {
+      const goalLabel = `Goal ${r.goalIdx + 1}: ${r.goal.bl || 'any bl'} × ${r.goal.ph ? (phenoDisplay(sp, r.goal.ph) || r.goal.ph) : 'any ph'}`;
+      const mStr = r.sugM
+        ? `<span style="color:#88ddff">♂ ${r.sugM.name} (${getTotal(r.sugM.stats,sp)})</span>`
+        : '<span style="color:#555">♂ none available</span>';
+      const fStr = r.sugF
+        ? `<span style="color:#ffaacc">♀ ${r.sugF.name} (${getTotal(r.sugF.stats,sp)})</span>`
+        : '<span style="color:#555">♀ none available</span>';
+      const warnings = [];
+      if (r.sameNegBl) warnings.push(`⚠ both have ${r.sugM.bl} (neg) — high offspring inheritance risk`);
+      if (r.sameNegPh) warnings.push(`⚠ both have same negative phenotype — high inheritance risk`);
+      html += `<div class="suggestion-row">
+        <span class="sug-badge" style="min-width:90px">${goalLabel}</span>
+        <div class="sug-animal">${mStr} × ${fStr}${warnings.length ? `<br><span style="color:#e74c3c;font-size:10px">${warnings.join(' · ')}</span>` : ''}</div>
+      </div>`;
+    });
+  }
+
+  // ── Priority animals not yet in pairs ─────────────────────────
   if (s.priorityCandidates.length) {
-    html += `<div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin-bottom:4px">Priority animals (not in pairs)</div>`;
+    html += `<div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:8px 0 4px">Priority animals (not in pairs)</div>`;
     s.priorityCandidates.forEach(({ animal, score, blStars, phStars }) => {
-      const cfg = SPECIES_DATA[sp] || {};
       const tot = getTotal(animal.stats, sp);
       const blCol = BLOODLINE_COLOR[animal.bl] || '#aaa';
       const phCol = phenoColor(sp, animal.ph) || '#aaa';
+      const meetsStatGoal = tot >= s.statGoal;
       const tags = [
         blStars ? `<span style="color:${blCol}">${animal.bl} ${blStars}</span>` : '',
         phStars ? `<span style="color:${phCol}">${phenoDisplay(sp, animal.ph) || animal.ph} ${phStars}</span>` : '',
         animal.bl === 'Unstable' && !blStars ? `<span style="color:${blCol}">Unstable ★(breed)</span>` : '',
+        !meetsStatGoal ? `<span style="color:#888">below stat goal (${tot}/${s.statGoal})</span>` : '',
       ].filter(Boolean).join(' · ');
       html += `<div class="suggestion-row">
         <span class="sug-badge">${STATUS_ICON[animal.status] || ''} ${animal.sex === 'M' ? '♂' : '♀'} ${tot}</span>
@@ -1572,7 +1672,24 @@ function renderSuggestions(sp) {
     });
   }
 
-  // Reserve candidates
+  // ── Negative-trait animals with exceptional stats ──────────────
+  if (s.negativeCandidates.length) {
+    html += `<div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#e74c3c;margin:8px 0 4px">⚠ Negative-trait animals worth considering as temp breeders</div>`;
+    s.negativeCandidates.forEach(animal => {
+      const tot = getTotal(animal.stats, sp);
+      const blW = blP[animal.bl] ?? 0;
+      const phW_ = phW[animal.ph] ?? 0;
+      const traitWarning = blW < 0 ? `${animal.bl} (${blW}★)` : phW_ < 0 ? `${animal.ph} (${phW_}★)` : '';
+      html += `<div class="suggestion-row">
+        <span class="sug-badge" style="color:#e74c3c">${STATUS_ICON[animal.status] || ''} ${animal.sex === 'M' ? '♂' : '♀'} ${tot}</span>
+        <div class="sug-animal">${animal.name}<br>
+          <span class="sug-reason" style="color:#e74c3c">⚠ ${traitWarning} — use as Temp until an offspring exceeds these stats without the trait · avoid pairing with same-${blW < 0 ? 'bloodline' : 'phenotype'} animal</span>
+        </div>
+      </div>`;
+    });
+  }
+
+  // ── Reserve candidates ─────────────────────────────────────────
   if (s.reserveCandidates.length) {
     html += `<div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:8px 0 4px">Consider reserving (good trait, lower stats)</div>`;
     s.reserveCandidates.forEach(animal => {
@@ -1581,32 +1698,14 @@ function renderSuggestions(sp) {
       html += `<div class="suggestion-row">
         <span class="sug-badge">${STATUS_ICON[animal.status] || ''} ${animal.sex === 'M' ? '♂' : '♀'} ${tot}</span>
         <div class="sug-animal">${animal.name}<br>
-          <span class="sug-reason">Has <span style="color:${blCol}">${animal.bl}</span> — stats low vs herd best · set to Reserve until better pair partner available</span>
+          <span class="sug-reason">Has <span style="color:${blCol}">${animal.bl}</span> — stats low vs herd best · Reserve until better partner available</span>
         </div>
       </div>`;
     });
   }
 
-  // Pair recommendations (only show if something useful to say)
-  const interestingRecs = s.pairRecs.filter(r => !r.alreadyOptimal && (r.sugM || r.sugF));
-  if (interestingRecs.length) {
-    html += `<div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:8px 0 4px">Pair recommendations</div>`;
-    interestingRecs.forEach(r => {
-      const goalStr = r.hasGoal
-        ? `<span style="color:#aaa;font-size:10px"> (goal: ${r.pairGoal.bl || 'any'} × ${r.pairGoal.ph ? phenoDisplay(sp, r.pairGoal.ph) || r.pairGoal.ph : 'any'})</span>`
-        : '';
-      const mStr = r.sugM ? `<span style="color:#88ddff">♂ ${r.sugM.name} (${getTotal(r.sugM.stats,sp)})</span>` : '<span style="color:#555">♂ none available</span>';
-      const fStr = r.sugF ? `<span style="color:#ffaacc">♀ ${r.sugF.name} (${getTotal(r.sugF.stats,sp)})</span>` : '<span style="color:#555">♀ none available</span>';
-      const same = r.curM?.name === r.sugM?.name && r.curF?.name === r.sugF?.name;
-      html += `<div class="suggestion-row">
-        <span class="sug-badge">Pair ${r.idx + 1}${goalStr}</span>
-        <div class="sug-animal">${mStr} × ${fStr}${same ? '' : r.curM || r.curF ? `<br><span style="color:#556677;font-size:10px">current: ${r.curM?.name||'—'} × ${r.curF?.name||'—'}</span>` : ''}</div>
-      </div>`;
-    });
-  }
-
-  if (!html || (!s.priorityCandidates.length && !s.reserveCandidates.length && !interestingRecs?.length)) {
-    html += `<div style="color:var(--dim);font-size:11px;padding:4px 0">No suggestions — set bloodline/phenotype priorities in the sections above to enable recommendations.</div>`;
+  if (!html.includes('suggestion-row')) {
+    html += `<div style="color:var(--dim);font-size:11px;padding:4px 0">Add species goals and star-weight bloodlines/phenotypes above to enable recommendations.</div>`;
   }
 
   return html;
@@ -1639,42 +1738,60 @@ function renderGoals() {
     const boOpts = STATS.map(s =>
       `<option value="${s}"${goals.breedOutStat === s ? ' selected' : ''}>${s}</option>`).join('');
 
-    // ── Pair goals ──
-    const pairRows = goals.pairs.slice(0, n).map((g, i) => {
+    // ── Species goals (replaces per-pair goals) ──
+    const speciesGoalRows = (goals.goals || []).map((g, i) => {
       const blOpts = ['',...BLOODLINES].map(b =>
         `<option value="${b}"${g.bl === b ? ' selected' : ''}>${b || '-- any bloodline --'}</option>`).join('');
       const phOpts = `<option value="">-- any phenotype --</option>` +
         cfg.phenotypes.map(p => `<option value="${p.label}"${g.ph === p.label ? ' selected' : ''}>${p.label}</option>`).join('');
       return `<div class="goal-pair-row">
-        <span class="goal-pair-label">Pair ${i+1}</span>
-        <select onchange="updateGoalPair('${sp}',${i},'bl',this.value)">${blOpts}</select>
-        <select onchange="updateGoalPair('${sp}',${i},'ph',this.value)">${phOpts}</select>
+        <span class="goal-pair-label">Goal ${i+1}</span>
+        <select onchange="updateSpeciesGoal('${$esc(sp)}',${i},'bl',this.value)">${blOpts}</select>
+        <select onchange="updateSpeciesGoal('${$esc(sp)}',${i},'ph',this.value)">${phOpts}</select>
+        <button class="goal-remove-btn" onclick="removeSpeciesGoal('${$esc(sp)}',${i})" title="Remove this goal">×</button>
       </div>`;
-    }).join('');
+    }).join('') + `<button class="goal-add-btn" onclick="addSpeciesGoal('${$esc(sp)}')">+ Add Goal</button>`;
+
+    // ── Helper: 6-button star row (neg ★★★ | pos ★★★) ──
+    const makeStars6 = (w, onClickFn) => {
+      const neg = [3,2,1].map(n => {
+        const on = w <= -n;
+        return `<button class="star-btn neg ${on?'on':''}" onclick="${onClickFn(w===-n?0:-n)}">${on?'★':'☆'}</button>`;
+      }).join('');
+      const pos = [1,2,3].map(n => {
+        const on = w >= n;
+        return `<button class="star-btn ${on?'on':''}" onclick="${onClickFn(w===n?0:n)}">${on?'★':'☆'}</button>`;
+      }).join('');
+      return `<div class="star-group">${neg}<span class="star-sep"></span>${pos}</div>`;
+    };
 
     // ── Phenotype weights with rarity colors ──
     const phenoRows = cfg.phenotypes.map((p, pi) => {
-      const w = goals.phenoWeights[p.label] || 0;
+      const w = goals.phenoWeights[p.label] ?? 0;
       const rarity = RARITY_FROM_WEIGHT(p.weight);
       const col = RARITY_COLOR[rarity];
       const rarityBadge = `<span style="color:${col};font-size:10px;margin-left:5px">${RARITY_LABEL[rarity]}</span>`;
       const pDisp = pi === 0 ? p.label : `P${pi} ${p.label}`;
-      const stars = [1,2,3].map(n =>
-        `<button class="star-btn ${w>=n?'on':''}" onclick="updatePhenoWeight('${sp}',${pi},${w===n?0:n})">${w>=n?'★':'☆'}</button>`).join('');
+      const labelCol = w < 0 ? '#e74c3c' : w > 0 ? '' : '';
+      const stars = makeStars6(w, v => `updatePhenoWeight('${$esc(sp)}',${pi},${v})`);
       return `<div class="weight-row">
-        <span class="weight-label ${w?'wlit':'wdim'}">${pDisp}${rarityBadge}</span>
-        <div class="star-group">${stars}</div>
+        <span class="weight-label ${w?'wlit':'wdim'}" style="${labelCol?`color:${labelCol}`:''}">
+          ${pDisp}${rarityBadge}${w<0?` <span style="color:#e74c3c;font-size:10px">(avoid)</span>`:''}
+        </span>
+        ${stars}
       </div>`;
     }).join('');
 
     // ── Bloodline weights ──
     const blRows = BLOODLINES.map((bl, bi) => {
-      const w = goals.blPriority[bl] || 0;
-      const stars = [1,2,3].map(n =>
-        `<button class="star-btn ${w>=n?'on':''}" onclick="updateBlPriority('${sp}',${bi},${w===n?0:n})">${w>=n?'★':'☆'}</button>`).join('');
+      const w = goals.blPriority[bl] ?? 0;
+      const blCol = BLOODLINE_COLOR[bl] || '#aaa';
+      const stars = makeStars6(w, v => `updateBlPriority('${$esc(sp)}',${bi},${v})`);
       return `<div class="weight-row">
-        <span class="weight-label ${w?'wlit':'wdim'}">${bl}</span>
-        <div class="star-group">${stars}</div>
+        <span class="weight-label ${w?'wlit':'wdim'}" style="${w<0?'color:#e74c3c':w>0?`color:${blCol}`:''}">
+          ${bl}${w<0?' <span style="color:#e74c3c;font-size:10px">(breed out)</span>':''}
+        </span>
+        ${stars}
       </div>`;
     }).join('');
 
@@ -1729,8 +1846,8 @@ function renderGoals() {
           </div>`)}
         </div>
         <div class="goals-section">
-          ${gsHdr('pairs','Pair Goals — Bloodline × Phenotype')}
-          ${gsBody('pairs', pairRows)}
+          ${gsHdr('pairs','Species Goals — Bloodline × Phenotype')}
+          ${gsBody('pairs', speciesGoalRows)}
         </div>
         <div class="goals-section">
           ${gsHdr('pheno','Phenotype Priority ★★★')}
@@ -1774,6 +1891,7 @@ function renderGoals() {
       grid.appendChild(card);
     }
   }
+  requestAnimationFrame(() => applyMasonry('goals-grid'));
 }
 
 function updateGoalBreedOut(sp, val) {
@@ -1785,9 +1903,35 @@ function updateGoalBreedOut(sp, val) {
 }
 
 function updateGoalPair(sp, idx, field, val) {
+  // Legacy — kept for any saved data still calling this
   initGoals();
   goalsMap[sp].pairs[idx][field] = val;
   saveGoals(); renderGoals(); renderPairs(); renderAdvice();
+}
+
+function addSpeciesGoal(sp) {
+  initGoals();
+  goalsMap[sp].goals.push({ bl: '', ph: '' });
+  saveGoals(); renderGoals(); renderPairs();
+}
+
+function removeSpeciesGoal(sp, idx) {
+  initGoals();
+  goalsMap[sp].goals.splice(idx, 1);
+  saveGoals(); renderGoals(); renderPairs();
+}
+
+function updateSpeciesGoal(sp, idx, field, val) {
+  initGoals();
+  if (!goalsMap[sp].goals[idx]) goalsMap[sp].goals[idx] = { bl: '', ph: '' };
+  goalsMap[sp].goals[idx][field] = val;
+  saveGoals(); renderGoals(); renderPairs(); renderAdvice();
+}
+
+function updateStatGoal(sp, val) {
+  initGoals();
+  goalsMap[sp].statGoal = Math.max(0, parseInt(val) || 0);
+  saveGoals(); renderGoals();
 }
 
 function updatePhenoWeight(sp, pi, w) {
@@ -1834,6 +1978,26 @@ function reorderSpecies(from, to) {
   save();
   renderPairs();
   renderGoals();
+}
+
+/**
+ * Masonry row-span layout: measures each card's rendered height, then sets
+ * grid-row-end:span N so shorter cards fill empty vertical space in taller columns.
+ * Called via requestAnimationFrame after each render so the DOM is fully painted first.
+ */
+function applyMasonry(gridId) {
+  const grid = $id(gridId);
+  if (!grid) return;
+  const gap = parseInt(getComputedStyle(grid).rowGap) || 16;
+  const items = [...grid.children];
+  items.forEach(el => { el.style.gridRowEnd = ''; }); // reset first
+  // Second rAF: measure after reset reflow
+  requestAnimationFrame(() => {
+    items.forEach(el => {
+      const h = el.getBoundingClientRect().height;
+      el.style.gridRowEnd = `span ${Math.ceil((h + gap) / (1 + gap))}`;
+    });
+  });
 }
 
 /** Toggle card width for a species between 1 and 2 columns */
@@ -3163,18 +3327,25 @@ function renderPairs() {
     const freeM = spAnimals.filter(a => a.sex === 'M' && !allPaired.has(a.name) && ['Keep','?','Breed'].includes(a.status));
     const freeF = spAnimals.filter(a => a.sex === 'F' && !allPaired.has(a.name) && ['Keep','?','Breed'].includes(a.status));
 
-    const makeBadge = (animal, g) => {
-      if (!g.bl) return `<span class="pair-goal-badge goal-empty">No goal</span>`;
-      if (!animal) return `<span class="pair-goal-badge goal-empty">${g.bl}</span>`;
+    const makeBadge = (animal) => {
+      if (!animal) return '';
       if (animal.status === 'Temp') return `<span class="pair-goal-badge goal-temp">Temp (${animal.bl})</span>`;
-      const match = animal.bl === g.bl && (!g.ph || animal.ph === g.ph);
-      return match
-        ? `<span class="pair-goal-badge goal-match">✓ ${g.bl}</span>`
-        : `<span class="pair-goal-badge goal-nomatch">Goal: ${g.bl}</span>`;
+      const gMap = goalsMap[sp] || {};
+      const blW = (gMap.blPriority || {})[animal.bl] ?? 0;
+      const phW = (gMap.phenoWeights || {})[animal.ph] ?? 0;
+      // Negative trait warning
+      if (blW < 0) return `<span class="pair-goal-badge" style="background:rgba(231,76,60,.15);color:#e74c3c;border-color:#c0392b">⚠ ${animal.bl}</span>`;
+      if (phW < 0) return `<span class="pair-goal-badge" style="background:rgba(231,76,60,.15);color:#e74c3c;border-color:#c0392b">⚠ neg ph</span>`;
+      // Species goal match
+      const spGoals = gMap.goals || [];
+      const matchIdx = spGoals.findIndex(g => (!g.bl || g.bl === animal.bl) && (!g.ph || g.ph === animal.ph));
+      if (matchIdx >= 0) return `<span class="pair-goal-badge goal-match">✓ Goal ${matchIdx + 1}</span>`;
+      // Positively starred trait
+      if (blW > 0) return `<span class="pair-goal-badge goal-empty">${'★'.repeat(blW)} ${animal.bl}</span>`;
+      return '';
     };
 
     const pairRows = pairs.map((p, i) => {
-      const goal    = (goals.pairs || [])[i] || {};
       const mAnimal = allPairAnimals.find(a => a.name === p.m);
       const fAnimal = allPairAnimals.find(a => a.name === p.f);
       // Global exclusivity — exclude animals used anywhere else across all species
@@ -3195,12 +3366,12 @@ function renderPairs() {
         <span class="pair-num">${i+1}</span>
         <div class="pair-animal">
           <select onchange="updatePair('${$esc(sp)}',${i},'m',this.value)">${mOpts}</select>
-          ${makeBadge(mAnimal, goal)}
+          ${makeBadge(mAnimal)}
         </div>
         <span class="pair-cross">×</span>
         <div class="pair-animal">
           <select onchange="updatePair('${$esc(sp)}',${i},'f',this.value)">${fOpts}</select>
-          ${makeBadge(fAnimal, goal)}
+          ${makeBadge(fAnimal)}
         </div>
         <span class="pair-stats">${score}</span>
         <button class="pair-del-btn" onclick="deletePairRow('${$esc(sp)}',${i})" title="Delete this pair (animals set to Reserve)">×</button>
@@ -3289,6 +3460,7 @@ function renderPairs() {
       grid.appendChild(card);
     }
   }
+  requestAnimationFrame(() => applyMasonry('pairs-grid'));
 }
 
 function updatePair(sp, idx, sex, name) {
