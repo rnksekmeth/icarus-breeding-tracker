@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.7 – Inline Status & Settings
+**2026-04-05**
+
+- Inline status dropdown on every herd row — change status without opening Edit Animal
+- Status icons added throughout: ❓ Undecided, ✅ Keep, 🐣 Breed, ⚡ Temp Breed, 🔶 Reserve, 🗑️ Discard, 🪦 Dead/Culled
+- Status filter bar updated with icons; ❓ Undecided added as a filter option
+- New ⚙ Settings tab — houses data management tools in one place
+- Moved Clear All to Settings tab with explicit confirmation checkbox and final-action warning
+- Cancel button in Edit Animal form — returns to My Herd with no changes saved
+
+---
+
 ## v0.6 – Sort & Filter
 **2026-04-05**
 

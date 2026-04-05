@@ -157,6 +157,9 @@ td.total-cell{font-weight:bold;font-size:13px;}
 .filter-input{background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:3px 8px;font-size:12px;width:64px;outline:none;}
 .filter-input:focus{border-color:var(--acc);}
 th .sort-arrow{color:var(--dim);font-size:10px;margin-left:2px;opacity:.4;}
+.status-inline{background:var(--inp);border:1px solid var(--bdr);border-radius:4px;padding:3px 5px;font-size:11px;cursor:pointer;min-width:116px;outline:none;color:inherit;}
+.status-inline:hover{border-color:var(--acc);}
+.status-inline:focus{border-color:var(--acc);}
 th .sort-arrow.on{color:var(--acc);opacity:1;}
 .pairs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:16px;}
 .pair-species-card{background:var(--panel);border:1px solid var(--bdr);border-radius:8px;padding:14px;}
@@ -305,11 +308,10 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.6 – Sort & Filter</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.7 – Inline Status & Settings</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
-    <button class="btn-sm btn-danger" onclick="clearAllData()">&#x1F5D1; Clear All</button>
   </div>
 </header>
 <nav>
@@ -318,6 +320,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
   <button onclick="showTab('pairs',this)">&#x1F500; Pairs</button>
   <button onclick="showTab('goals',this)">&#x2699; Goals</button>
   <button onclick="showTab('lineage',this)">&#x1F9EC; Lineage</button>
+  <button onclick="showTab('settings',this)">&#x2699; Settings</button>
 </nav>
 <datalist id="animal-names-list"></datalist>
 
@@ -388,17 +391,18 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
   <div class="form-row" style="margin-top:4px">
     <div class="field"><label>Status</label>
       <select id="f-status">
-        <option value="?">? Undecided</option>
-        <option value="Keep">Keep</option>
-        <option value="Breed">Breed</option>
-        <option value="Temp">&#x26A1; Temp Breed</option>
-        <option value="Reserve">&#x1F4E6; Reserve</option>
-        <option value="Discard">Discard</option>
-        <option value="Dead">&#x1FAA6; Dead/Culled</option>
+        <option value="?">❓ Undecided</option>
+        <option value="Keep">✅ Keep</option>
+        <option value="Breed">🐣 Breed</option>
+        <option value="Temp">⚡ Temp Breed</option>
+        <option value="Reserve">🔶 Reserve</option>
+        <option value="Discard">🗑️ Discard</option>
+        <option value="Dead">🪦 Dead/Culled</option>
       </select></div>
     <div class="field" style="flex:1"><label>Notes</label>
       <input type="text" id="f-notes" placeholder="Optional notes&#x2026;" style="width:100%"></div>
-    <div class="field" style="justify-content:flex-end">
+    <div class="field" style="justify-content:flex-end;flex-direction:row;gap:8px">
+      <button class="btn-sm" id="cancel-edit-btn" onclick="cancelEdit()" style="display:none;height:34px;padding:0 16px">✕ Cancel</button>
       <button class="btn" id="save-btn" onclick="saveAnimal()" style="height:34px;padding:0 24px">&#x1F4BE; Save Animal</button>
     </div>
   </div>
@@ -423,11 +427,12 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
       <span class="filter-sep">|</span>
       <span class="filter-label">STATUS:</span>
       <button class="filter-btn active" data-filter-type="status" onclick="setFilter('status','all',this)">All</button>
-      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Keep',this)">Keep</button>
-      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Breed',this)">Breed</button>
-      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Temp',this)">&#x26A1; Temp</button>
-      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Reserve',this)">&#x1F4E6; Reserve</button>
-      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Discard',this)">Discard</button>
+      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','?',this)">❓ ?</button>
+      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Keep',this)">✅ Keep</button>
+      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Breed',this)">🐣 Breed</button>
+      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Temp',this)">⚡ Temp</button>
+      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Reserve',this)">🔶 Reserve</button>
+      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Discard',this)">🗑️ Discard</button>
     </div>
     <div class="filter-row">
       <span class="filter-label">SEX:</span>
@@ -532,6 +537,46 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
   </div>
 </div>
 
+<!-- ── SETTINGS ─────────────────────────────────────────────────── -->
+<div id="tab-settings" class="tab">
+  <div class="section-hdr"><h2>Settings</h2></div>
+  <div style="max-width:600px;display:flex;flex-direction:column;gap:16px;">
+
+    <div class="entry-card" style="border-color:#5a1a1a;">
+      <h2 style="color:var(--red);margin-bottom:12px;">🗑️ Clear All Data</h2>
+      <p style="color:#aaa;margin-bottom:12px;line-height:1.6;font-size:13px;">
+        Permanently deletes <strong style="color:var(--wht)">all animals, pairs, and goals</strong>.
+        Your data file will be overwritten immediately. This cannot be undone.
+      </p>
+      <div style="background:rgba(255,85,85,.08);border:1px solid #5a1a1a;border-radius:5px;padding:10px 14px;margin-bottom:14px;">
+        <span style="color:var(--red);font-size:12px;font-weight:bold;">⚠ This action is final.</span>
+        <span style="color:#aaa;font-size:12px;"> Export a CSV first if you want a backup.</span>
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;color:#bbb;font-size:13px;margin-bottom:14px;">
+        <input type="checkbox" id="clear-confirm-checkbox" onchange="updateClearBtn()" style="width:16px;height:16px;accent-color:var(--red);">
+        I understand this will permanently delete all my herd data
+      </label>
+      <button id="clear-all-btn" class="btn-danger" onclick="clearAllDataConfirmed()" disabled
+        style="padding:10px 24px;font-size:13px;font-weight:bold;opacity:.35;cursor:not-allowed;">
+        🗑️ Delete All Data
+      </button>
+    </div>
+
+    <div class="entry-card">
+      <h2 style="margin-bottom:12px;">📤 Export &amp; Import</h2>
+      <p style="color:#aaa;margin-bottom:12px;font-size:12px;line-height:1.6;">
+        Export your herd as a CSV for spreadsheet viewing or external backup.
+        Import a CSV to restore or bulk-add animals.
+      </p>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+        <label class="btn-sm" style="cursor:pointer">⬆ Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <div id="toast"></div>
 <script>
 // ── CONSTANTS ────────────────────────────────────────────────────
@@ -544,6 +589,11 @@ const RARITY_COLOR  = { base:'#aaa', uncommon:'#2ecc71', rare:'#3498db', legenda
 const RARITY_LABEL  = { base:'Base', uncommon:'Uncommon', rare:'Rare', legendary:'Legendary' };
 
 const TEMP_BOOST_MIN = 3;
+
+const STATUS_LIST  = ['?','Keep','Breed','Temp','Reserve','Discard','Dead'];
+const STATUS_ICON  = { '?':'❓', Keep:'✅', Breed:'🐣', Temp:'⚡', Reserve:'🔶', Discard:'🗑️', Dead:'🪦' };
+const STATUS_LABEL = { '?':'Undecided', Keep:'Keep', Breed:'Breed', Temp:'Temp Breed', Reserve:'Reserve', Discard:'Discard', Dead:'Dead/Culled' };
+const STATUS_COLOR = { '?':'#666', Keep:'#00cc55', Breed:'#e8a020', Temp:'#ffaa00', Reserve:'#88aaff', Discard:'#888', Dead:'#555' };
 
 // ── SPECIES DATA ─────────────────────────────────────────────────
 /**
@@ -1711,6 +1761,7 @@ function saveAnimal() {
     if (i >= 0) animals[i] = animal;
     editingId = null;
     $id('save-btn').textContent = '💾 Save Animal';
+    $id('cancel-edit-btn').style.display = 'none';
   } else {
     animals.push(animal);
     // Track phenotype sighting
@@ -1787,6 +1838,20 @@ function updateSortArrows() {
   });
 }
 
+function statusSelectHtml(a) {
+  const opts = STATUS_LIST.map(s =>
+    `<option value="${s}"${a.status === s ? ' selected' : ''}>${STATUS_ICON[s]} ${STATUS_LABEL[s]}</option>`
+  ).join('');
+  return `<select class="status-inline" style="color:${STATUS_COLOR[a.status]||'#888'}" onchange="setAnimalStatus(${a.id},this.value)">${opts}</select>`;
+}
+
+function setAnimalStatus(id, val) {
+  const a = animals.find(x => x.id === id);
+  if (!a) return;
+  a.status = val;
+  save(); renderHerd(); renderPairs();
+}
+
 function getSortVal(a, col) {
   if (col === 'total')     return getTotal(a.stats, a.sp) || 0;
   if (col === 'gen')       return a.gen || 0;
@@ -1844,9 +1909,6 @@ function renderHerd() {
   if (!list.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
 
-  const statusColor = { Keep:'#00cc55', Breed:'#e8a020', Temp:'#ffaa00', Reserve:'#88aaff',
-    Discard:'#888', Dead:'#555', '?':'#666' };
-
   tbody.innerHTML = list.map(a => {
     const spCfg    = SPECIES_DATA[a.sp] || {};
     const dot      = `<span class="species-dot" style="background:${spCfg.color||'#888'}"></span>`;
@@ -1887,7 +1949,7 @@ function renderHerd() {
       <td style="font-size:11px;color:#aaa">${parents}</td>
       ${statCells}
       <td class="total-cell" style="color:${tc};text-align:center">${dispTotal}<br><span style="font-size:10px;color:#666">${pct}%</span></td>
-      <td><span style="color:${statusColor[a.status]||'#888'}">${a.status}</span></td>
+      <td>${statusSelectHtml(a)}</td>
       <td style="white-space:nowrap">
         <button class="btn-sm" onclick="editAnimal(${a.id})" style="font-size:11px">edit</button>
         ${a.status !== 'Dead'
@@ -1935,6 +1997,7 @@ function editAnimal(id) {
   });
   updateName();
   $id('save-btn').textContent = '💾 Update Animal';
+  $id('cancel-edit-btn').style.display = '';
   showTab('entry', document.querySelector('nav button'));
   window.scrollTo(0, 0);
 }
@@ -1951,6 +2014,45 @@ function deleteAnimal(id, quiet) {
   animals = animals.filter(x => x.id !== id);
   save(); renderHerd(); renderPairs(); updateParentDatalist(); updateLineageSelector();
   showToast('Animal deleted');
+}
+
+function cancelEdit() {
+  editingId = null;
+  $id('save-btn').textContent = '💾 Save Animal';
+  $id('cancel-edit-btn').style.display = 'none';
+  STATS.forEach(s => {
+    const el = $id(`stat-${s}`);
+    if (el) { el.value = ''; el.classList.remove('maxed','zero'); }
+  });
+  ['f-p1','f-p2','f-notes'].forEach(fid => { const el = $id(fid); if (el) el.value = ''; });
+  ['pc1','pc2'].forEach(fid => { const d = $id(fid); if (d) d.classList.remove('show'); });
+  const pp = $id('prob-panel'); if (pp) pp.classList.remove('show');
+  $id('f-status').value = '?';
+  $id('generated-name').textContent = '—';
+  $id('total-val').textContent = '—';
+  $id('total-pct').textContent = '';
+  $id('advice-panel').classList.remove('show');
+  showTab('herd', document.querySelector('nav button'));
+}
+
+// ── SETTINGS HELPERS ─────────────────────────────────────────────
+function updateClearBtn() {
+  const btn = $id('clear-all-btn');
+  const cb  = $id('clear-confirm-checkbox');
+  if (!btn || !cb) return;
+  btn.disabled = !cb.checked;
+  btn.style.opacity = cb.checked ? '1' : '.35';
+  btn.style.cursor  = cb.checked ? 'pointer' : 'not-allowed';
+}
+
+function clearAllDataConfirmed() {
+  const cb = $id('clear-confirm-checkbox');
+  if (!cb?.checked) return;
+  animals = []; pairsMap = {};
+  save(); renderHerd(); renderPairs(); updateParentDatalist(); updateLineageSelector();
+  cb.checked = false;
+  updateClearBtn();
+  showToast('All data cleared');
 }
 
 // ── PAIRS ────────────────────────────────────────────────────────
@@ -2343,7 +2445,7 @@ function showTab(id, _btn) {
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   $id(`tab-${id}`).classList.add('active');
   document.querySelectorAll('nav button').forEach(b => {
-    const map = { entry:'New', herd:'Herd', pairs:'Pair', goals:'Goal', lineage:'Lineage' };
+    const map = { entry:'New', herd:'Herd', pairs:'Pair', goals:'Goal', lineage:'Lineage', settings:'Settings' };
     if (b.textContent.includes(map[id])) b.classList.add('active');
   });
   if (id === 'herd')    renderHerd();
