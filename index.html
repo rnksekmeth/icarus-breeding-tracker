@@ -422,7 +422,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.19 – Activity log & smart suggestions</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span id="app-version" style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;"></span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -1228,6 +1228,9 @@ let _saveTimer  = null;
 // v3 – no schema change (pair exclusivity was UI-only)
 // v4 – no schema change (cross-breeding was config + UI-only)
 // v5 – goals[]: species-level goals replace per-pair bl/ph; phenoWeights/blPriority extended to -3..3; statGoal added
+/** Single source of truth for the displayed app version — update this on every release. */
+const APP_VERSION  = 'v0.20r1b – Favorites, nicknames & optimizer';
+document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('app-version'); if (el) el.textContent = APP_VERSION; });
 const DATA_VERSION = 5;
 
 // The version of the data that was last loaded from disk/storage.

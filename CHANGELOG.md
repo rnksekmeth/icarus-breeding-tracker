@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.20r1b – Fix app header showing wrong version
+**2026-04-05**
+
+- Version label in the app header was not bumped during the v0.20 / v0.20r1 release, leaving it showing "v0.19"
+- Version string now driven by a single `APP_VERSION` constant in the JS — no more two places to update
+
+---
+
 ## v0.20r1 – Code revision
 **2026-04-05**
 
