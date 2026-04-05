@@ -358,7 +358,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.18 – Persistent layout</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.18c – Custom animal names</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -441,6 +441,13 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
     </div>
     <span class="copy-status" id="copy-status">&#x2713; Copied!</span>
     <button class="btn-copy" onclick="copyName(true)">&#x1F4CB; Copy</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:-4px;margin-bottom:8px;">
+    <span style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Custom name</span>
+    <input type="text" id="f-custom-name" placeholder="Leave blank to use generated name" autocomplete="off"
+      style="flex:1;background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:5px 8px;font-size:12px;font-family:monospace;outline:none;"
+      oninput="checkCustomNameDuplicate()" onfocus="this.style.borderColor='var(--acc)'" onblur="this.style.borderColor='var(--bdr)'">
+    <span id="custom-name-warn" style="font-size:11px;color:var(--red);display:none;white-space:nowrap;">&#x26A0; name already exists</span>
   </div>
   <div class="advice-panel" id="advice-panel"></div>
   <div class="form-row" style="margin-top:4px">
@@ -2119,7 +2126,12 @@ function renderAdvice() {
   results.forEach(r => {
     const goalDesc = r.goal.bl ? r.goal.bl + (r.goal.ph ? ` / ${r.goal.ph}` : '') : 'No goal set';
     const delBtn = r.currentId
-      ? `<div class="advice-actions"><button class="btn-del-inline" onclick="deleteAnimal(${r.currentId}, true)">🗑 Remove ${r.currentName}</button></div>`
+      ? `<div class="advice-actions" style="margin-top:6px;">
+          <span style="font-size:10px;color:var(--dim);margin-right:6px;">${r.currentName}:</span>
+          <button class="btn-sm" style="font-size:10px;padding:2px 7px;color:#88aaff;border-color:#88aaff;" onclick="setAdviceStatus(${r.currentId},'Reserve')">🔶 Reserve</button>
+          <button class="btn-sm" style="font-size:10px;padding:2px 7px;color:#666;border-color:#444;" onclick="setAdviceStatus(${r.currentId},'Dead')">🪦 Cull</button>
+          <button class="btn-sm" style="font-size:10px;padding:2px 7px;" onclick="setAdviceStatus(${r.currentId},'?')">❓ Undecided</button>
+         </div>`
       : '';
 
     if (r.type === 'empty') {
@@ -2397,6 +2409,15 @@ function onStatKey(e, stat) {
   }
 }
 
+function checkCustomNameDuplicate() {
+  const val  = ($id('f-custom-name')?.value || '').trim();
+  const warn = $id('custom-name-warn');
+  if (!warn) return;
+  if (!val) { warn.style.display = 'none'; return; }
+  const isDupe = animals.some(a => a.name === val && a.id !== editingId);
+  warn.style.display = isDupe ? '' : 'none';
+}
+
 function updateName() {
   const sp  = $val('f-species');
   const sex = $val('f-sex');
@@ -2512,7 +2533,13 @@ function saveAnimal() {
   }
 
   const total = getTotal(stats, sp);
-  const name  = computeName(sp, sex, bl, ph, stats, animalSpId);
+  let name  = computeName(sp, sex, bl, ph, stats, animalSpId);
+  const customName = ($id('f-custom-name')?.value || '').trim();
+  if (customName) {
+    const isDupe = animals.some(a => a.name === customName && a.id !== editingId);
+    if (isDupe) { showToast(`⚠ "${customName}" already exists — choose a different name`); return; }
+    name = customName;
+  }
 
   const animal = { id, spId: animalSpId, sp, sex, bl, ph, gen, p1, p2, stats, total, name, status, notes };
 
@@ -2543,10 +2570,13 @@ function saveAnimal() {
     const el = $id(`stat-${s}`);
     if (el) { el.value = ''; el.classList.remove('maxed','zero'); }
   });
-  ['f-p1','f-p2','f-notes'].forEach(fid => { const el = $id(fid); if (el) el.value = ''; });
+  ['f-p1','f-p2','f-notes','f-custom-name'].forEach(fid => { const el = $id(fid); if (el) el.value = ''; });
+  const _cw = $id('custom-name-warn'); if (_cw) _cw.style.display = 'none';
   ['pc1','pc2'].forEach(fid => { const d = $id(fid); if (d) d.classList.remove('show'); });
   const pp = $id('prob-panel'); if (pp) pp.classList.remove('show');
   $id('f-status').value = '?';
+  const cnEl = $id('f-custom-name'); if (cnEl) cnEl.value = '';
+  const cwEl = $id('custom-name-warn'); if (cwEl) cwEl.style.display = 'none';
   $id('generated-name').textContent = '—';
   $id('total-val').textContent = '—';
   $id('total-pct').textContent = '';
@@ -2774,6 +2804,13 @@ function editAnimal(id) {
     if (el) { el.value = a.stats[s] || 0; onStatInput(el, s); }
   });
   updateName();
+  // Pre-fill custom name field if the saved name differs from the auto-generated one
+  const cnField = $id('f-custom-name');
+  if (cnField) {
+    const computed = computeName(a.sp, a.sex, a.bl, a.ph, a.stats, a.spId);
+    cnField.value = a.name !== computed ? a.name : '';
+    checkCustomNameDuplicate();
+  }
   $id('save-btn').textContent = '💾 Update Animal';
   $id('cancel-edit-btn').style.display = '';
   showTab('entry', document.querySelector('nav button'));
@@ -2785,6 +2822,19 @@ function editAnimal(id) {
  * @param {number} id - animal id
  * @param {boolean} quiet - if true, skip confirmation (used from advice panel)
  */
+function setAdviceStatus(id, status) {
+  const a = animals.find(x => x.id === id);
+  if (!a) return;
+  a.status = status;
+  save();
+  renderHerd(); renderPairs();
+  const label = STATUS_LABEL[status] || status;
+  showToast(`${a.name} → ${STATUS_ICON[status]} ${label}`);
+  // Re-run advice panel so the buttons disappear now the action is taken
+  const panel = $id('advice-panel');
+  if (panel && panel.classList.contains('show')) buildBreedingAdvice();
+}
+
 function deleteAnimal(id, quiet) {
   const a = animals.find(x => x.id === id);
   if (!a) return;
@@ -2806,6 +2856,8 @@ function cancelEdit() {
   ['pc1','pc2'].forEach(fid => { const d = $id(fid); if (d) d.classList.remove('show'); });
   const pp = $id('prob-panel'); if (pp) pp.classList.remove('show');
   $id('f-status').value = '?';
+  const cnEl = $id('f-custom-name'); if (cnEl) cnEl.value = '';
+  const cwEl = $id('custom-name-warn'); if (cwEl) cwEl.style.display = 'none';
   $id('generated-name').textContent = '—';
   $id('total-val').textContent = '—';
   $id('total-pct').textContent = '';
@@ -2823,6 +2875,8 @@ function clearEntryForm() {
   ['pc1','pc2'].forEach(fid => { const d = $id(fid); if (d) d.classList.remove('show'); });
   const pp = $id('prob-panel'); if (pp) pp.classList.remove('show');
   $id('f-status').value = '?';
+  const cnEl = $id('f-custom-name'); if (cnEl) cnEl.value = '';
+  const cwEl = $id('custom-name-warn'); if (cwEl) cwEl.style.display = 'none';
   $id('generated-name').textContent = '—';
   $id('total-val').textContent = '—';
   $id('total-pct').textContent = '';

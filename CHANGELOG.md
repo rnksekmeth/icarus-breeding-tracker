@@ -4,6 +4,23 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.18c – Custom animal names
+**2026-04-05**
+
+- New Animal + Edit Animal: optional "Custom name" field below the generated name — leave blank to use the auto-generated name, or type any override
+- Duplicate name check fires as you type; save is blocked if the name already belongs to another animal
+- When editing an animal whose name was previously customised, the custom name field is pre-filled automatically
+
+---
+
+## v0.18b – Advice panel actions
+**2026-04-05**
+
+- Breeding advice panel (New Animal tab): replaced the "🗑 Remove" button with three status actions — 🔶 Reserve, 🪦 Cull, ❓ Undecided
+- The displaced animal is never deleted; choosing an action sets its status and refreshes the panel immediately
+
+---
+
 ## v0.18 – Persistent layout
 **2026-04-05**
 
