@@ -174,7 +174,7 @@ th .sort-arrow{color:var(--dim);font-size:10px;margin-left:2px;opacity:.4;}
 .pa-radio-group label{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:#bbb;}
 .pa-radio-group label:hover{color:var(--wht);}
 th .sort-arrow.on{color:var(--acc);opacity:1;}
-.pairs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:16px;}
+.pairs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:16px;align-items:start;}
 .pair-species-card{background:var(--panel);border:1px solid var(--bdr);border-radius:8px;padding:14px;}
 .pair-species-card h3{font-size:13px;margin-bottom:10px;color:var(--acc);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:8px;}
 .pair-species-card.collapsed .pair-card-body{display:none;}
@@ -221,8 +221,11 @@ th .sort-arrow.on{color:var(--acc);opacity:1;}
 .upg-action.ok{color:var(--dim);}
 .pairs-controls{display:flex;align-items:center;gap:6px;margin-left:auto;}
 .pairs-count{font-size:11px;color:var(--dim);}
-.goals-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;}
+.goals-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;align-items:start;}
 .goals-card{background:var(--panel);border:1px solid var(--bdr);border-radius:8px;padding:14px;}
+.goals-card.collapsed{padding-bottom:10px;}
+.goals-card.collapsed .goals-card-body{display:none;}
+.goals-card.collapsed h3{margin-bottom:0;}
 .goals-card h3{font-size:13px;color:var(--acc);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
 .goals-shortcode{font-size:11px;background:var(--card);border:1px solid var(--bdr);color:#aaa;padding:1px 7px;border-radius:4px;font-family:monospace;font-weight:bold;}
 .goals-section{margin-bottom:14px;}
@@ -231,6 +234,10 @@ th .sort-arrow.on{color:var(--acc);opacity:1;}
 .goals-section-hdr:hover{color:#aaa;}
 .gs-arrow{font-size:9px;opacity:.7;flex-shrink:0;}
 .gs-body.collapsed{display:none;}
+.chips-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.chips-row:empty{display:none;}
+.species-chip{background:var(--panel);border:1px solid var(--bdr);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--acc);text-transform:uppercase;letter-spacing:.8px;cursor:default;flex-shrink:0;}
+.species-chip .pairs-collapse-btn{margin-left:4px;}
 .goal-pair-row{display:flex;gap:8px;align-items:center;margin-bottom:5px;}
 .goal-pair-label{color:var(--dim);font-size:11px;min-width:46px;}
 .goal-pair-row select{background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:4px 6px;font-size:12px;flex:1;outline:none;}
@@ -343,7 +350,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.15 – Goals Sections & Width Toggle</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.16 – Chips & Dynamic Height</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -533,6 +540,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
     <button class="btn-sm" onclick="addPairFromTopBar()" style="white-space:nowrap">+ Add Pair Slot</button>
     <span style="color:var(--dim);font-size:11px;margin-left:4px">&#x26A1; = Temp breeder &nbsp;|&nbsp; use <b style="color:var(--grn)">+</b> / <b style="color:var(--red)">&#x2212;</b> per card to change slot count</span>
   </div>
+  <div class="chips-row" id="pairs-chips-row"></div>
   <div class="pairs-grid" id="pairs-grid"></div>
 </div>
 
@@ -542,6 +550,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
   <p style="color:var(--dim);font-size:12px;margin-bottom:14px">
     Set the <b style="color:var(--red)">breed-out stat</b> (default: VIG). Animals that can't be ridden or don't produce resources &#x2192; breed out INS instead. Then set pair goals and star-weight phenotypes/bloodlines.
   </p>
+  <div class="chips-row" id="goals-chips-row"></div>
   <div class="goals-grid" id="goals-grid"></div>
 </div>
 
@@ -804,7 +813,8 @@ let filterBloodline = 'all', filterPhenotype = 'all', filterMinTotal = 0;
 let showDead = false, showStation = false;
 let editingId = null;
 const collapsedPairSpecies  = new Set(); // in-memory; resets on reload
-const collapsedGoalSections = new Set(); // keys: "${sp}::${sectionId}"
+const collapsedGoalCards    = new Set(); // card-level collapse per species in Goals
+const collapsedGoalSections = new Set(); // section-level collapse keys: "${sp}::${sectionId}"
 
 // ── DOM HELPERS ──────────────────────────────────────────────────
 const $id  = id  => document.getElementById(id);
@@ -1351,6 +1361,12 @@ function togglePairCollapse(sp) {
   renderPairs();
 }
 
+function toggleGoalCard(sp) {
+  if (collapsedGoalCards.has(sp)) collapsedGoalCards.delete(sp);
+  else collapsedGoalCards.add(sp);
+  renderGoals();
+}
+
 function toggleGoalSection(sp, secId) {
   const key = `${sp}::${secId}`;
   if (collapsedGoalSections.has(key)) collapsedGoalSections.delete(key);
@@ -1601,6 +1617,8 @@ function renderGoals() {
   if (!grid) return;
   initGoals();
   grid.innerHTML = '';
+  const goalsChips = $id('goals-chips-row');
+  if (goalsChips) goalsChips.innerHTML = '';
 
   for (const sp of getSpeciesOrder()) {
     const cfg = SPECIES_DATA[sp];
@@ -1609,7 +1627,8 @@ function renderGoals() {
     const n = pairCounts[sp] || cfg.defaultPairs;
     const card = document.createElement('div');
     const isWide = cardWidths[sp] === 2;
-    card.className = 'goals-card' + (isWide ? ' span-2' : '');
+    const isGoalCardCollapsed = collapsedGoalCards.has(sp);
+    card.className = 'goals-card' + (isWide ? ' span-2' : '') + (isGoalCardCollapsed ? ' collapsed' : '');
     card.draggable = true;
     card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', sp); e.dataTransfer.effectAllowed = 'move'; });
     card.addEventListener('dragover',  e => { e.preventDefault(); card.style.outline = '2px dashed var(--acc)'; });
@@ -1698,40 +1717,62 @@ function renderGoals() {
         <span class="species-dot" style="background:${cfg.color}"></span>${sp}
         <span class="goals-shortcode">${cfg.short}</span>
         <button class="card-width-btn" onclick="toggleCardWidth('${$esc(sp)}')" title="Toggle Narrow/Wide">${isWide ? '◧ Narrow' : '▣ Wide'}</button>
+        <button class="pairs-collapse-btn" onclick="toggleGoalCard('${$esc(sp)}')" style="margin-left:auto">${isGoalCardCollapsed ? '▶ Show' : '▼ Hide'}</button>
       </h3>
-      <div class="goals-section">
-        ${gsHdr('breedout','Breed-Out Stat (target = 0, excluded from score &amp; name)')}
-        ${gsBody('breedout',`<div class="breedout-row">
-          <span style="color:var(--dim);font-size:11px;min-width:80px">Breed to 0:</span>
-          <select class="breedout-select" onchange="updateGoalBreedOut('${$esc(sp)}',this.value)">${boOpts}</select>
-          <span style="font-size:11px;color:var(--dim);margin-left:8px">Default: VIG &nbsp;&#x2022;&nbsp; Non-rideable: try INS</span>
-        </div>`)}
-      </div>
-      <div class="goals-section">
-        ${gsHdr('pairs','Pair Goals — Bloodline × Phenotype')}
-        ${gsBody('pairs', pairRows)}
-      </div>
-      <div class="goals-section">
-        ${gsHdr('pheno','Phenotype Priority ★★★')}
-        ${gsBody('pheno', phenoRows)}
-      </div>
-      <div class="goals-section">
-        ${gsHdr('bloodline','Bloodline Priority ★★★')}
-        ${gsBody('bloodline', blRows)}
-      </div>
-      <div class="goals-section">
-        ${gsHdr('pheno-sightings','Phenotype Sightings <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal;text-transform:none;letter-spacing:0">🌿 = tamed (wild-caught, no lineage) &nbsp; 🧬 = bred (has parents)</span>')}
-        ${gsBody('pheno-sightings',`<div class="pheno-sightings">${sightingRows}</div>`)}
-      </div>
-      <div class="goals-section">
-        ${gsHdr('bl-sightings','Bloodline Sightings <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal;text-transform:none;letter-spacing:0">🌿 = tamed &nbsp; 🧬 = bred &nbsp; Only shows bloodlines you\'ve recorded</span>')}
-        ${gsBody('bl-sightings',`<div class="pheno-sightings">${blSightingRows}</div>`)}
-      </div>
-      <div class="goals-section">
-        ${gsHdr('suggestions','Breeding Suggestions <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal;text-transform:none;letter-spacing:0">based on your priority stars above</span>')}
-        ${gsBody('suggestions',`<div class="suggestion-panel">${renderSuggestions(sp)}</div>`)}
+      <div class="goals-card-body">
+        <div class="goals-section">
+          ${gsHdr('breedout','Breed-Out Stat (target = 0, excluded from score &amp; name)')}
+          ${gsBody('breedout',`<div class="breedout-row">
+            <span style="color:var(--dim);font-size:11px;min-width:80px">Breed to 0:</span>
+            <select class="breedout-select" onchange="updateGoalBreedOut('${$esc(sp)}',this.value)">${boOpts}</select>
+            <span style="font-size:11px;color:var(--dim);margin-left:8px">Default: VIG &nbsp;&#x2022;&nbsp; Non-rideable: try INS</span>
+          </div>`)}
+        </div>
+        <div class="goals-section">
+          ${gsHdr('pairs','Pair Goals — Bloodline × Phenotype')}
+          ${gsBody('pairs', pairRows)}
+        </div>
+        <div class="goals-section">
+          ${gsHdr('pheno','Phenotype Priority ★★★')}
+          ${gsBody('pheno', phenoRows)}
+        </div>
+        <div class="goals-section">
+          ${gsHdr('bloodline','Bloodline Priority ★★★')}
+          ${gsBody('bloodline', blRows)}
+        </div>
+        <div class="goals-section">
+          ${gsHdr('pheno-sightings','Phenotype Sightings <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal;text-transform:none;letter-spacing:0">🌿 = tamed (wild-caught, no lineage) &nbsp; 🧬 = bred (has parents)</span>')}
+          ${gsBody('pheno-sightings',`<div class="pheno-sightings">${sightingRows}</div>`)}
+        </div>
+        <div class="goals-section">
+          ${gsHdr('bl-sightings','Bloodline Sightings <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal;text-transform:none;letter-spacing:0">🌿 = tamed &nbsp; 🧬 = bred &nbsp; Only shows bloodlines you\'ve recorded</span>')}
+          ${gsBody('bl-sightings',`<div class="pheno-sightings">${blSightingRows}</div>`)}
+        </div>
+        <div class="goals-section">
+          ${gsHdr('suggestions','Breeding Suggestions <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal;text-transform:none;letter-spacing:0">based on your priority stars above</span>')}
+          ${gsBody('suggestions',`<div class="suggestion-panel">${renderSuggestions(sp)}</div>`)}
+        </div>
       </div>`;
-    grid.appendChild(card);
+
+    if (isGoalCardCollapsed && goalsChips) {
+      // Collapsed → compact chip
+      const chip = document.createElement('div');
+      chip.className = 'species-chip';
+      chip.draggable = true;
+      chip.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', sp); e.dataTransfer.effectAllowed = 'move'; });
+      chip.addEventListener('dragover',  e => { e.preventDefault(); chip.style.outline = '2px dashed var(--acc)'; });
+      chip.addEventListener('dragleave', () => chip.style.outline = '');
+      chip.addEventListener('drop', e => { e.preventDefault(); chip.style.outline = ''; reorderSpecies(e.dataTransfer.getData('text/plain'), sp); });
+      chip.innerHTML = `
+        <span class="card-drag-handle" title="Drag to reorder">⠿</span>
+        <span class="species-dot" style="background:${cfg.color}"></span>${sp}
+        <span class="goals-shortcode">${cfg.short}</span>
+        <button class="card-width-btn" onclick="toggleCardWidth('${$esc(sp)}')" title="Toggle Narrow/Wide">${isWide ? '◧ Narrow' : '▣ Wide'}</button>
+        <button class="pairs-collapse-btn" onclick="toggleGoalCard('${$esc(sp)}')">▶ Show</button>`;
+      goalsChips.appendChild(chip);
+    } else {
+      grid.appendChild(card);
+    }
   }
 }
 
@@ -3064,7 +3105,9 @@ function clearAllDataConfirmed() {
 function renderPairs() {
   initPairs(); initGoals();
   const grid = $id('pairs-grid');
+  const chipsRow = $id('pairs-chips-row');
   grid.innerHTML = '';
+  if (chipsRow) chipsRow.innerHTML = '';
 
   // Build a global set of used animal names (for cross-species exclusivity)
   const globalUsed = (slot_sp, slot_idx) => {
@@ -3088,14 +3131,7 @@ function renderPairs() {
     if (cur) addSel.value = cur;
   }
 
-  // Sort: uncollapsed first, collapsed last
-  const pairSpeciesOrder = getSpeciesOrder().sort((a, b) => {
-    const ac = collapsedPairSpecies.has(a) ? 1 : 0;
-    const bc = collapsedPairSpecies.has(b) ? 1 : 0;
-    return ac - bc;
-  });
-
-  for (const sp of pairSpeciesOrder) {
+  for (const sp of getSpeciesOrder()) {
     const cfg = SPECIES_DATA[sp];
     if (!cfg) continue;
     const n = pairCounts[sp] || 1;
@@ -3200,30 +3236,58 @@ function renderPairs() {
       </div>` : '';
 
     const isCollapsed = collapsedPairSpecies.has(sp);
-    card.innerHTML = `
-      <h3>
+
+    if (isCollapsed && chipsRow) {
+      // Render as a compact chip in the chips row
+      const chip = document.createElement('div');
+      chip.className = 'species-chip';
+      chip.draggable = true;
+      chip.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', sp); e.dataTransfer.effectAllowed = 'move'; });
+      chip.addEventListener('dragover',  e => { e.preventDefault(); chip.style.outline = '2px dashed var(--acc)'; });
+      chip.addEventListener('dragleave', () => chip.style.outline = '');
+      chip.addEventListener('drop', e => { e.preventDefault(); chip.style.outline = ''; reorderSpecies(e.dataTransfer.getData('text/plain'), sp); });
+      chip.innerHTML = `
         <span class="card-drag-handle" title="Drag to reorder">⠿</span>
-        <span class="species-dot" style="background:${cfg.color}"></span>${sp} <span class="goals-shortcode">${cfg.short}</span>
-        <span style="font-size:10px;color:#888;font-weight:normal;text-transform:none;margin-left:4px">breed out: <span style="color:var(--red)">${bo}</span></span>
+        <span class="species-dot" style="background:${cfg.color}"></span>${sp}
+        <span class="goals-shortcode">${cfg.short}</span>
+        <span style="font-size:10px;color:#888;font-weight:normal;text-transform:none">breed out: <span style="color:var(--red)">${bo}</span></span>
         <a href="${cfg.wiki}" target="_blank" title="Open ${sp} wiki page"
-          style="font-size:10px;color:#5bc8d4;text-decoration:none;font-weight:normal;text-transform:none;margin-left:8px;border:1px solid #2a4a6a;padding:1px 7px;border-radius:4px;">📖 Wiki</a>
+          style="font-size:10px;color:#5bc8d4;text-decoration:none;font-weight:normal;text-transform:none;border:1px solid #2a4a6a;padding:1px 7px;border-radius:4px;">📖 Wiki</a>
         <button class="card-width-btn" onclick="toggleCardWidth('${$esc(sp)}')" title="Toggle Narrow/Wide">${isWide ? '◧ Narrow' : '▣ Wide'}</button>
         <span class="pairs-controls">
           <span class="pairs-count">${n} pair${n>1?'s':''}</span>
           <button class="btn-add" onclick="addPairSlot('${$esc(sp)}')">+</button>
           <button class="btn-rem" onclick="removePairSlot('${$esc(sp)}')">−</button>
-          <button class="pairs-collapse-btn" onclick="togglePairCollapse('${$esc(sp)}')">${isCollapsed ? '▶ Show' : '▼ Hide'}</button>
-        </span>
-      </h3>
-      <div class="pair-card-body">
-        ${crossNote}
-        ${pairRows}
-        <div class="upgrade-box">
-          <div style="color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Stat Upgrade Recommendations</div>
-          ${upgHtml}
-        </div>
-      </div>`;
-    grid.appendChild(card);
+          <button class="pairs-collapse-btn" onclick="togglePairCollapse('${$esc(sp)}')">▶ Show</button>
+        </span>`;
+      chipsRow.appendChild(chip);
+    } else {
+      card.className = 'pair-species-card' + (isWide ? ' span-2' : '');
+      card.innerHTML = `
+        <h3>
+          <span class="card-drag-handle" title="Drag to reorder">⠿</span>
+          <span class="species-dot" style="background:${cfg.color}"></span>${sp} <span class="goals-shortcode">${cfg.short}</span>
+          <span style="font-size:10px;color:#888;font-weight:normal;text-transform:none;margin-left:4px">breed out: <span style="color:var(--red)">${bo}</span></span>
+          <a href="${cfg.wiki}" target="_blank" title="Open ${sp} wiki page"
+            style="font-size:10px;color:#5bc8d4;text-decoration:none;font-weight:normal;text-transform:none;margin-left:8px;border:1px solid #2a4a6a;padding:1px 7px;border-radius:4px;">📖 Wiki</a>
+          <button class="card-width-btn" onclick="toggleCardWidth('${$esc(sp)}')" title="Toggle Narrow/Wide">${isWide ? '◧ Narrow' : '▣ Wide'}</button>
+          <span class="pairs-controls">
+            <span class="pairs-count">${n} pair${n>1?'s':''}</span>
+            <button class="btn-add" onclick="addPairSlot('${$esc(sp)}')">+</button>
+            <button class="btn-rem" onclick="removePairSlot('${$esc(sp)}')">−</button>
+            <button class="pairs-collapse-btn" onclick="togglePairCollapse('${$esc(sp)}')">▼ Hide</button>
+          </span>
+        </h3>
+        <div class="pair-card-body">
+          ${crossNote}
+          ${pairRows}
+          <div class="upgrade-box">
+            <div style="color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Stat Upgrade Recommendations</div>
+            ${upgHtml}
+          </div>
+        </div>`;
+      grid.appendChild(card);
+    }
   }
 }
 

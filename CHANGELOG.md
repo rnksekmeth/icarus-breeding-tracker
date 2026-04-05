@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.16 – Chips & Dynamic Height
+**2026-04-05**
+
+- Pairs & Goals: collapsed cards now render as compact inline chips above the grid instead of occupying a full grid column — multiple chips sit side-by-side
+- Goals: added card-level ▼ Hide / ▶ Show button (matching Pairs behavior); collapsed state is per-species, in-memory
+- Both grids now use `align-items: start` so each card only takes as much vertical space as its actual content — collapsing a section immediately shrinks the card
+- Chips are draggable for reordering, same as full cards
+
+---
+
 ## v0.15 – Goals Sections & Width Toggle
 **2026-04-05**
 
