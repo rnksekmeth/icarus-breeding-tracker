@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.12 – Sightings, Pairs & Filters
+**2026-04-05**
+
+- Share Your Herd: phenotype now colored by rarity (grey/green/blue/orange); bloodline now colored with a fixed per-bloodline palette (same system used throughout the app)
+- Goals: editing an animal now correctly adjusts bloodline and phenotype sighting counts — changing Alpha → Savage decrements Alpha and increments Savage; isBred flag changes (adding/removing parents) are also handled
+- Pairs: each pair row now has a red × delete button — removes that specific pair regardless of position, and automatically sets both animals in the pair to 🔶 Reserve
+- My Herd: phenotype filter pills now show positional labels only (Base, P1, P2…) so cross-species filtering works correctly — selecting P1 shows all P1 animals regardless of species; "Dune Raptor (base)" and "Normal (base)" both appear as "Base"
+
+---
+
 ## v0.11 – Quality of Life
 **2026-04-05**
 

@@ -182,6 +182,8 @@ th .sort-arrow.on{color:var(--acc);opacity:1;}
 .pairs-collapse-btn{background:none;border:1px solid var(--bdr);color:var(--dim);border-radius:4px;padding:1px 7px;font-size:11px;cursor:pointer;margin-left:4px;line-height:1.4;}
 .pairs-collapse-btn:hover{color:var(--wht);border-color:#888;}
 .pair-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;padding:6px 8px;background:var(--card);border-radius:5px;}
+.pair-del-btn{background:none;border:1px solid var(--red2);color:var(--red);border-radius:4px;padding:2px 7px;font-size:13px;cursor:pointer;margin-top:4px;flex-shrink:0;line-height:1.3;}
+.pair-del-btn:hover{background:var(--red2);}
 .pair-num{color:var(--dim);font-size:11px;min-width:20px;padding-top:7px;}
 .pair-animal{flex:1;display:flex;flex-direction:column;gap:3px;}
 .pair-animal select{width:100%;background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:4px 6px;font-size:12px;outline:none;}
@@ -325,7 +327,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.11 – Quality of Life</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.12 – Sightings, Pairs & Filters</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -669,6 +671,13 @@ const RARITY_FROM_WEIGHT = w => w >= 2000 ? 'base' : w >= 50 ? 'uncommon' : w >=
 const RARITY_COLOR  = { base:'#aaa', uncommon:'#2ecc71', rare:'#3498db', legendary:'#e67e22' };
 const RARITY_LABEL  = { base:'Base', uncommon:'Uncommon', rare:'Rare', legendary:'Legendary' };
 
+// Fixed colors per bloodline — used in share image and tooltips
+const BLOODLINE_COLOR = {
+  Wild:'#5dbb63', Brave:'#e74c3c', Careful:'#f1c40f', Timid:'#85c1e9',
+  Bold:'#e67e22', Hardy:'#a07850', Stout:'#9b59b6', Ambitious:'#ffd700',
+  Resolute:'#1abc9c', Unstable:'#e91e96', Savage:'#c0392b', Alpha:'#f5f5dc',
+};
+
 const TEMP_BOOST_MIN = 3;
 
 const STATUS_LIST  = ['?','Keep','Breed','Temp','Reserve','Station','Discard','Dead'];
@@ -814,6 +823,20 @@ function phenoNameSuffix(sp, label) {
   if (!cfg) return '';
   const idx = cfg.phenotypes.findIndex(p => p.label === label);
   return idx > 0 ? ` P${idx}` : '';
+}
+
+/**
+ * Returns a positional filter label for a phenotype — used in filter pills so
+ * cross-species phenotypes can be compared (all P1s together, all bases as "Base").
+ * Always returns 'Base' for index 0, 'P1'..'PN' for higher indices.
+ */
+function getPhenoFilterLabel(sp, label) {
+  if (!label) return null;
+  const cfg = SPECIES_DATA[sp];
+  if (!cfg) return label;
+  const idx = cfg.phenotypes.findIndex(p => p.label === label);
+  if (idx < 0) return label;
+  return idx === 0 ? 'Base' : `P${idx}`;
 }
 
 /** Color for a phenotype label */
@@ -1255,6 +1278,30 @@ function trackBloodline(sp, bloodline, isBred) {
   savePhenoStats(); // reuses same save path (already saves blStats)
 }
 
+/**
+ * Called on edit-save when bloodline or phenotype may have changed.
+ * Decrements the old value and increments the new value.
+ * Handles both the bloodline/phenotype change AND a change in isBred status.
+ */
+function adjustSightingsOnEdit(sp, oldBl, newBl, oldPh, newPh, oldIsBred, newIsBred) {
+  const decrement = (map, key, wasBred) => {
+    if (!key || !map[sp]?.[key]) return;
+    const field = wasBred ? 'bred' : 'tamed';
+    map[sp][key][field] = Math.max(0, (map[sp][key][field] || 0) - 1);
+  };
+  // Bloodline
+  if (oldBl !== newBl || oldIsBred !== newIsBred) {
+    decrement(blStats, oldBl, oldIsBred);
+    trackBloodline(sp, newBl, newIsBred);
+  }
+  // Phenotype
+  if (oldPh !== newPh || oldIsBred !== newIsBred) {
+    decrement(phenoStats, oldPh, oldIsBred);
+    trackPhenotype(sp, newPh, newIsBred);
+  }
+  savePhenoStats();
+}
+
 // ── PAIR COUNTS ──────────────────────────────────────────────────
 function initPairCounts() {
   for (const [sp, cfg] of Object.entries(SPECIES_DATA)) {
@@ -1301,6 +1348,27 @@ function removePairSlot(sp) {
   if (goalsMap[sp]?.pairs) goalsMap[sp].pairs = goalsMap[sp].pairs.slice(0, pairCounts[sp]);
   save(); saveGoals(); renderPairs();
   showToast(`Removed pair ${n} from ${sp}`);
+}
+
+function deletePairRow(sp, idx) {
+  if (!pairsMap[sp] || !pairsMap[sp][idx]) return;
+  const pair = pairsMap[sp][idx];
+  // Set animals in the pair to Reserve
+  const setReserve = name => {
+    if (!name) return;
+    const a = animals.find(a => a.name === name);
+    if (a && a.status !== 'Dead' && a.status !== 'Station') {
+      a.status = 'Reserve';
+    }
+  };
+  setReserve(pair.m);
+  setReserve(pair.f);
+  // Remove the pair from the array and decrement count
+  pairsMap[sp].splice(idx, 1);
+  pairCounts[sp] = Math.max(0, (pairCounts[sp] || 1) - 1);
+  if (goalsMap[sp]?.pairs) goalsMap[sp].pairs.splice(idx, 1);
+  save(); saveGoals(); renderHerd(); renderPairs();
+  showToast(`Pair ${idx + 1} deleted — animals set to 🔶 Reserve`);
 }
 
 // ── GOALS ────────────────────────────────────────────────────────
@@ -1911,6 +1979,14 @@ function saveAnimal() {
   const p2 = resolveParent(p2raw);
   const isBred = (p1 && p1 !== 'Unknown') || (p2 && p2 !== 'Unknown');
 
+  // Capture old state before overwriting (used for sighting adjustment on edit)
+  const oldAnimal = editingId ? animals.find(a => a.id === editingId) : null;
+  const oldBl = oldAnimal?.bl || '';
+  const oldPh = oldAnimal?.ph || '';
+  const oldP1 = oldAnimal?.p1 || '';
+  const oldP2 = oldAnimal?.p2 || '';
+  const oldIsBred = oldAnimal ? ((oldP1 && oldP1 !== 'Unknown') || (oldP2 && oldP2 !== 'Unknown')) : false;
+
   let id, animalSpId;
   if (editingId) {
     id = editingId;
@@ -1932,6 +2008,8 @@ function saveAnimal() {
     editingId = null;
     $id('save-btn').textContent = '💾 Save Animal';
     $id('cancel-edit-btn').style.display = 'none';
+    // Adjust sighting counters for any changes made during edit
+    adjustSightingsOnEdit(sp, oldBl, bl, oldPh, ph, oldIsBred, isBred);
   } else {
     animals.push(animal);
     // Track phenotype + bloodline sightings
@@ -2071,7 +2149,7 @@ function renderHerd() {
       vals.map(makeBtn).join('');
   };
   buildDynamicPills('filter-bloodline-pills', 'bloodline', filterBloodline, a => a.bl);
-  buildDynamicPills('filter-phenotype-pills', 'phenotype', filterPhenotype, a => a.ph ? phenoDisplay(a.sp, a.ph) || a.ph : null);
+  buildDynamicPills('filter-phenotype-pills', 'phenotype', filterPhenotype, a => a.ph ? getPhenoFilterLabel(a.sp, a.ph) : null);
 
   // ── Apply filters ─────────────────────────────────────────────────
   if (!showDead)     list = list.filter(a => a.status !== 'Dead');
@@ -2080,7 +2158,7 @@ function renderHerd() {
   if (filterStatus    !== 'all') list = list.filter(a => a.status === filterStatus);
   if (filterSex       !== 'all') list = list.filter(a => a.sex === filterSex);
   if (filterBloodline !== 'all') list = list.filter(a => a.bl === filterBloodline);
-  if (filterPhenotype !== 'all') list = list.filter(a => (a.ph ? phenoDisplay(a.sp, a.ph) || a.ph : null) === filterPhenotype);
+  if (filterPhenotype !== 'all') list = list.filter(a => (a.ph ? getPhenoFilterLabel(a.sp, a.ph) : null) === filterPhenotype);
   if (filterMinTotal  > 0)       list = list.filter(a => getTotal(a.stats, a.sp) >= filterMinTotal);
 
   updateSortArrows();
@@ -2584,10 +2662,10 @@ async function shareHerd() {
     if (name !== animal.name) name += '…';
     ctx.fillText(name, x + 12, y + 32);
 
-    // Bloodline
-    ctx.fillStyle = '#7799bb';
+    // Bloodline (colored per BLOODLINE_COLOR)
+    ctx.fillStyle = BLOODLINE_COLOR[animal.bl] || '#7799bb';
     ctx.font = '11px system-ui, sans-serif';
-    ctx.fillText(animal.bloodline || '—', x + 12, y + 47);
+    ctx.fillText(animal.bl || '—', x + 12, y + 47);
 
     // Divider
     ctx.strokeStyle = '#1e3a5a';
@@ -2614,12 +2692,13 @@ async function shareHerd() {
     ctx.font = 'bold 13px system-ui, sans-serif';
     ctx.fillText('Σ ' + tot, x + 12, y + CH - 10);
 
-    // Phenotype
-    ctx.fillStyle = '#9977bb';
+    // Phenotype (colored by rarity)
+    ctx.fillStyle = phenoColor(animal.sp, animal.ph) || '#9977bb';
     ctx.font = '10px system-ui, sans-serif';
-    let phen = animal.phenotype || '';
-    while (ctx.measureText(phen).width > 110 && phen.length > 3) phen = phen.slice(0,-1);
-    if (phen !== animal.phenotype) phen += '…';
+    const phenDisp = phenoDisplay(animal.sp, animal.ph) || (animal.ph ? 'Base' : '');
+    let phen = phenDisp;
+    while (ctx.measureText(phen).width > 100 && phen.length > 3) phen = phen.slice(0,-1);
+    if (phen !== phenDisp) phen += '…';
     ctx.textAlign = 'right';
     ctx.fillText(phen, x + CW - 8, y + CH - 10);
     ctx.textAlign = 'left';
@@ -2755,15 +2834,16 @@ function renderPairs() {
       return `<div class="pair-row">
         <span class="pair-num">${i+1}</span>
         <div class="pair-animal">
-          <select onchange="updatePair('${sp}',${i},'m',this.value)">${mOpts}</select>
+          <select onchange="updatePair('${$esc(sp)}',${i},'m',this.value)">${mOpts}</select>
           ${makeBadge(mAnimal, goal)}
         </div>
         <span class="pair-cross">×</span>
         <div class="pair-animal">
-          <select onchange="updatePair('${sp}',${i},'f',this.value)">${fOpts}</select>
+          <select onchange="updatePair('${$esc(sp)}',${i},'f',this.value)">${fOpts}</select>
           ${makeBadge(fAnimal, goal)}
         </div>
         <span class="pair-stats">${score}</span>
+        <button class="pair-del-btn" onclick="deletePairRow('${$esc(sp)}',${i})" title="Delete this pair (animals set to Reserve)">×</button>
       </div>`;
     }).join('');
 
