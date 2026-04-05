@@ -4,10 +4,16 @@ All notable changes to this project are documented here.
 
 ---
 
-## v0.21b – Optimizer improvements
+## v0.21c – Optimizer & stability fixes
 **2026-04-05**
 
-- Apply button feedback, auto-close, and naming fixes (see v0.21 for main feature list)
+- **Critical fix: saveAndRefresh broken** — a prior patch accidentally replaced the bodies of `saveAndRefresh` and `saveAndRefreshFull` with recursive self-calls; every save threw a silent stack overflow, so the UI never re-rendered after any operation (data was saved correctly, but the herd/pairs view only updated on the next tab switch)
+- **Fix cross-breed native constraint** — Phase 3 now tries both sexes when enforcing the native-animal rule; previously if no native of the preferred sex was available it silently gave up, leaving both pair slots filled with cross-species animals
+- **Fix optimizer Apply button feedback** — button visual update (✓ Applied, disabled) now happens before `saveAndRefresh()` so re-renders cannot clobber it; individual Apply buttons also show a toast confirmation
+- **Fix optimizer auto-close** — switched from unreliable DOM button query to an explicit counter; modal now reliably closes once every individual Apply button has been used
+- **Done button in optimizer modal** — new footer button closes the modal while keeping any partial changes already applied, for when you only want to action some suggestions
+- **Undo dead marking** — clicking 🪦 on an animal no longer shows a confirm dialog; a 5-second Undo toast appears instead so accidental culls can be reversed immediately
+- **Pre-push checklist** — added version-check and legacy-archive steps to CONTRIBUTING.md; legacy zips now stored in `E:\Claude\icarusBreedingTrackerLegacy\`
 
 ---
 

@@ -941,6 +941,8 @@ let logEntries = []; // { ts, msg, type }
 let logMax = 100;
 let logFilter = 'all';
 let _optimizePlan = null; // holds last computed optimize plan
+let _optimizeTotalItems = 0; // total pair+suggestion rows in current modal
+let _optimizeAppliedItems = 0; // how many have been individually applied
 const collapsedGoalCards    = new Set(); // card-level collapse per species in Goals
 const collapsedGoalSections = new Set(); // section-level collapse keys: "${sp}::${sectionId}"
 
@@ -957,7 +959,7 @@ const $esc = str => str.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
  * Use after any operation that modifies animals or pair assignments.
  */
 function saveAndRefresh() {
-  saveAndRefresh();
+  save(); renderHerd(); renderPairs();
 }
 
 /**
@@ -966,7 +968,7 @@ function saveAndRefresh() {
  * and the lineage selector.
  */
 function saveAndRefreshFull() {
-  saveAndRefreshFull();
+  save(); renderHerd(); renderPairs(); updateParentDatalist(); updateLineageSelector();
 }
 
 /**
@@ -1229,7 +1231,7 @@ let _saveTimer  = null;
 // v4 – no schema change (cross-breeding was config + UI-only)
 // v5 – goals[]: species-level goals replace per-pair bl/ph; phenoWeights/blPriority extended to -3..3; statGoal added
 /** Single source of truth for the displayed app version — update this on every release. */
-const APP_VERSION  = 'v0.21b – Optimizer improvements';
+const APP_VERSION  = 'v0.21c – Optimizer & stability fixes';
 document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('app-version'); if (el) el.textContent = APP_VERSION; });
 const DATA_VERSION = 5;
 
@@ -1816,6 +1818,18 @@ function buildOptimizePlanForSpecies(sp, globallyAssigned) {
   // Without this, the optimizer can fill all slots with cross-species animals if they
   // score higher, which breaks native bloodline continuity for that species.
   if (crossPartners.length) {
+    // Helper: attempt to replace one slot in a pair with the best available native of that sex.
+    const tryNativeReplace = (p, sex, displaced) => {
+      const replacement = ownAnimals
+        .filter(a => a.sex === sex && !usedIds.has(a.id) && !globallyAssigned.has(a.name))
+        .sort((a, b) => scoreForOptimize(sp, b) - scoreForOptimize(sp, a))[0];
+      if (!replacement) return false;
+      usedIds.delete(displaced.id);
+      if (sex === 'F') p.f = replacement.name; else p.m = replacement.name;
+      usedIds.add(replacement.id);
+      return true;
+    };
+
     proposedPairs.forEach(p => {
       const mA = allUsable.find(a => a.name === p.m);
       const fA = allUsable.find(a => a.name === p.f);
@@ -1823,19 +1837,15 @@ function buildOptimizePlanForSpecies(sp, globallyAssigned) {
       const mNative = !mA || mA.sp === sp;
       const fNative = !fA || fA.sp === sp;
       if (mNative || fNative) return;
-      // Both are cross-species: replace the lower-scoring one with the best available native
+      // Both cross-species: try replacing the lower-scoring one first, fall back to the other sex
       const mScore = scoreForOptimize(sp, mA);
       const fScore = scoreForOptimize(sp, fA);
-      const replaceSex = fScore <= mScore ? 'F' : 'M';
-      const toReplace  = replaceSex === 'F' ? fA : mA;
-      const replacement = ownAnimals
-        .filter(a => a.sex === replaceSex && !usedIds.has(a.id) && !globallyAssigned.has(a.name))
-        .sort((a, b) => scoreForOptimize(sp, b) - scoreForOptimize(sp, a))[0];
-      if (replacement) {
-        usedIds.delete(toReplace.id);
-        if (replaceSex === 'F') p.f = replacement.name;
-        else                    p.m = replacement.name;
-        usedIds.add(replacement.id);
+      if (fScore <= mScore) {
+        // Female scores lower — prefer replacing female, fall back to male
+        if (!tryNativeReplace(p, 'F', fA)) tryNativeReplace(p, 'M', mA);
+      } else {
+        // Male scores lower — prefer replacing male, fall back to female
+        if (!tryNativeReplace(p, 'M', mA)) tryNativeReplace(p, 'F', fA);
       }
     });
   }
@@ -1900,6 +1910,8 @@ function showOptimizeModal(sp) {
   if (!speciesList.length) { showToast('No animals to optimize'); return; }
 
   _optimizePlan = speciesList.map(s => buildOptimizePlanForSpecies(s, globallyAssigned));
+  _optimizeTotalItems = _optimizePlan.reduce((sum, p) => sum + p.proposedPairs.length + p.suggestions.length, 0);
+  _optimizeAppliedItems = 0;
   const planIndexOf = plan => _optimizePlan.indexOf(plan);
 
   const title = sp ? `⚡ Optimize — ${sp}` : '⚡ Optimize All Breeding Pairs';
@@ -1960,6 +1972,7 @@ function showOptimizeModal(sp) {
     ${_optimizePlan.map(renderPlan).join('')}
     <div class="opt-modal-btns">
       <button class="btn-sm" onclick="closeOptimizeModal()">✕ Dismiss</button>
+      <button class="btn-sm" onclick="closeOptimizeModal()">✓ Done</button>
       <button class="btn-sm" onclick="applyOptimizePlan(false)">✅ Apply Pairs Only</button>
       <button class="btn" onclick="applyOptimizePlan(true)">⚡ Apply All</button>
     </div>
@@ -2012,10 +2025,8 @@ function applyOptimizeSingleSuggestion(planIdx, suggIdx, btn) {
 
 /** After each individual apply, close the modal if every item has been applied. */
 function checkOptimizeAllApplied() {
-  const overlay = $id('opt-overlay');
-  if (!overlay) return;
-  const btns = overlay.querySelectorAll('.opt-pair-row button, .opt-action-row button');
-  if (btns.length > 0 && [...btns].every(b => b.disabled)) closeOptimizeModal();
+  _optimizeAppliedItems++;
+  if (_optimizeAppliedItems >= _optimizeTotalItems) closeOptimizeModal();
 }
 function closeOptimizeModal() {
   const el = $id('opt-overlay');
@@ -3551,21 +3562,23 @@ function renderHerd() {
   }).join('');
 }
 
-/** Mark animal as Dead (soft delete) */
+/** Mark animal as Dead (soft delete). No confirm — undo toast available for 5 s. */
 function markDead(id) {
   const a = animals.find(x => x.id === id);
   if (!a) return;
-  if (!confirm(`Mark "${a.name}" as dead/culled? It will be hidden but kept in records.`)) return;
   a.status = 'Dead';
-  saveAndRefresh(); showToast(`${a.name} marked as dead`);
+  addLog(`🪦 ${displayName(a)} marked dead/culled`, 'status');
+  saveAndRefresh();
+  showUndoToast(`🪦 ${displayName(a)} marked dead`, () => reviveAnimal(id));
 }
 
-/** Restore a dead animal */
+/** Restore a dead/culled animal back to Undecided status. */
 function reviveAnimal(id) {
   const a = animals.find(x => x.id === id);
   if (!a) return;
   a.status = '?';
-  saveAndRefresh(); showToast(`${a.name} restored`);
+  addLog(`↩ ${displayName(a)} restored from dead/culled`, 'status');
+  saveAndRefresh(); showToast(`${displayName(a)} restored`);
 }
 
 /** Toggle favorite status on an animal — favorites are never suggested for culling */
@@ -4599,6 +4612,19 @@ function showToast(msg) {
   t.textContent = msg; t.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+/** Show a toast with an Undo link. fn is called if the user clicks Undo within 5 s. */
+let _toastUndo = null;
+function showUndoToast(msg, fn) {
+  _toastUndo = fn;
+  const t = $id('toast');
+  t.innerHTML = msg + ' <span style="text-decoration:underline;cursor:pointer;margin-left:8px;font-weight:normal;font-size:12px" ' +
+    'onclick="_toastUndo?.();_toastUndo=null;document.getElementById(\'toast\').classList.remove(\'show\')">' +
+    'Undo</span>';
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.remove('show'); t.textContent = ''; _toastUndo = null; }, 5000);
 }
 
 // ── TOOLTIP ENGINE ───────────────────────────────────────────────
