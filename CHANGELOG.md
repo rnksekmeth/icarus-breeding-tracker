@@ -10,6 +10,8 @@ All notable changes to this project are documented here.
 - **Cross-breed native constraint** — the optimizer now guarantees at least one native-species animal per pair slot; previously it could fill all DR or SR slots with cross-species animals if they scored higher, breaking native bloodline continuity
 - **Individual Apply buttons** — each proposed pair row and each status-suggestion row in the Optimize modal now has its own Apply button; clicking it applies that single change without closing the modal, then marks the button as ✓ Applied and disables it
 - **Cross-breed offspring disclaimer** — corrected to "Offspring will be DR or SR" (was incorrectly showing only the host species)
+- **Fix optimizer modal crash** — suggestion rows used `si` (index) without declaring it in the `.map()` callback, causing a ReferenceError that prevented the modal from rendering; fixed to `.map((s, si) => ...`
+- **Fix version label not updating** — `APP_VERSION` was not bumped during the v0.21 patch; now correctly shows v0.21
 
 ---
 

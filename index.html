@@ -1229,7 +1229,7 @@ let _saveTimer  = null;
 // v4 – no schema change (cross-breeding was config + UI-only)
 // v5 – goals[]: species-level goals replace per-pair bl/ph; phenoWeights/blPriority extended to -3..3; statGoal added
 /** Single source of truth for the displayed app version — update this on every release. */
-const APP_VERSION  = 'v0.20r1b – Favorites, nicknames & optimizer';
+const APP_VERSION  = 'v0.21 – Optimizer improvements';
 document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('app-version'); if (el) el.textContent = APP_VERSION; });
 const DATA_VERSION = 5;
 
@@ -1926,7 +1926,7 @@ function showOptimizeModal(sp) {
 
     const actionIcons = { cull:'🪦', store:'🛸', reserve:'🔶', keep:'✅' };
     const actionRows = plan.suggestions.length
-      ? plan.suggestions.map(s => {
+      ? plan.suggestions.map((s, si) => {
           const tot = getTotal(s.animal.stats, plan.sp);
           const fav = s.animal.favorite ? '⭐ ' : '';
           const cls = `opt-badge opt-${s.action}`;
