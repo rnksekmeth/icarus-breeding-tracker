@@ -19,6 +19,27 @@
   --r-base:#aaaaaa;--r-uncommon:#2ecc71;--r-rare:#3498db;--r-legendary:#e67e22;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
+.log-banner{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--bdr);padding:5px 16px;font-size:11px;color:var(--dim);z-index:200;display:flex;align-items:center;gap:10px;min-height:28px;}
+.log-banner-label{color:var(--acc);font-weight:bold;white-space:nowrap;font-size:10px;text-transform:uppercase;letter-spacing:.5px;}
+.log-banner-msg{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.log-banner-time{font-size:10px;color:#444;white-space:nowrap;}
+.log-banner-link{font-size:10px;color:var(--acc);cursor:pointer;white-space:nowrap;text-decoration:underline;}
+.log-entry{display:flex;gap:10px;align-items:flex-start;padding:5px 10px;border-radius:4px;margin-bottom:2px;}
+.log-entry:hover{background:rgba(255,255,255,.04);}
+.log-entry-time{font-size:10px;color:#555;white-space:nowrap;padding-top:1px;min-width:110px;}
+.log-entry-msg{font-size:12px;color:var(--wht);flex:1;}
+.log-entry-type{font-size:9px;text-transform:uppercase;letter-spacing:.5px;padding:1px 6px;border-radius:3px;white-space:nowrap;margin-top:1px;}
+.log-type-add{background:rgba(0,204,85,.15);color:#00cc55;}
+.log-type-edit{background:rgba(232,160,32,.15);color:var(--acc);}
+.log-type-status{background:rgba(68,136,255,.15);color:#88aaff;}
+.log-type-pair{background:rgba(204,136,255,.15);color:var(--pur);}
+.log-type-delete{background:rgba(255,85,85,.15);color:var(--red);}
+.log-type-suggestion{background:rgba(255,170,0,.15);color:var(--tmp);}
+.log-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;align-items:center;}
+.log-search{background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:5px 10px;font-size:12px;outline:none;width:200px;}
+.log-search:focus{border-color:var(--acc);}
+body{padding-bottom:34px;}
+
 body{background:var(--bg);color:var(--wht);font-family:Arial,sans-serif;font-size:13px;min-height:100vh;}
 header{background:var(--card);border-bottom:2px solid var(--acc);padding:10px 16px;display:flex;align-items:center;gap:12px;}
 header h1{color:var(--acc);font-size:18px;flex:1;letter-spacing:1px;}
@@ -358,7 +379,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.18e – Parent & pair dropdown fixes</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.19 – Activity log & smart suggestions</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -370,6 +391,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
   <button onclick="showTab('pairs',this)">&#x1F500; Pairs</button>
   <button onclick="showTab('goals',this)">&#x2699; Goals</button>
   <button onclick="showTab('lineage',this)">&#x1F9EC; Lineage</button>
+  <button onclick="showTab('log',this)">&#x1F4CB; Log</button>
   <button onclick="showTab('settings',this)">&#x2699; Settings</button>
 </nav>
 <datalist id="animal-names-list"></datalist>
@@ -607,6 +629,40 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
   </div>
 </div>
 
+<!-- ── LOG ───────────────────────────────────────────────────────── -->
+<div id="tab-log" class="tab">
+  <div class="section-hdr" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <h2>&#x1F4CB; Activity Log</h2>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+      <span style="font-size:11px;color:var(--dim);">Keep last</span>
+      <input type="number" id="log-max-input" value="100" min="10" max="9999"
+        style="width:64px;background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:4px 8px;font-size:12px;outline:none;"
+        onchange="updateLogMax(this.value)">
+      <span style="font-size:11px;color:var(--dim);">entries</span>
+      <button class="btn-sm" onclick="clearLog()" style="color:var(--red);border-color:#5a1a1a;">&#x1F5D1; Clear</button>
+    </div>
+  </div>
+  <div class="log-filters" style="margin-top:12px;">
+    <button class="filter-btn active" data-log-filter="all"   onclick="setLogFilter('all',this)">All</button>
+    <button class="filter-btn"        data-log-filter="add"     onclick="setLogFilter('add',this)">&#x2795; Added</button>
+    <button class="filter-btn"        data-log-filter="edit"    onclick="setLogFilter('edit',this)">&#x270F; Edited</button>
+    <button class="filter-btn"        data-log-filter="status"  onclick="setLogFilter('status',this)">&#x1F504; Status</button>
+    <button class="filter-btn"        data-log-filter="pair"    onclick="setLogFilter('pair',this)">&#x1F500; Pairs</button>
+    <button class="filter-btn"        data-log-filter="delete"  onclick="setLogFilter('delete',this)">&#x1F5D1; Deleted</button>
+    <button class="filter-btn"        data-log-filter="suggestion" onclick="setLogFilter('suggestion',this)">&#x1F4A1; Suggestions</button>
+    <input type="text" class="log-search" id="log-search-input" placeholder="&#x1F50D; Search log..." oninput="renderLog()">
+  </div>
+  <div id="log-list"></div>
+</div>
+
+<!-- ── LOG BANNER ────────────────────────────────────────────────── -->
+<div class="log-banner" id="log-banner" style="display:none;">
+  <span class="log-banner-label">Latest</span>
+  <span class="log-banner-msg" id="log-banner-msg">—</span>
+  <span class="log-banner-time" id="log-banner-time"></span>
+  <span class="log-banner-link" onclick="showTab('log',document.querySelector('[onclick*=showTab]'))">View log &#x25B6;</span>
+</div>
+
 <!-- ── SETTINGS ─────────────────────────────────────────────────── -->
 <div id="tab-settings" class="tab">
   <div class="section-hdr"><h2>Settings</h2></div>
@@ -828,6 +884,9 @@ let filterBloodline = 'all', filterPhenotype = 'all', filterMinTotal = 0;
 let showDead = false, showStation = false;
 let editingId = null;
 const collapsedPairSpecies  = new Set(); // in-memory; resets on reload
+let logEntries = []; // { ts, msg, type }
+let logMax = 100;
+let logFilter = 'all';
 const collapsedGoalCards    = new Set(); // card-level collapse per species in Goals
 const collapsedGoalSections = new Set(); // section-level collapse keys: "${sp}::${sectionId}"
 
@@ -1024,7 +1083,8 @@ function getAllData() {
            pairCounts, nextSpAid, phenoStats, blStats, speciesOrder, cardWidths,
            collapsedPairs:    [...collapsedPairSpecies],
            collapsedGoalCards:[...collapsedGoalCards],
-           collapsedGoalSecs: [...collapsedGoalSections] };
+           collapsedGoalSecs: [...collapsedGoalSections],
+           logEntries, logMax };
 }
 
 /** Apply a loaded data object to in-memory state */
@@ -1045,6 +1105,8 @@ function applyData(d) {
   (d.collapsedGoalCards || []).forEach(s => collapsedGoalCards.add(s));
   collapsedGoalSections.clear();
   (d.collapsedGoalSecs  || []).forEach(s => collapsedGoalSections.add(s));
+  logEntries = d.logEntries || [];
+  logMax     = d.logMax     ?? 100;
 }
 
 /** Write the full data snapshot to the chosen file */
@@ -1626,8 +1688,49 @@ function buildBreedingSuggestions(sp) {
   const currentReserve = animals.filter(a => a.sp === sp && a.status === 'Reserve').length;
   const reserveTarget  = g.reserveTarget ?? 0;
 
+  // ── Goal achieved: bred offspring already matching a species goal ──
+  const achievedGoals = spGoals.map((goal, gi) => {
+    const match = animals.find(a =>
+      a.sp === sp && a.isBred && !['Dead','Discard'].includes(a.status) &&
+      (!goal.bl || a.bl === goal.bl) && (!goal.ph || a.ph === goal.ph)
+    );
+    return match ? { goalIdx: gi, goal, animal: match } : null;
+  }).filter(Boolean);
+
+  // ── Upgrade reserve: same desired trait, better stats ──────────
+  const reserveAnimals = animals.filter(a => a.sp === sp && a.status === 'Reserve');
+  const upgradeRecs = [];
+  reserveAnimals.forEach(res => {
+    const resBlW = blP[res.bl] ?? 0;
+    const resPhW = phW[res.ph] ?? 0;
+    if (resBlW <= 0 && resPhW <= 0) return;
+    const resTot = getTotal(res.stats, sp);
+    const better = active
+      .filter(a =>
+        a.sp === sp && a.sex === res.sex && a.id !== res.id &&
+        a.status !== 'Reserve' && !assigned.has(a.name) &&
+        ((resBlW > 0 && a.bl === res.bl) || (resPhW > 0 && a.ph === res.ph)) &&
+        getTotal(a.stats, sp) > resTot
+      )
+      .sort((a, b) => getTotal(b.stats, sp) - getTotal(a.stats, sp));
+    if (better.length) upgradeRecs.push({ reserve: res, better: better[0] });
+  });
+
+  // ── Pair diversity: flag if all active pairs share the same genetics ──
+  const activePairs = pairs.filter(p => p.m && p.f);
+  let diversityWarning = null;
+  if (activePairs.length >= 2) {
+    const mBls = activePairs.map(p => animals.find(a => a.name === p.m)?.bl).filter(Boolean);
+    const fBls = activePairs.map(p => animals.find(a => a.name === p.f)?.bl).filter(Boolean);
+    if (mBls.length === activePairs.length && new Set(mBls).size === 1)
+      diversityWarning = `All ${activePairs.length} pairs have the same male bloodline (${mBls[0]}) — consider varying Pair genetics to maintain separate lines`;
+    else if (fBls.length === activePairs.length && new Set(fBls).size === 1)
+      diversityWarning = `All ${activePairs.length} pairs have the same female bloodline (${fBls[0]}) — consider varying Pair genetics to maintain separate lines`;
+  }
+
   return { priorityCandidates, goalRecs, pairRecs, reserveCandidates, negativeCandidates,
-           currentReserve, reserveTarget, statGoal };
+           currentReserve, reserveTarget, statGoal,
+           achievedGoals, upgradeRecs, diversityWarning };
 }
 
 function renderSuggestions(sp) {
@@ -1721,6 +1824,46 @@ function renderSuggestions(sp) {
         </div>
       </div>`;
     });
+  }
+
+  // ── Goal achieved ────────────────────────────────────────────
+  if (s.achievedGoals.length) {
+    html += `<div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--grn);margin:8px 0 4px">✓ Goals achieved</div>`;
+    s.achievedGoals.forEach(({ goalIdx, goal, animal }) => {
+      const goalLabel = `Goal ${goalIdx + 1}: ${goal.bl || 'any bl'} × ${goal.ph || 'any ph'}`;
+      html += `<div class="suggestion-row" style="background:rgba(0,204,85,.06);border:1px solid #0e3a1e;border-radius:4px;padding:6px 10px;margin-bottom:4px;">
+        <span class="sug-badge" style="color:var(--grn)">✓ ${goalLabel}</span>
+        <div class="sug-animal">${animal.name} is a bred match
+          <br><span class="sug-reason" style="color:var(--grn)">Consider updating this goal or introducing a new breeding direction for this pair</span>
+        </div>
+      </div>`;
+    });
+  }
+
+  // ── Upgrade reserve ──────────────────────────────────────────────
+  if (s.upgradeRecs.length) {
+    html += `<div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--acc);margin:8px 0 4px">↑ Reserve upgrades available</div>`;
+    s.upgradeRecs.forEach(({ reserve, better }) => {
+      const resTot  = getTotal(reserve.stats, sp);
+      const betTot  = getTotal(better.stats, sp);
+      const diff    = betTot - resTot;
+      html += `<div class="suggestion-row">
+        <span class="sug-badge" style="color:var(--acc)">↑ +${diff}</span>
+        <div class="sug-animal">
+          <span style="color:#88aaff">${better.name} (${betTot})</span> beats current reserve
+          <span style="color:#666"> ${reserve.name} (${resTot})</span> — same desired trait
+          <br><span class="sug-reason">Consider swapping ${reserve.name} out of reserve</span>
+        </div>
+      </div>`;
+    });
+  }
+
+  // ── Pair diversity warning ────────────────────────────────────────
+  if (s.diversityWarning) {
+    html += `<div class="suggestion-row" style="background:rgba(255,170,0,.06);border:1px solid #4a3200;border-radius:4px;padding:6px 10px;margin:8px 0 4px;">
+      <span class="sug-badge" style="color:var(--tmp)">⚡ Diversity</span>
+      <div class="sug-animal"><span class="sug-reason" style="color:var(--tmp)">${s.diversityWarning}</span></div>
+    </div>`;
   }
 
   if (!html.includes('suggestion-row')) {
@@ -2409,6 +2552,77 @@ function onStatKey(e, stat) {
   }
 }
 
+// ── LOG ─────────────────────────────────────────────────────────
+function fmtLogTime(ts) {
+  const d = new Date(ts);
+  const pad = n => String(n).padStart(2,'0');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[d.getMonth()]} ${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function addLog(msg, type='add') {
+  logEntries.unshift({ ts: Date.now(), msg, type });
+  if (logEntries.length > logMax) logEntries = logEntries.slice(0, logMax);
+  save();
+  updateLogBanner();
+  const lt = $id('tab-log');
+  if (lt && lt.classList.contains('active')) renderLog();
+}
+
+function updateLogBanner() {
+  const banner = $id('log-banner');
+  const msgEl  = $id('log-banner-msg');
+  const timeEl = $id('log-banner-time');
+  if (!banner || !logEntries.length) return;
+  banner.style.display = 'flex';
+  msgEl.textContent  = logEntries[0].msg;
+  timeEl.textContent = fmtLogTime(logEntries[0].ts);
+}
+
+function renderLog() {
+  const list = $id('log-list');
+  if (!list) return;
+  const search = ($id('log-search-input')?.value || '').toLowerCase();
+  const filtered = logEntries.filter(e =>
+    (logFilter === 'all' || e.type === logFilter) &&
+    (!search || e.msg.toLowerCase().includes(search))
+  );
+  if (!filtered.length) {
+    list.innerHTML = '<p style="color:var(--dim);font-size:12px;padding:8px 0">No log entries match the current filter.</p>';
+    return;
+  }
+  list.innerHTML = filtered.map(e => {
+    const typeLabel = { add:'Added', edit:'Edited', status:'Status', pair:'Pair', delete:'Deleted', suggestion:'Suggestion' }[e.type] || e.type;
+    return `<div class="log-entry">
+      <span class="log-entry-time">${fmtLogTime(e.ts)}</span>
+      <span class="log-entry-type log-type-${e.type}">${typeLabel}</span>
+      <span class="log-entry-msg">${e.msg}</span>
+    </div>`;
+  }).join('');
+}
+
+function setLogFilter(f, btn) {
+  logFilter = f;
+  document.querySelectorAll('[data-log-filter]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderLog();
+}
+
+function updateLogMax(val) {
+  logMax = Math.max(10, parseInt(val) || 100);
+  if (logEntries.length > logMax) logEntries = logEntries.slice(0, logMax);
+  save();
+}
+
+function clearLog() {
+  if (!confirm('Clear all log entries?')) return;
+  logEntries = [];
+  save();
+  renderLog();
+  const banner = $id('log-banner');
+  if (banner) banner.style.display = 'none';
+}
+
 function checkCustomNameDuplicate() {
   const val  = ($id('f-custom-name')?.value || '').trim();
   const warn = $id('custom-name-warn');
@@ -2514,6 +2728,7 @@ function saveAnimal() {
     }
   }
 
+  const wasEditing = !!editingId; // capture before editingId is cleared
   // Capture old state before overwriting (used for sighting adjustment on edit)
   const oldAnimal = editingId ? animals.find(a => a.id === editingId) : null;
   const oldBl = oldAnimal?.bl || '';
@@ -2559,6 +2774,7 @@ function saveAnimal() {
   }
 
   save(); renderHerd(); renderPairs(); updateParentDatalist(); updateLineageSelector();
+  addLog(wasEditing ? `✏ Edited ${name}` : `➕ Added ${name}`, wasEditing ? 'edit' : 'add');
 
   const fb = $id('save-feedback');
   fb.textContent = `Saved ${formatSpId(sp, animalSpId)}: ${name}`;
@@ -2652,8 +2868,10 @@ function statusSelectHtml(a) {
 function setAnimalStatus(id, val) {
   const a = animals.find(x => x.id === id);
   if (!a) return;
+  const oldLabel = STATUS_LABEL[a.status] || a.status;
   a.status = val;
   save(); renderHerd(); renderPairs();
+  addLog(`${a.name}: ${oldLabel} → ${STATUS_ICON[val]} ${STATUS_LABEL[val]}`, 'status');
 }
 
 function getSortVal(a, col) {
@@ -2830,6 +3048,7 @@ function setAdviceStatus(id, status) {
   renderHerd(); renderPairs();
   const label = STATUS_LABEL[status] || status;
   showToast(`${a.name} → ${STATUS_ICON[status]} ${label}`);
+  addLog(`${a.name} → ${STATUS_ICON[status]} ${label} (from advice panel)`, 'status');
   // Re-run advice panel so the buttons disappear now the action is taken
   const panel = $id('advice-panel');
   if (panel && panel.classList.contains('show')) buildBreedingAdvice();
@@ -2839,9 +3058,11 @@ function deleteAnimal(id, quiet) {
   const a = animals.find(x => x.id === id);
   if (!a) return;
   if (!quiet && !confirm(`Permanently delete "${a.name}"?\nTip: use 🪦 to mark as Dead instead.`)) return;
+  const delName = a.name;
   animals = animals.filter(x => x.id !== id);
   save(); renderHerd(); renderPairs(); updateParentDatalist(); updateLineageSelector();
   showToast('Animal deleted');
+  addLog(`Ὕ1 Deleted ${delName}`, 'delete');
 }
 
 function cancelEdit() {
@@ -3547,8 +3768,14 @@ function updatePair(sp, idx, sex, name) {
       }
     }
   }
+  const oldName = (pairsMap[sp] || [])[idx]?.[sex] || '';
   pairsMap[sp][idx][sex] = name;
   save(); renderPairs();
+  const sexSym = sex === 'M' ? '♂' : '♀';
+  const logMsg = oldName && name ? `${sp} Pair ${idx+1} ${sexSym}: ${oldName} → ${name}`
+              : name ? `${sp} Pair ${idx+1} ${sexSym}: ${name} added`
+              : `${sp} Pair ${idx+1} ${sexSym}: slot cleared`;
+  addLog(logMsg, 'pair');
 }
 
 // ── LINEAGE ──────────────────────────────────────────────────────
@@ -3789,13 +4016,15 @@ function showTab(id, _btn) {
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   $id(`tab-${id}`).classList.add('active');
   document.querySelectorAll('nav button').forEach(b => {
-    const map = { entry:'New', herd:'Herd', pairs:'Pair', goals:'Goal', lineage:'Lineage', settings:'Settings' };
+    const map = { entry:'New', herd:'Herd', pairs:'Pair', goals:'Goal', lineage:'Lineage', log:'Log', settings:'Settings' };
     if (b.textContent.includes(map[id])) b.classList.add('active');
   });
   if (id === 'herd')    renderHerd();
   if (id === 'pairs')   renderPairs();
   if (id === 'goals')   renderGoals();
   if (id === 'lineage') { updateLineageSelector(); renderLineage(); }
+  if (id === 'log')     { $id('log-max-input').value = logMax; renderLog(); }
+  updateLogBanner();
 }
 
 // ── TOAST ────────────────────────────────────────────────────────

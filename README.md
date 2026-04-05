@@ -116,6 +116,9 @@ Per-species configuration. Each section can be collapsed or expanded independent
 - *Priority animals not in pairs* — high-value unassigned animals that should be placed
 - *⚠ Negative-trait temp breeders* — animals with bad traits but stats ≥20% above the best clean alternative; flagged for temporary use with a warning if both parents share the same negative trait
 - *Consider reserving* — animals with desired traits but below-average stats, worth holding until a better partner is available
+- *✓ Goals achieved* — notifies you when a bred animal in your herd already satisfies a species goal
+- *↑ Reserve upgrades* — if a better unassigned animal matches the same desired trait as a current reserve, you are prompted to swap it in
+- *⚡ Diversity warning* — if all active pairs share the same bloodline on one side, you are warned to vary the genetics to maintain separate breeding lines
 - **Stats target** — adjustable baseline (default 60 total); animals below this are flagged in suggestions
 - **Reserve target** — set how many reserve animals you want to maintain per species
 
@@ -124,6 +127,17 @@ Per-species configuration. Each section can be collapsed or expanded independent
 Select any animal to view its family tree up to 4 generations deep. Each node shows stats, bloodline, generation, and inheritance indicators — whether each stat was inherited from the mother, father, improved beyond both parents, or regressed.
 
 The sidebar shows species-level breeding insights: average stat gain per breeding, best performing stat trend, and total recorded animals.
+
+### 📋 Log
+
+A fixed banner at the bottom of the page always shows the most recent activity. Click **View log ▶** to jump to the full log.
+
+The **📋 Log** tab (between Lineage and Settings) keeps a chronological history of all activity: animals added or edited, status changes, pair slot updates, deletions, and accepted suggestions. Entries are timestamped and colour-coded by type.
+
+- **Filter pills** — narrow the list to a specific event type: Added, Edited, Status, Pairs, Deleted, or Suggestions
+- **Text search** — filter entries by keyword as you type
+- **Max entries** — configurable limit (default 100); older entries are trimmed automatically when the limit is reached
+- **Clear** — wipe the log history if needed
 
 ---
 

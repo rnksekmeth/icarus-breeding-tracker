@@ -4,6 +4,19 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.19 – Activity log & smart suggestions
+**2026-04-05**
+
+- New tab: 📋 Log (between Lineage and Settings) — full activity history with type filters (Added/Edited/Status/Pair/Deleted/Suggestion) and text search
+- Log banner: fixed bar at page bottom always shows the latest log entry with a "View log" link
+- Configurable max entries (default 100); older entries trimmed automatically; full clear option
+- Logged events: animals added or edited, status changes, pair slot changes, animal deletions, advice panel actions
+- Goals: new "✓ Goals achieved" section — flags when a bred animal already matches a species goal and suggests updating the goal or starting a new breeding direction
+- Goals: new "↑ Reserve upgrades available" section — detects when an unassigned animal has the same desired trait as a reserve animal but higher stats, and suggests a swap
+- Goals: new "⚡ Diversity" warning — if all active pairs of a species share the same bloodline, suggests varying genetics to maintain separate breeding lines
+
+---
+
 ## v0.18e – Parent & pair dropdown fixes
 **2026-04-05**
 
