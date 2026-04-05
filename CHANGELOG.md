@@ -4,6 +4,47 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.24 – Side panel, tile polish & goal charts
+**2026-04-05**
+
+### Animal Viewer
+- **Side panel** — the viewer is now a persistent fixed panel on the right side of the screen instead of a centered modal; slides in when any animal name, tile, or log entry is clicked; no longer blocks the rest of the UI
+- **Badge chips** — bloodline and phenotype shown as colored pill badges at the top of the panel (using `BLOODLINE_COLOR` and phenotype rarity color) alongside sex and generation chips
+- **Radar fixed** — chart now renders correctly in the panel (previously drawn before the canvas existed in the DOM)
+- **Clickable parents** — parent names in the viewer link directly to that parent's viewer if the parent is in the herd
+
+### Breeding Pairs
+- **Bloodline badge on tiles** — the bloodline label is now a SAVAGE-style colored pill badge using `BLOODLINE_COLOR`
+- **Phenotype border stripe** — each tile has a colored top stripe indicating phenotype rarity (base: grey, uncommon: green, rare: blue, legendary: orange)
+- **Short tile ID** — tiles show only the species ID (e.g. `DR02`) instead of the full generated name; full name visible on hover
+- **Slot tiles clickable** — tiles in breeding pair slots now open the viewer (previously only pool tiles did)
+- **Removed pair score** — the combined `S:XX` score label is removed from pair rows; individual stat totals on tiles are sufficient
+- **Upgrade wording fixed** — the upgrade panel now shows "no upgrade" (muted style) when the best free animal is weaker than the current paired animal, instead of incorrectly labeling it "optimal"
+- **Tile name colors** — male/female tile name colors slightly brightened (`#6aa4b8` / `#c07890`)
+
+### Edit Animal
+- **Form radar** — the stat entry form now shows a live radar chart that updates as stat values are entered or changed
+- **Radar label clipping fixed** — all radar charts (viewer, edit form) now use dynamic `maxR` scaled to canvas size; viewer canvas enlarged to 200×178, form canvas to 190×168
+
+### Goals
+- **Clickable animals** — all animals in Breeding Suggestions are now clickable links that open the side panel viewer
+- **Stat goal is species max** — the stats target threshold is now always `getMaxTotal(sp)` (theoretical max for 6 non-BO stats); user-editable control removed
+- **Reserve target ± buttons** — the reserve count text input is replaced by `−` and `+` buttons
+- **Phenotype sighting radar** — a single P0–P7 radar chart replaces the individual per-row stat radars; each axis is a phenotype tier, value is sqrt-scaled total sightings (tamed + bred), axis labels show the count; dots are colored by rarity
+- **Bloodline sightings colored** — bloodline names are now colored using `BLOODLINE_COLOR` to match the rest of the app
+
+### Sighting Counts
+- **Counts include dead animals** — phenotype and bloodline sighting counts are now derived directly from the `animals` array (no status filter) rather than the incremental `phenoStats`/`blStats` counters, which could miss animals added before tracking was introduced; only Discarded animals are excluded
+
+### Log & My Herd
+- **Log: clickable animals** — animal names in log entries are hyperlinked and open the viewer
+- **My Herd: clickable parents** — parent names in the herd table are clickable if the parent exists in the herd
+
+### Docs
+- **README updated** — all major sections rewritten to reflect v0.24 features; screenshots added for New Animal, My Herd, Breeding Pairs, Goals, Edit Animal, and Animal Viewer
+
+---
+
 ## v0.23 – Icarus design system
 **2026-04-05**
 
@@ -356,3 +397,4 @@ All notable changes to this project are documented here.
 - CSV export and import
 - Lineage viewer
 - Published on GitHub Pages
+

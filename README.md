@@ -1,6 +1,6 @@
 # 🦖 Icarus Breeding Tracker
 
-![version](https://img.shields.io/badge/version-v0.23-c87a1a?style=flat-square&labelColor=1d2019)
+![version](https://img.shields.io/badge/version-v0.24-c87a1a?style=flat-square&labelColor=1d2019)
 ![no install](https://img.shields.io/badge/no%20install-single%20file-6a7d50?style=flat-square&labelColor=1d2019)
 ![browser](https://img.shields.io/badge/browser-Chrome%20%2F%20Edge-4a7080?style=flat-square&labelColor=1d2019)
 ![data](https://img.shields.io/badge/data-stays%20on%20your%20computer-58615a?style=flat-square&labelColor=1d2019)
@@ -9,7 +9,7 @@ A herd tracker and breeding planner for the game [Icarus](https://store.steampow
 
 ---
 
-## 🌐 Recommended: Use the Web Version
+## 🌐 Use the Web Version
 
 The easiest way to use the app is directly in your browser — nothing to download or update:
 
@@ -19,29 +19,7 @@ The web version is always up to date with the latest features. Your data is save
 
 > **Browser requirement:** Chrome or Edge (version 86+). Firefox does not support the File System Access API. The app will work in Firefox using browser storage as a fallback, but local file saving requires Chrome or Edge.
 
----
-
-## 💾 Alternative: Download and Run Locally
-
-If you prefer to keep a local copy (useful for offline play or if you want a specific version):
-
-### Option A — Download the file directly
-
-1. Go to the [repository on GitHub](https://github.com/rnksekmeth/icarus-breeding-tracker)
-2. Click `index.html` in the file list
-3. Click the **download icon (⬇)** in the top right of the file view
-4. Save it to a permanent local folder, e.g. `E:\Icarus\BreedingTracker\index.html`
-5. Open it in Chrome or Edge
-
-> Avoid saving to a cloud-synced folder like OneDrive or Google Drive — file syncing can occasionally conflict with auto-save. A local drive is ideal.
-
-### Option B — Clone with Git
-
-```
-git clone https://github.com/rnksekmeth/icarus-breeding-tracker.git
-```
-
-Pull updates with `git pull` whenever a new version is released.
+Prefer to keep a local copy for offline play or a specific version? See [alternative installation options](#-alternative-download-and-run-locally) at the bottom of this page.
 
 ---
 
@@ -69,17 +47,42 @@ Your `herd_data.json` file can be backed up, copied to another computer, or shar
 
 ---
 
+## 📸 Screenshots
+
+![My Herd with Animal Viewer](screenshots/animal-view.png)
+*My Herd filtered to Slinkers with the Animal Viewer side panel open*
+
+![Breeding Pairs](screenshots/pairs.png)
+*Breeding Pairs — tile slots with bloodline badges, phenotype rarity stripes, and the animal pool*
+
+![Goals & Priorities](screenshots/goals.png)
+*Goals tab — phenotype sighting radar (P0–P7) and colored bloodline sighting rows*
+
+---
+
 ## 📖 How to Use
 
-### ➕ New Animal
+<details>
+<summary><strong>➕ New Animal</strong></summary>
+
+![New Animal form](screenshots/new-animal.png)
 
 Fill in the species, sex, bloodline, phenotype, generation, stats (VIG, FIT, PHY, REF, TGH, ADP, INS), and optionally the parents. The app generates a name automatically in the format `DR01 55F-Bold P3 VIG2`. Hover over any stat label or column header to see what the stat does.
+
+A **live radar chart** updates as you fill in stats, giving an instant visual of the animal's stat profile before saving.
+
+![Edit Animal form](screenshots/animal-edit.png)
 
 Two optional name fields are available: **Custom name** replaces the generated name entirely (useful for re-adding a deleted animal at its original ID), and **Nickname** sets a display alias shown throughout the app while keeping the original generated name intact for internal matching.
 
 After saving, a **Place in Breeding Pair** panel appears offering to slot the animal directly into a pair. The app scores all available slots and highlights the best suggestion. If a slot already has an occupant, you can choose what happens to the displaced animal.
 
-### 📋 My Herd
+</details>
+
+<details>
+<summary><strong>📋 My Herd</strong></summary>
+
+![My Herd table](screenshots/my-herd.png)
 
 Shows all your animals in a sortable, filterable table. Key features:
 
@@ -89,22 +92,48 @@ Shows all your animals in a sortable, filterable table. Key features:
 - **Edit** an animal with the edit button; a **Cancel** button lets you exit without saving changes
 - **⭐ Favorite** — click the star button on any row to mark an animal as a favourite; favourited animals are never suggested for culling by the pair optimizer but can still be moved to reserve or taken out of rotation
 - **Nicknames** — if an animal has a nickname set, the nickname is shown in bold and the original generated name appears dimly beside it
-- **Click any row** to open a read-only **Animal Viewer** panel — shows full details, a radar chart of stat values, current pair assignment, the optimizer's suggestion for that animal, and quick-action buttons to change status, assign to or remove from a pair slot, or jump to the edit form
+- **Click any row** to open the **Animal Viewer** side panel (see below)
 - **🪦 Show Dead** / **🛸 Show Station** toggles to include or exclude those animals from the view
 - **⚡ Optimize Pairs** button in the section header — opens the pair optimizer for all species (see Breeding Pairs)
 
-### 🔀 Breeding Pairs
+</details>
+
+<details>
+<summary><strong>🔍 Animal Viewer</strong></summary>
+
+![My Herd with Animal Viewer](screenshots/animal-view.png)
+
+Clicking any animal row, tile, or name anywhere in the app opens the **Animal Viewer** — a persistent panel that slides in from the right without blocking the rest of the UI.
+
+The viewer shows:
+- **Badge chips** — bloodline (in its bloodline color), phenotype rarity, sex, and generation at a glance
+- **Radar chart** — amber polygon chart of all stat values
+- **Full stats** — all seven stats with the breed-out stat highlighted
+- **Current pair** and optimizer suggestion for this animal
+- **Clickable parents** — if either parent is in your herd, their name is a link that opens their viewer directly
+- **Quick actions** — change status, assign to or remove from a pair slot, or jump to the edit form
+
+Close the panel with the **✕** button, or open a different animal to replace it.
+
+</details>
+
+<details>
+<summary><strong>🔀 Breeding Pairs</strong></summary>
+
+![Breeding Pairs](screenshots/pairs.png)
 
 Set up your active breeding pairs per species. The app enforces global exclusivity — an animal can only appear in one pair slot at a time.
 
 Each pair shows two **tile slots** styled after the in-game item input slots — chamfered tiles (opposing corners cut) for the male ♂ and female ♀ sides. Below the pair slots, an **animal pool** shows all unassigned animals for that species as draggable tiles.
+
+Each tile shows the animal's **short species ID** (e.g. `DR02`), a **colored bloodline badge**, and a **phenotype rarity stripe** along the top edge (grey = base, green = uncommon, blue = rare, orange = legendary).
 
 **Assigning animals:**
 
 - **Drag from pool** — drag a tile from the pool into a male or female slot
 - **Drag between slots** — drag directly from one slot to another (including across pairs)
 - **Remove** — click the ✕ button on an assigned tile to return the animal to the pool
-- **View** — click any pool tile to open the animal viewer
+- **View** — click any tile (pool or slot) to open the animal viewer
 
 When placed in a slot, the animal's status is automatically set to **Breed**. When removed or replaced, their status reverts to **Undecided** — unless you had set it to something else deliberately (Reserve, Station, etc.), in which case it is left as-is. Dune Raptors and Swamp Raptors can be cross-bred; their animals appear in each other's pair slots. Cross-breed offspring are either a DR or SR — determined by which species tab the pair is in.
 
@@ -113,7 +142,7 @@ Each pair slot shows a goal badge:
 - **⚠ bloodline** — this animal has a negatively-starred trait (see Goals)
 - **★★ Bold** — this animal has a positively-starred trait but doesn't directly match a goal
 
-A stat upgrade recommendation panel below each species card suggests free animals that would improve the weakest pair slot.
+A stat **upgrade recommendation** panel below each species card suggests free animals that would improve the weakest pair slot. If no better animal is available, the panel shows **no upgrade**.
 
 Cards can be collapsed to compact chips using the **▼ Hide / ▶ Show** button, and toggled between Narrow and Wide layout. The grid uses a masonry layout — shorter cards automatically fill the vertical space under taller ones rather than wrapping to the leftmost column. Collapsed state and card width persist across reloads.
 
@@ -121,7 +150,12 @@ Cards can be collapsed to compact chips using the **▼ Hide / ▶ Show** button
 
 If a proposed pair animal is currently assigned to a different pair slot, a **⚠ in pair** warning appears in the optimizer row, showing which pair they will be moved from when you apply.
 
-### ⚙ Goals
+</details>
+
+<details>
+<summary><strong>⚙ Goals</strong></summary>
+
+![Goals & Priorities](screenshots/goals-slinker.png)
 
 Per-species configuration. Each section can be collapsed or expanded independently, and the collapsed state of both the card and its sections persists across reloads.
 
@@ -135,7 +169,9 @@ Per-species configuration. Each section can be collapsed or expanded independent
 
 **Bloodline Priority** — same −3 to +3 rating for bloodlines. Unstable defaults to ★★ as it provides a breeding multiplier bonus. Setting a bloodline to negative (e.g. Wild −2) will flag carriers and suggest keeping them as temporary breeders only if their stats significantly exceed cleaner alternatives.
 
-**Phenotype Sightings / Bloodline Sightings** — tracks how many tamed vs bred animals of each type you've recorded.
+**Phenotype Sightings** — a P0–P7 radar chart showing your collection distribution across phenotype tiers. Each axis is one phenotype, the filled area shows relative count (using a square-root scale so rare phenotypes remain visible when you have many of one type), and axis labels show the exact total. Counts include all animals ever recorded, including dead ones.
+
+**Bloodline Sightings** — a list of every bloodline you've recorded, colored in its bloodline color, with separate tamed (🌿) and bred (🧬) counts. Counts include dead animals.
 
 **Breeding Suggestions** — automatically generated based on your priorities:
 - *Pair recommendations* — one per species goal, showing the best M × F combination to achieve it
@@ -145,25 +181,35 @@ Per-species configuration. Each section can be collapsed or expanded independent
 - *✓ Goals achieved* — notifies you when a bred animal in your herd already satisfies a species goal
 - *↑ Reserve upgrades* — if a better unassigned animal matches the same desired trait as a current reserve, you are prompted to swap it in
 - *⚡ Diversity warning* — if all active pairs share the same bloodline on one side, you are warned to vary the genetics to maintain separate breeding lines
-- **Stats target** — adjustable baseline (default 60 total); animals below this are flagged in suggestions
-- **Reserve target** — set how many reserve animals you want to maintain per species
 
-### 🧬 Lineage
+**Reserve target** — use the **−** and **+** buttons to set how many reserve animals you want to maintain per species.
+
+All animals listed in Breeding Suggestions are clickable — click any name to open that animal in the viewer.
+
+</details>
+
+<details>
+<summary><strong>🧬 Lineage</strong></summary>
 
 Select any animal to view its family tree up to 4 generations deep. Each node shows stats, bloodline, generation, and inheritance indicators — whether each stat was inherited from the mother, father, improved beyond both parents, or regressed.
 
 The sidebar shows species-level breeding insights: average stat gain per breeding, best performing stat trend, and total recorded animals.
 
-### 📋 Log
+</details>
+
+<details>
+<summary><strong>📋 Log</strong></summary>
 
 A fixed banner at the bottom of the page always shows the most recent activity. Click **View log ▶** to jump to the full log.
 
-The **📋 Log** tab (between Lineage and Settings) keeps a chronological history of all activity: animals added or edited, status changes, pair slot updates, deletions, and accepted suggestions. Entries are timestamped and colour-coded by type.
+The **📋 Log** tab (between Lineage and Settings) keeps a chronological history of all activity: animals added or edited, status changes, pair slot updates, deletions, and accepted suggestions. Entries are timestamped and colour-coded by type. Animal names in log entries are clickable and open the viewer directly.
 
 - **Filter pills** — narrow the list to a specific event type: Added, Edited, Status, Pairs, Deleted, or Suggestions
 - **Text search** — filter entries by keyword as you type
 - **Max entries** — configurable limit (default 100); older entries are trimmed automatically when the limit is reached
 - **Clear** — wipe the log history if needed
+
+</details>
 
 ---
 
@@ -190,6 +236,30 @@ The **📋 Log** tab (between Lineage and Settings) keeps a chronological histor
 | SR | Swamp Raptor |
 | BM | Moa |
 | SL | Slinker |
+
+---
+
+## 💾 Alternative: Download and Run Locally
+
+If you prefer to keep a local copy (useful for offline play or if you want a specific version):
+
+### Option A — Download the file directly
+
+1. Go to the [repository on GitHub](https://github.com/rnksekmeth/icarus-breeding-tracker)
+2. Click `index.html` in the file list
+3. Click the **download icon (⬇)** in the top right of the file view
+4. Save it to a permanent local folder, e.g. `E:\Icarus\BreedingTracker\index.html`
+5. Open it in Chrome or Edge
+
+> Avoid saving to a cloud-synced folder like OneDrive or Google Drive — file syncing can occasionally conflict with auto-save. A local drive is ideal.
+
+### Option B — Clone with Git
+
+```
+git clone https://github.com/rnksekmeth/icarus-breeding-tracker.git
+```
+
+Pull updates with `git pull` whenever a new version is released.
 
 ---
 

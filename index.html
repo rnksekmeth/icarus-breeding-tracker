@@ -240,6 +240,7 @@ th .sort-arrow.on{color:var(--acc);opacity:1;}
 .upgrade-box{margin-top:10px;padding:8px 10px;background:var(--card);border-radius:5px;font-size:12px;}
 .upgrade-box .upg-row{display:flex;gap:8px;align-items:center;padding:3px 0;border-bottom:1px solid var(--bdr);}
 .upgrade-box .upg-row:last-child{border-bottom:none;}
+.upg-action.neg{color:var(--dim);}
 .upg-label{color:var(--dim);min-width:56px;font-size:11px;}
 .upg-name{color:var(--wht);flex:1;font-family:monospace;font-size:12px;}
 .upg-total{color:var(--yel);min-width:28px;text-align:right;font-weight:bold;}
@@ -292,11 +293,14 @@ th .sort-arrow.on{color:var(--acc);opacity:1;}
 .goal-add-btn:hover{color:var(--wht);border-color:#888;}
 /* Phenotype sightings */
 .pheno-sightings{margin-top:4px;}
-.sighting-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px;border-bottom:1px solid #1a2a3a;}
+.sighting-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;border-bottom:1px solid #1a2a3a;}
 .sighting-row:last-child{border-bottom:none;}
 .sighting-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .sighting-tamed{color:#aaa;min-width:50px;text-align:right;}
 .sighting-bred{color:var(--acc);min-width:50px;text-align:right;}
+/* Sighting radar canvas */
+.ph-sight-radar{opacity:.92;display:block;width:100%;height:auto;}
+.sighting-info{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0;}
 /* Lineage */
 .lineage-layout{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start;}
 @media(max-width:900px){.lineage-layout{grid-template-columns:1fr;}}
@@ -516,6 +520,45 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 
 /* Pool tiles are slightly smaller and non-removable */
 .pool-tile.animal-tile{width:58px;height:58px;}
+
+/* ── v0.24 SIDE PANEL ──────────────────────────────────────────── */
+#animal-view-panel{
+  position:fixed;top:78px;right:0;width:310px;height:calc(100vh - 78px);
+  background:var(--panel);border-left:1px solid var(--bdr);z-index:600;
+  overflow-y:auto;transform:translateX(320px);transition:transform .22s ease;
+  padding:0;
+}
+#animal-view-panel.open{transform:translateX(0);}
+.avp-hdr{display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px 7px;border-bottom:1px solid var(--bdr);gap:8px;}
+.avp-hdr-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.18em;}
+.avp-hdr-hint{font-size:9px;color:var(--dim2,#3a3f3c);}
+.avp-body{padding:12px 14px 24px;}
+.avp-empty{color:var(--dim);font-size:11px;text-align:center;padding:36px 14px;line-height:1.7;}
+/* Badge chips under the name */
+.view-badges{display:flex;flex-wrap:wrap;gap:5px;margin:5px 0 8px;}
+.view-badge{font-size:9px;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;
+  padding:2px 7px;border-radius:2px;border:1px solid currentColor;background:rgba(0,0,0,.55);}
+.view-badge-gen{font-size:9px;color:var(--dim);border:1px solid var(--bdr);
+  padding:2px 7px;border-radius:2px;background:rgba(255,255,255,.03);}
+/* Phenotype top-stripe on tile via ::after */
+.animal-tile::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--ph-border,transparent);pointer-events:none;z-index:1;
+}
+/* Bloodline pill badge on tile — replaces .tile-bl */
+.tile-bl-badge{
+  font-size:7px;font-weight:bold;letter-spacing:.08em;text-transform:uppercase;
+  padding:1px 5px;border:1px solid currentColor;border-radius:2px;
+  background:rgba(0,0,0,.65);pointer-events:none;max-width:62px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+/* Brighter tile names for readability */
+.animal-tile.m .tile-name{color:#6aa4b8;}
+.animal-tile.f .tile-name{color:#c07890;}
+/* Form radar in New/Edit Animal */
+.form-radar-wrap{display:flex;justify-content:center;margin:6px 0 2px;}
+
 </style>
 </head>
 <body>
@@ -617,6 +660,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
       <div class="total-max" id="total-max">/ 60</div>
       <div class="total-pct" id="total-pct"></div>
     </div>
+    <div class="form-radar-wrap"><canvas id="form-radar-canvas" width="190" height="168"></canvas></div>
   </div>
   <div class="name-output">
     <div style="display:flex;flex-direction:column;gap:3px;flex:1">
@@ -1158,7 +1202,7 @@ function renderPairUpgradeRow(best, weak, sex, sp) {
     <span class="upg-name">${displayName(best)}${best.status === 'Temp' ? ' T' : ''}</span>
     <span class="upg-total">${getTotal(best.stats, sp)}</span>
     <span class="upg-delta ${delta < 0 ? 'neg' : ''}">${delta > 0 ? '+' + delta : delta === 0 ? '=' : delta}</span>
-    <span class="upg-action ${delta > 0 ? 'good' : 'ok'}">${delta > 0 ? 'swap ' + displayName(weak) : delta === 0 ? 'equal' : 'optimal'}</span>
+    <span class="upg-action ${delta > 0 ? 'good' : delta < 0 ? 'neg' : 'ok'}">${delta > 0 ? 'swap ' + displayName(weak) : delta === 0 ? '= equal' : 'no upgrade'}</span>
   </div>`;
 }
 
@@ -1350,7 +1394,7 @@ let _saveTimer  = null;
 // v4 – no schema change (cross-breeding was config + UI-only)
 // v5 – goals[]: species-level goals replace per-pair bl/ph; phenoWeights/blPriority extended to -3..3; statGoal added
 /** Single source of truth for the displayed app version — update this on every release. */
-const APP_VERSION  = 'v0.23 – Icarus design system';
+const APP_VERSION  = 'v0.24 – Side panel, tile polish & goal charts';
 document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('app-version'); if (el) el.textContent = APP_VERSION; });
 const DATA_VERSION = 5;
 
@@ -1866,7 +1910,7 @@ function buildOptimizePlanForSpecies(sp, globallyAssigned) {
   const blP     = g.blPriority  || {};
   const phW     = g.phenoWeights || {};
   const spGoals = g.goals || [];
-  const statGoal = g.statGoal ?? 60;
+  const statGoal = getMaxTotal(sp);
 
   const crossPartners = CROSS_BREEDS[sp] || [];
   const ownAnimals  = animals.filter(a => a.sp === sp && !['Dead','Discard'].includes(a.status));
@@ -2336,7 +2380,7 @@ function buildBreedingSuggestions(sp) {
   const blP    = g.blPriority  || {};
   const phW    = g.phenoWeights || {};
   const spGoals = g.goals || [];
-  const statGoal = g.statGoal ?? 60;
+  const statGoal = getMaxTotal(sp);
 
   const active = animals.filter(a =>
     a.sp === sp && a.status !== 'Dead' && a.status !== 'Discard');
@@ -2494,13 +2538,15 @@ function renderSuggestions(sp) {
   const rCol = s.currentReserve >= s.reserveTarget ? 'var(--grn)' : 'var(--yel)';
   html += `<div style="font-size:11px;color:#aaa;margin-bottom:8px;display:flex;gap:16px;flex-wrap:wrap;align-items:center">
     <span>🔶 Reserve: <span style="color:${rCol};font-weight:bold">${s.currentReserve}</span>
-    <span style="color:#555"> / ${s.reserveTarget} target</span>
-    <label style="font-size:10px;margin-left:6px">Target: <input type="number" min="0" max="99" value="${s.reserveTarget}"
-      onchange="updateReserveTarget('${$esc(sp)}',this.value)"
-      style="width:44px;background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:1px 5px;font-size:11px;"></label></span>
-    <span>🎯 Stats target: <label style="font-size:10px"><input type="number" min="0" max="999" value="${s.statGoal}"
-      onchange="updateStatGoal('${$esc(sp)}',this.value)"
-      style="width:52px;background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:1px 5px;font-size:11px;"> total</label></span>
+    <span style="color:#555"> / ${s.reserveTarget}</span>
+    <span style="font-size:10px;margin-left:8px;display:inline-flex;align-items:center;gap:4px">
+      Target:
+      <button onclick="updateReserveTarget('${$esc(sp)}',${s.reserveTarget - 1})"
+        style="background:none;border:1px solid var(--bdr);color:var(--wht);border-radius:3px;width:18px;height:18px;cursor:pointer;line-height:1;font-size:13px;padding:0">−</button>
+      <span style="color:var(--wht);font-weight:bold;min-width:16px;text-align:center">${s.reserveTarget}</span>
+      <button onclick="updateReserveTarget('${$esc(sp)}',${s.reserveTarget + 1})"
+        style="background:none;border:1px solid var(--bdr);color:var(--wht);border-radius:3px;width:18px;height:18px;cursor:pointer;line-height:1;font-size:13px;padding:0">+</button>
+    </span></span>
   </div>`;
 
   // ── Species Goal Pair Recommendations ──────────────────────────
@@ -2509,10 +2555,10 @@ function renderSuggestions(sp) {
     s.goalRecs.forEach(r => {
       const goalLabel = `Goal ${r.goalIdx + 1}: ${r.goal.bl || 'any bl'} × ${r.goal.ph ? (phenoDisplay(sp, r.goal.ph) || r.goal.ph) : 'any ph'}`;
       const mStr = r.sugM
-        ? `<span style="color:#88ddff">♂ ${r.sugM.name} (${getTotal(r.sugM.stats,sp)})</span>`
+        ? `<span style="color:#88ddff;cursor:pointer" class="view-name-link" onclick="viewAnimal(${r.sugM.id})">♂ ${r.sugM.name} (${getTotal(r.sugM.stats,sp)})</span>`
         : '<span style="color:#555">♂ none available</span>';
       const fStr = r.sugF
-        ? `<span style="color:#ffaacc">♀ ${r.sugF.name} (${getTotal(r.sugF.stats,sp)})</span>`
+        ? `<span style="color:#ffaacc;cursor:pointer" class="view-name-link" onclick="viewAnimal(${r.sugF.id})">♀ ${r.sugF.name} (${getTotal(r.sugF.stats,sp)})</span>`
         : '<span style="color:#555">♀ none available</span>';
       const warnings = [];
       if (r.sameNegBl) warnings.push(`⚠ both have ${r.sugM.bl} (neg) — high offspring inheritance risk`);
@@ -2540,7 +2586,7 @@ function renderSuggestions(sp) {
       ].filter(Boolean).join(' · ');
       html += `<div class="suggestion-row">
         <span class="sug-badge">${STATUS_ICON[animal.status] || ''} ${animal.sex === 'M' ? '♂' : '♀'} ${tot}</span>
-        <div class="sug-animal">${animal.name}${tags ? `<br><span class="sug-reason">${tags}</span>` : ''}</div>
+        <div class="sug-animal"><span class="view-name-link" onclick="viewAnimal(${animal.id})">${animal.name}</span>${tags ? `<br><span class="sug-reason">${tags}</span>` : ''}</div>
       </div>`;
     });
   }
@@ -2555,7 +2601,7 @@ function renderSuggestions(sp) {
       const traitWarning = blScore < 0 ? `${animal.bl} (${blScore}★)` : phScore < 0 ? `${animal.ph} (${phScore}★)` : '';
       html += `<div class="suggestion-row">
         <span class="sug-badge" style="color:#e74c3c">${STATUS_ICON[animal.status] || ''} ${animal.sex === 'M' ? '♂' : '♀'} ${tot}</span>
-        <div class="sug-animal">${animal.name}<br>
+        <div class="sug-animal"><span class="view-name-link" onclick="viewAnimal(${animal.id})">${animal.name}</span><br>
           <span class="sug-reason" style="color:#e74c3c">⚠ ${traitWarning} — use as Temp until an offspring exceeds these stats without the trait · avoid pairing with same-${blW < 0 ? 'bloodline' : 'phenotype'} animal</span>
         </div>
       </div>`;
@@ -2570,7 +2616,7 @@ function renderSuggestions(sp) {
       const blCol = BLOODLINE_COLOR[animal.bl] || '#aaa';
       html += `<div class="suggestion-row">
         <span class="sug-badge">${STATUS_ICON[animal.status] || ''} ${animal.sex === 'M' ? '♂' : '♀'} ${tot}</span>
-        <div class="sug-animal">${animal.name}<br>
+        <div class="sug-animal"><span class="view-name-link" onclick="viewAnimal(${animal.id})">${animal.name}</span><br>
           <span class="sug-reason">Has <span style="color:${blCol}">${animal.bl}</span> — stats low vs herd best · Reserve until better partner available</span>
         </div>
       </div>`;
@@ -2584,7 +2630,7 @@ function renderSuggestions(sp) {
       const goalLabel = `Goal ${goalIdx + 1}: ${goal.bl || 'any bl'} × ${goal.ph || 'any ph'}`;
       html += `<div class="suggestion-row" style="background:rgba(0,204,85,.06);border:1px solid #0e3a1e;border-radius:4px;padding:6px 10px;margin-bottom:4px;">
         <span class="sug-badge" style="color:var(--grn)">✓ ${goalLabel}</span>
-        <div class="sug-animal">${animal.name} is a bred match
+        <div class="sug-animal"><span class="view-name-link" onclick="viewAnimal(${animal.id})">${animal.name}</span> is a bred match
           <br><span class="sug-reason" style="color:var(--grn)">Consider updating this goal or introducing a new breeding direction for this pair</span>
         </div>
       </div>`;
@@ -2709,26 +2755,31 @@ function renderGoals() {
     }).join('');
 
     // ── Phenotype sightings ──
-    const spStats = phenoStats[sp] || {};
-    const sightingRows = cfg.phenotypes.map((p, pi) => {
-      const s = spStats[p.label] || { tamed: 0, bred: 0 };
-      const rarity = RARITY_FROM_WEIGHT(p.weight);
-      const col = RARITY_COLOR[rarity];
-      const pDisp = pi === 0 ? p.label : `P${pi} ${p.label}`;
-      return `<div class="sighting-row">
-        <span class="sighting-name" style="color:${col}">${pDisp}</span>
-        <span class="sighting-tamed" title="Tamed from wild">🌿 ${s.tamed}</span>
-        <span class="sighting-bred"  title="Born from breeding">🧬 ${s.bred}</span>
-      </div>`;
-    }).join('');
+    // Count directly from animals[] so dead animals are included (status filter: exclude only Discard)
+    const spKey = sp.replace(/[^a-zA-Z0-9]/g, '_');
+    const spAllAnimals = animals.filter(a => a.sp === sp && a.status !== 'Discard');
+    const phCountMap = {};
+    spAllAnimals.forEach(a => {
+      const key = a.ph || cfg.phenotypes[0]?.label || '';
+      if (!phCountMap[key]) phCountMap[key] = { tamed: 0, bred: 0 };
+      if (a.isBred) phCountMap[key].bred++; else phCountMap[key].tamed++;
+    });
+    // Single P0-P7 radar; full card width, sqrt-scaled counts
+    const phSightingRadar = `<canvas id="sph_radar_${spKey}" width="280" height="220" class="ph-sight-radar"></canvas>`;
 
     // ── Bloodline sightings ──
-    const spBlStats = blStats[sp] || {};
+    const blCountMap = {};
+    spAllAnimals.forEach(a => {
+      if (!a.bl) return;
+      if (!blCountMap[a.bl]) blCountMap[a.bl] = { tamed: 0, bred: 0 };
+      if (a.isBred) blCountMap[a.bl].bred++; else blCountMap[a.bl].tamed++;
+    });
     const blSightingRows = BLOODLINES.map(bl => {
-      const s = spBlStats[bl] || { tamed: 0, bred: 0 };
-      if (!s.tamed && !s.bred) return '';
+      const s = blCountMap[bl];
+      if (!s) return '';
+      const blCol2 = BLOODLINE_COLOR[bl] || '#aaa';
       return `<div class="sighting-row">
-        <span class="sighting-name">${bl}</span>
+        <span class="sighting-name" style="color:${blCol2}">${bl}</span>
         <span class="sighting-tamed" title="Tamed from wild">🌿 ${s.tamed}</span>
         <span class="sighting-bred"  title="Born from breeding">🧬 ${s.bred}</span>
       </div>`;
@@ -2772,7 +2823,7 @@ function renderGoals() {
         </div>
         <div class="goals-section">
           ${gsHdr('pheno-sightings','Phenotype Sightings <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal;text-transform:none;letter-spacing:0">🌿 = tamed (wild-caught, no lineage) &nbsp; 🧬 = bred (has parents)</span>')}
-          ${gsBody('pheno-sightings',`<div class="pheno-sightings">${sightingRows}</div>`)}
+          ${gsBody('pheno-sightings',`<div class="pheno-sightings">${phSightingRadar}</div>`)}
         </div>
         <div class="goals-section">
           ${gsHdr('bl-sightings','Bloodline Sightings <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal;text-transform:none;letter-spacing:0">🌿 = tamed &nbsp; 🧬 = bred &nbsp; Only shows bloodlines you\'ve recorded</span>')}
@@ -2803,6 +2854,7 @@ function renderGoals() {
     } else {
       grid.appendChild(card);
       _initPairCardDnD(card);
+      _drawGoalSightingRadars(sp);
     }
   }
   requestAnimationFrame(() => applyMasonry('goals-grid'));
@@ -3291,6 +3343,7 @@ function onStatInput(inp, stat) {
   updateName();
   onParentInput(1);
   onParentInput(2);
+  _drawFormRadar();
 }
 
 function onStatKey(e, stat) {
@@ -3342,6 +3395,18 @@ function updateLogBanner() {
 /**
  * Re-render the Log tab list applying the active type filter and text search.
  */
+function _linkifyLogMsg(msg) {
+  let result = msg;
+  // Sort by name length descending to avoid partial matches on shorter names first
+  const sorted = animals.slice().sort((a,b) => b.name.length - a.name.length);
+  sorted.forEach(a => {
+    const escaped = a.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(`(?<![\w-])${escaped}(?![\w-])`, 'g'),
+      `<span class="view-name-link" onclick="viewAnimal(${a.id})">${a.name}</span>`);
+  });
+  return result;
+}
+
 function renderLog() {
   const list = $id('log-list');
   if (!list) return;
@@ -3359,7 +3424,7 @@ function renderLog() {
     return `<div class="log-entry">
       <span class="log-entry-time">${fmtLogTime(e.ts)}</span>
       <span class="log-entry-type log-type-${e.type}">${typeLabel}</span>
-      <span class="log-entry-msg">${e.msg}</span>
+      <span class="log-entry-msg">${_linkifyLogMsg(e.msg)}</span>
     </div>`;
   }).join('');
 }
@@ -3724,8 +3789,14 @@ function renderHerd() {
     const phColor = phenoColor(a.sp, a.ph);
     const phDisp  = a.ph ? phenoDisplay(a.sp, a.ph) || a.ph : '—';
 
-    const parents = [a.p1, a.p2].filter(p => p && p !== 'Unknown').join(' × ') ||
-      ([a.p1, a.p2].filter(Boolean).join(' × ') || '—');
+    const parents = (() => {
+      const parts = [a.p1, a.p2].filter(p => p && p !== 'Unknown');
+      if (!parts.length) return [a.p1, a.p2].filter(Boolean).join(' × ') || '—';
+      return parts.map(p => {
+        const pa = animals.find(x => x.name === p);
+        return pa ? `<span class="view-name-link" onclick="viewAnimal(${pa.id})">${p}</span>` : `<span style="color:#aaa">${p}</span>`;
+      }).join(' × ');
+    })();
 
     const sexColor = a.sex === 'M' ? 'var(--male)' : a.sex === 'F' ? 'var(--fem)' : 'var(--dim)';
     return `<tr class="herd-row" onclick="if(!['BUTTON','SELECT','INPUT','A','SPAN'].includes(event.target.tagName)&&!event.target.closest('.btn-sm,.btn-fav,.status-inline'))viewAnimal(${a.id})" style="${deadStyle}">
@@ -3817,6 +3888,7 @@ function editAnimal(id) {
   $id('cancel-edit-btn').style.display = '';
   showTab('entry', document.querySelector('nav button'));
   window.scrollTo(0, 0);
+  setTimeout(_drawFormRadar, 50);
 }
 
 /**
@@ -4433,28 +4505,45 @@ function viewAnimal(id) {
   const sexSym   = a.sex === 'M' ? '♂ Male' : a.sex === 'F' ? '♀ Female' : a.sex || '?';
   const sexColor = a.sex === 'M' ? 'var(--male)' : a.sex === 'F' ? 'var(--fem)' : 'var(--dim)';
 
-  const overlay = document.createElement('div');
-  overlay.className = 'view-overlay';
-  overlay.id = 'view-overlay';
-  overlay.addEventListener('click', e => { if (e.target === overlay) closeViewPanel(); });
-  overlay.innerHTML = `
-<div class="view-modal">
-  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:2px">
-    <div>
-      <h3>${dot} ${displayName(a)}${a.nickname ? `<span style="color:var(--dim);font-size:11px;font-weight:normal">${a.name}</span>` : ''}</h3>
-      <div class="view-subtitle">${spCfg.short || a.sp} &bull; <span style="color:${sexColor}">${sexSym}</span> &bull; Gen ${a.gen || 1} &bull; ${STATUS_ICON[a.status] || ''} ${STATUS_LABEL[a.status] || a.status} ${currentPairNote}</div>
-    </div>
-    <button class="btn-sm" onclick="closeViewPanel()" style="flex-shrink:0">✕ Close</button>
+  // Bloodline badge color
+  const blCol = BLOODLINE_COLOR[a.bl] || '#888';
+  // Badge chips
+  const blBadge = `<span class="view-badge" style="color:${blCol}">${a.bl || '—'}</span>`;
+  const phBadge = phDisp ? `<span class="view-badge" style="color:${phColor}">${phDisp}</span>` : '';
+  const genBadge = `<span class="view-badge-gen">GEN ${a.gen || 1}</span>`;
+  const sexBadge = `<span class="view-badge" style="color:${sexColor};border-color:${sexColor}">${sexSym}</span>`;
+  // Clickable parents
+  const parentSpans = [a.p1, a.p2]
+    .filter(p => p && p !== 'Unknown')
+    .map(p => { const pa = animals.find(x => x.name === p); return pa ? `<span class="view-name-link" onclick="viewAnimal(${pa.id})">${p}</span>` : `<span style="color:#aaa">${p}</span>`; })
+    .join(' <span style="color:var(--dim)">×</span> ') || '<span style="color:var(--dim)">—</span>';
+
+  const panel = document.getElementById('animal-view-panel');
+  if (!panel) return;
+  panel.querySelector('.avp-hdr-hint') && (panel.querySelector('.avp-hdr-hint').textContent = '');
+  panel.innerHTML = `
+<div class="avp-hdr">
+  <div>
+    <div class="avp-hdr-lbl">Animal View</div>
+  </div>
+  <button class="btn-sm" onclick="closeViewPanel()" style="flex-shrink:0;font-size:10px">✕</button>
+</div>
+<div class="avp-body">
+  <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:2px">
+    ${dot}
+    <h3 style="color:var(--acc);font-size:14px;margin:0;flex:1;line-height:1.2">${displayName(a)}${a.nickname ? `<br><span style="color:var(--dim);font-size:10px;font-weight:normal">${a.name}</span>` : ''}</h3>
+  </div>
+  <div class="view-badges">${blBadge}${phBadge}${genBadge}${sexBadge}</div>
+  <div style="font-size:11px;margin-bottom:4px">
+    <span style="color:var(--dim)">Parents:</span> ${parentSpans}
+    ${currentPairNote ? `<br>${currentPairNote}` : ''}
+  </div>
+  <div style="font-size:12px;margin-bottom:6px">
+    <strong style="color:${pct>=92?'#00cc55':pct>=75?'#ffd700':'#ff9944'}">${tot} / ${maxT}</strong>
+    <span style="color:var(--dim);font-size:10px">(${pct}%)</span>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;margin-bottom:8px">
-    <div><span style="color:var(--dim)">Bloodline:</span> <strong>${a.bl || '—'}</strong></div>
-    <div><span style="color:var(--dim)">Phenotype:</span> <strong style="color:${phColor}">${phDisp}</strong></div>
-    <div><span style="color:var(--dim)">Parents:</span> <span style="color:#aaa">${parents}</span></div>
-    <div><span style="color:var(--dim)">Total:</span> <strong style="color:${pct>=92?'#00cc55':pct>=75?'#ffd700':'#ff9944'}">${tot} / ${maxT} (${pct}%)</strong></div>
-  </div>
-
-  <div class="view-radar-wrap"><canvas id="vr-canvas" width="200" height="160"></canvas></div>
+  <div class="view-radar-wrap"><canvas id="vr-canvas" width="200" height="178"></canvas></div>
   <div class="view-stats-grid">${statCells}</div>
 
   <div class="view-section">Optimizer Suggestion</div>
@@ -4471,12 +4560,19 @@ function viewAnimal(id) {
     <button class="btn" onclick="closeViewPanel()">✓ Done</button>
   </div>
 </div>`;
-  document.body.appendChild(overlay);
+  panel.classList.add('open');
+  _drawViewRadar(a.stats, bo, STATS);
 }
 
 function closeViewPanel() {
-  const el = $id('view-overlay');
-  if (el) el.remove();
+  const panel = document.getElementById('animal-view-panel');
+  if (!panel) return;
+  panel.classList.remove('open');
+  // Restore empty state after transition
+  setTimeout(() => {
+    if (!panel.classList.contains('open'))
+      panel.innerHTML = `<div class="avp-hdr"><span class="avp-hdr-lbl">Animal View</span><span class="avp-hdr-hint">click a name to open ▶</span></div><div class="avp-empty">No animal selected.<br>Click any row or tile to view details.</div>`;
+  }, 240);
 }
 
 function renderPairs() {
@@ -4562,7 +4658,7 @@ function renderPairs() {
     const pairBlocks = pairs.map((p, i) => {
       const mAnimal = allPairAnimals.find(a => a.name === p.m);
       const fAnimal = allPairAnimals.find(a => a.name === p.f);
-      const score   = (mAnimal && fAnimal) ? `S:${getTotal(mAnimal.stats,sp) + getTotal(fAnimal.stats,sp)}` : '';
+      // score removed (v0.24): stat points shown on each tile
       const mConf   = p.mConflict ? '⚠' : '';
       const fConf   = p.fConflict ? '⚠' : '';
 
@@ -4582,7 +4678,6 @@ function renderPairs() {
         <div class="slot-outer ${fAnimal?'slot-filled':''}" data-sp="${$esc(sp)}" data-pi="${i}" data-sex="F" style="--slot-glow:rgba(128,64,88,.85)">
           <div class="pair-slot ${fAnimal?'slot-filled':''}">${fTile}</div>
         </div>
-        <span class="pair-score-lbl">${score}</span>
         <button class="pair-del-btn" onclick="deletePairRow('${$esc(sp)}',${i})" title="Delete this pair">×</button>
       </div>`;
     }).join('');
@@ -5043,12 +5138,20 @@ function _buildPairTile(a, sp, pairIdx, sex, makeBadge) {
   const goalMark = (gBadge && gBadge.includes('goal-match')) ? '<span class="tile-goal">✓G</span>' : '';
   const rmSp = $esc(sp);
   const rmSex = sex.toLowerCase();
+  const blCol = BLOODLINE_COLOR[a.bl] || '#666';
+  const phRarityCol = (() => {
+    const cfg = SPECIES_DATA[a.sp]; const ph = cfg?.phenotypes.find(p => p.label === a.ph);
+    return ph ? (RARITY_COLOR[RARITY_FROM_WEIGHT(ph.weight)] || 'transparent') : 'transparent';
+  })();
+  const tileId = a.name.split(' ')[0]; // e.g. "DR02" from "DR02 M42-Unstable P5"
   return `<div class="animal-tile ${sc}" draggable="true"
     data-aid="${a.id}" data-psp="${$esc(sp)}" data-pi="${pairIdx}" data-sex="${sex}"
     title="${$esc(a.name)} · ${a.bl} · ${tot}"
+    style="--ph-border:${phRarityCol}"
+    onclick="viewAnimal(${a.id})"
   ><span class="tile-icon">${_spIcon(a.name)}</span
-  ><span class="tile-name">${a.name}</span
-  ><span class="tile-bl">${a.bl}</span
+  ><span class="tile-name">${tileId}</span
+  ><span class="tile-bl-badge" style="color:${blCol};border-color:${blCol}">${a.bl}</span
   ><span class="tile-stat">${tot}</span
   >${goalMark}<button class="tile-rm" onclick="event.stopPropagation();updatePair('${rmSp}',${pairIdx},'${rmSex}','')">✕</button
   ></div>`;
@@ -5058,13 +5161,20 @@ function _buildPairTile(a, sp, pairIdx, sex, makeBadge) {
 function _buildPoolTile(a, sp) {
   const sc  = a.sex === 'M' ? 'm' : 'f';
   const tot = getTotal(a.stats, sp);
+  const blCol = BLOODLINE_COLOR[a.bl] || '#666';
+  const phRarityCol = (() => {
+    const cfg = SPECIES_DATA[a.sp]; const ph = cfg?.phenotypes.find(p => p.label === a.ph);
+    return ph ? (RARITY_COLOR[RARITY_FROM_WEIGHT(ph.weight)] || 'transparent') : 'transparent';
+  })();
+  const tileId = a.name.split(' ')[0];
   return `<div class="animal-tile pool-tile ${sc}" draggable="true"
     data-aid="${a.id}" data-psp="${$esc(sp)}" data-pool="1"
     onclick="viewAnimal(${a.id})"
     title="${$esc(a.name)} · ${a.bl} · ${tot}"
+    style="--ph-border:${phRarityCol}"
   ><span class="tile-icon">${_spIcon(a.name)}</span
-  ><span class="tile-name">${a.name}</span
-  ><span class="tile-bl">${a.bl}</span
+  ><span class="tile-name">${tileId}</span
+  ><span class="tile-bl-badge" style="color:${blCol};border-color:${blCol}">${a.bl}</span
   ><span class="tile-stat">${tot}</span
   ></div>`;
 }
@@ -5169,13 +5279,116 @@ function _initPairCardDnD(card) {
   }
 }
 
+// ── Goal sightings radars ─────────────────────────────────────
+function _drawGoalSightingRadars(sp) {
+  const cfg = SPECIES_DATA[sp];
+  if (!cfg) return;
+  const spKey = sp.replace(/[^a-zA-Z0-9]/g, '_');
+  // Count from animals[] directly — includes dead, excludes Discard
+  const spAllAnimals = animals.filter(a => a.sp === sp && a.status !== 'Discard');
+  const phCounts = {};
+  spAllAnimals.forEach(a => {
+    const key = a.ph || cfg.phenotypes[0]?.label || '';
+    phCounts[key] = (phCounts[key] || 0) + 1;
+  });
+
+  const canvas = document.getElementById(`sph_radar_${spKey}`);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const counts = cfg.phenotypes.map(p => phCounts[p.label] || 0);
+  // sqrt scaling: compresses large outliers so all phenotypes stay readable
+  const sqrtCounts = counts.map(c => Math.sqrt(c));
+  const maxSqrt    = Math.max(...sqrtCounts, 1);
+
+  const rarityColors = cfg.phenotypes.map(p => RARITY_COLOR[RARITY_FROM_WEIGHT(p.weight)] || '#c87a1a');
+  const n   = cfg.phenotypes.length;
+  const cx  = canvas.width  / 2;
+  const cy  = canvas.height / 2 + 6;
+  const maxR = Math.min(canvas.width, canvas.height) * 0.34;
+  const ang  = i => (Math.PI * 2 * i / n) - Math.PI / 2;
+  const ptX  = (i, r) => cx + r * Math.cos(ang(i));
+  const ptY  = (i, r) => cy + r * Math.sin(ang(i));
+
+  // Grid rings
+  [.25,.5,.75,1].forEach(f => {
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const r = maxR * f;
+      i === 0 ? ctx.moveTo(ptX(i,r), ptY(i,r)) : ctx.lineTo(ptX(i,r), ptY(i,r));
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(106,125,80,.18)'; ctx.lineWidth = 1; ctx.stroke();
+  });
+
+  // Axes
+  for (let i = 0; i < n; i++) {
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(ptX(i, maxR), ptY(i, maxR));
+    ctx.strokeStyle = 'rgba(106,125,80,.15)'; ctx.lineWidth = 1; ctx.stroke();
+  }
+
+  // Filled polygon using sqrt-scaled values
+  ctx.beginPath();
+  sqrtCounts.forEach((sc, i) => {
+    const r = maxR * (sc / maxSqrt);
+    i === 0 ? ctx.moveTo(ptX(i,r), ptY(i,r)) : ctx.lineTo(ptX(i,r), ptY(i,r));
+  });
+  ctx.closePath();
+  ctx.fillStyle   = 'rgba(200,122,26,.18)';
+  ctx.strokeStyle = 'rgba(200,122,26,.65)';
+  ctx.lineWidth   = 1.5;
+  ctx.fill(); ctx.stroke();
+
+  // Dot per phenotype, colored by rarity (only if count > 0)
+  sqrtCounts.forEach((sc, i) => {
+    if (!sc) return;
+    const r = maxR * (sc / maxSqrt);
+    ctx.beginPath();
+    ctx.arc(ptX(i,r), ptY(i,r), 3, 0, Math.PI*2);
+    ctx.fillStyle = rarityColors[i];
+    ctx.fill();
+  });
+
+  // Labels: "P0: 14" etc — count shown inline since there's no list below
+  const labelR = maxR + 16;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  cfg.phenotypes.forEach((p, i) => {
+    const lx = cx + labelR * Math.cos(ang(i));
+    const ly = cy + labelR * Math.sin(ang(i));
+    const col = rarityColors[i];
+    const total = counts[i];
+    // P label
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillStyle = col;
+    ctx.fillText(`P${i}`, lx, total > 0 ? ly - 5 : ly);
+    // Count (dim if zero)
+    if (total > 0) {
+      ctx.font = '8px sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,.55)';
+      ctx.fillText(`×${total}`, lx, ly + 5);
+    }
+  });
+}
+
+// ── Form radar (live update in New/Edit Animal tab) ───────────
+function _drawFormRadar() {
+  const sp = $val('f-species') || 'Dune Raptor';
+  const bo = getBreedOut(sp);
+  const stats = {};
+  STATS.forEach(s => { stats[s] = parseInt($id(`stat-${s}`)?.value) || 0; });
+  _drawViewRadar(stats, bo, STATS, 'form-radar-canvas');
+}
+
 // ── Radar chart for view panel ────────────────────────────────
-function _drawViewRadar(stats, bo, statKeys) {
-  const canvas = document.getElementById('vr-canvas');
+function _drawViewRadar(stats, bo, statKeys, canvasId='vr-canvas') {
+  const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const cx = canvas.width / 2, cy = canvas.height / 2 + 4;
-  const maxR = 65, n = statKeys.length, maxVal = 10;
+  // Scale maxR to canvas so labels never clip
+  const maxR = Math.min(canvas.width, canvas.height) * 0.30;
+  const n = statKeys.length, maxVal = 10;
   const ang = i => (Math.PI * 2 * i / n) - Math.PI / 2;
   const ptX = (i, r) => cx + r * Math.cos(ang(i));
   const ptY = (i, r) => cy + r * Math.sin(ang(i));
@@ -5225,5 +5438,13 @@ function _drawViewRadar(stats, bo, statKeys) {
 }
 
 </script>
+<!-- ── PERSISTENT ANIMAL VIEW SIDE PANEL ───────────────────────── -->
+<div id="animal-view-panel">
+  <div class="avp-hdr">
+    <span class="avp-hdr-lbl">Animal View</span>
+    <span class="avp-hdr-hint">click a name to open ▶</span>
+  </div>
+  <div class="avp-empty">No animal selected.<br>Click any row or tile to view details.</div>
+</div>
 </body>
 </html>
