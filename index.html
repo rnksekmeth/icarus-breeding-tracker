@@ -340,7 +340,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.13 – Ordering & Suggestions</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.14 – New Animal Polish</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -440,7 +440,8 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
     <div class="field" style="flex:1"><label>Notes</label>
       <input type="text" id="f-notes" placeholder="Optional notes&#x2026;" style="width:100%"></div>
     <div class="field" style="justify-content:flex-end;flex-direction:row;gap:8px">
-      <button class="btn-sm" id="cancel-edit-btn" onclick="cancelEdit()" style="display:none;height:34px;padding:0 16px">✕ Cancel</button>
+      <button class="btn-sm" id="clear-form-btn" onclick="clearEntryForm()" style="height:34px;padding:0 16px;color:var(--dim)">🗑 Clear</button>
+      <button class="btn-sm" id="cancel-edit-btn" onclick="cancelEdit()" style="display:none;height:34px;padding:0 16px">✕ Cancel Edit</button>
       <button class="btn" id="save-btn" onclick="saveAnimal()" style="height:34px;padding:0 24px">&#x1F4BE; Save Animal</button>
     </div>
   </div>
@@ -1983,8 +1984,7 @@ function renderProbPanel() {
   const cfg = SPECIES_DATA[sp];
   const totalWeight = cfg.phenotypes.reduce((s, p) => s + (p.weight || 1), 0);
 
-  let html = `<div class="prob-hdr">Breeding Odds · 40% ♀ / 40% ♂ / 20% mutation</div>
-    <div class="prob-theory-notice">⚠ THEORY ONLY — Percentages are unconfirmed estimates based on standard breeding mechanics. Actual in-game odds may differ.</div>`;
+  let html = `<div class="prob-hdr">Breeding Odds · 40% ♀ / 40% ♂ / 20% mutation</div>`;
 
   // Phenotype
   html += `<div class="prob-section"><div class="prob-section-hdr">Phenotype Inheritance</div>`;
@@ -2027,6 +2027,7 @@ function renderProbPanel() {
     });
     html += `</div>`;
   }
+  html += `<div class="prob-theory-notice" style="margin-top:10px;margin-bottom:0">⚠ THEORY ONLY — Percentages are unconfirmed estimates based on standard breeding mechanics. Actual in-game odds may differ.</div>`;
   panel.innerHTML = html;
   panel.classList.add('show');
 }
@@ -2077,15 +2078,15 @@ function onSpeciesChange() {
 function updateParentDatalist() {
   const list = $id('animal-names-list');
   if (!list) return;
-  const opts = [];
-  animals.filter(a => a.status !== 'Dead' && a.status !== 'Station').forEach(a => {
-    const spId = a.spId ? formatSpId(a.sp, a.spId) : '';
-    opts.push(`<option value="${a.name}">${spId ? spId + ' ' : ''}${a.name}</option>`);
-    if (spId) opts.push(`<option value="${spId}">${a.name}</option>`);
-    // short number lookup
-    if (a.spId) opts.push(`<option value="${a.spId}">${spId} ${a.name}</option>`);
-  });
-  list.innerHTML = opts.join('');
+  // One clean entry per animal — value is the full name (works with findParentAnimal),
+  // label shows the short ID as a search hint.
+  list.innerHTML = animals
+    .filter(a => a.status !== 'Dead' && a.status !== 'Station')
+    .map(a => {
+      const spId = a.spId ? formatSpId(a.sp, a.spId) : '';
+      const label = spId ? `${spId} · ${a.name}` : a.name;
+      return `<option value="${a.name}">${label}</option>`;
+    }).join('');
 }
 
 function setUnknownParent(n) {
@@ -2580,6 +2581,23 @@ function cancelEdit() {
   $id('total-pct').textContent = '';
   $id('advice-panel').classList.remove('show');
   showTab('herd', document.querySelector('nav button'));
+}
+
+function clearEntryForm() {
+  if (editingId) return; // don't clobber an in-progress edit — use Cancel Edit for that
+  STATS.forEach(s => {
+    const el = $id(`stat-${s}`);
+    if (el) { el.value = ''; el.classList.remove('maxed','zero'); }
+  });
+  ['f-p1','f-p2','f-notes'].forEach(fid => { const el = $id(fid); if (el) el.value = ''; });
+  ['pc1','pc2'].forEach(fid => { const d = $id(fid); if (d) d.classList.remove('show'); });
+  const pp = $id('prob-panel'); if (pp) pp.classList.remove('show');
+  $id('f-status').value = '?';
+  $id('generated-name').textContent = '—';
+  $id('total-val').textContent = '—';
+  $id('total-pct').textContent = '';
+  $id('advice-panel').classList.remove('show');
+  const pa = $id('pair-assign-panel'); if (pa) pa.style.display = 'none';
 }
 
 // ── PAIR ASSIGNMENT AFTER SAVE ───────────────────────────────────

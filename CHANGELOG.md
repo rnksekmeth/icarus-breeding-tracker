@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.14 – New Animal Polish
+**2026-04-05**
+
+- New Animal: parent datalist now shows one entry per animal (spId · name format) — no more duplicate or partial entries from prior field state
+- New Animal: ⚠ THEORY ONLY disclaimer moved to the bottom of the probability panel
+- New Animal: 🗑 Clear button added to reset the form without navigating away; pair-assign and prob panels are also dismissed; button is hidden/inert when editing an existing animal
+
+---
+
 ## v0.13 – Ordering & Suggestions
 **2026-04-05**
 
