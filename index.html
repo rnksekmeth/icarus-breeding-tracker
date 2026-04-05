@@ -321,7 +321,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.8 – Pair Assignment</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.9 – Tooltips & Station</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -409,6 +409,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
         <option value="Breed">🐣 Breed</option>
         <option value="Temp">⚡ Temp Breed</option>
         <option value="Reserve">🔶 Reserve</option>
+        <option value="Station">🛸 On Station</option>
         <option value="Discard">🗑️ Discard</option>
         <option value="Dead">🪦 Dead/Culled</option>
       </select></div>
@@ -446,6 +447,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
       <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Breed',this)">🐣 Breed</button>
       <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Temp',this)">⚡ Temp</button>
       <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Reserve',this)">🔶 Reserve</button>
+      <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Station',this)">🛸 Station</button>
       <button class="filter-btn" data-filter-type="status" onclick="setFilter('status','Discard',this)">🗑️ Discard</button>
     </div>
     <div class="filter-row">
@@ -475,13 +477,13 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
         <th data-col="phenotype" onclick="sortBy('phenotype')">Phenotype <span class="sort-arrow"></span></th>
         <th data-col="gen"       onclick="sortBy('gen')">Gen <span class="sort-arrow"></span></th>
         <th>Parents</th>
-        <th data-col="vig" onclick="sortBy('vig')">VIG <span class="sort-arrow"></span></th>
-        <th data-col="fit" onclick="sortBy('fit')">FIT <span class="sort-arrow"></span></th>
-        <th data-col="phy" onclick="sortBy('phy')">PHY <span class="sort-arrow"></span></th>
-        <th data-col="ref" onclick="sortBy('ref')">REF <span class="sort-arrow"></span></th>
-        <th data-col="tgh" onclick="sortBy('tgh')">TGH <span class="sort-arrow"></span></th>
-        <th data-col="adp" onclick="sortBy('adp')">ADP <span class="sort-arrow"></span></th>
-        <th data-col="ins" onclick="sortBy('ins')">INS <span class="sort-arrow"></span></th>
+        <th data-col="vig" onclick="sortBy('vig')" data-tip="Vigor&#10;Stamina pool and overall energy">VIG <span class="sort-arrow"></span></th>
+        <th data-col="fit" onclick="sortBy('fit')" data-tip="Fitness&#10;Stamina regeneration and endurance">FIT <span class="sort-arrow"></span></th>
+        <th data-col="phy" onclick="sortBy('phy')" data-tip="Physique&#10;Physical strength and carry weight">PHY <span class="sort-arrow"></span></th>
+        <th data-col="ref" onclick="sortBy('ref')" data-tip="Reflex&#10;Movement speed">REF <span class="sort-arrow"></span></th>
+        <th data-col="tgh" onclick="sortBy('tgh')" data-tip="Toughness&#10;Physical resistance (damage reduction)">TGH <span class="sort-arrow"></span></th>
+        <th data-col="adp" onclick="sortBy('adp')" data-tip="Adaptation&#10;Cold resistance and heat resistance">ADP <span class="sort-arrow"></span></th>
+        <th data-col="ins" onclick="sortBy('ins')" data-tip="Instinct&#10;Milk/egg production speed, wool growth,&#10;mount cargo inventory slots">INS <span class="sort-arrow"></span></th>
         <th data-col="total"  onclick="sortBy('total')">Total <span class="sort-arrow"></span></th>
         <th data-col="status" onclick="sortBy('status')">Status <span class="sort-arrow"></span></th>
         <th>Actions</th>
@@ -588,6 +590,27 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
       </div>
     </div>
 
+    <div class="entry-card">
+      <h2 style="margin-bottom:8px;">💬 Feedback &amp; Bug Reports</h2>
+      <p style="color:#aaa;margin-bottom:14px;font-size:12px;line-height:1.6;">
+        Found a bug? Have a feature request or suggestion? Submit it directly on GitHub — no account required to view existing issues, but a free GitHub account is needed to post.
+      </p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="https://github.com/rnksekmeth/icarus-breeding-tracker/issues/new?labels=bug&template=bug_report.md" target="_blank"
+          style="background:var(--red2);color:var(--red);border:1px solid var(--red2);padding:7px 16px;border-radius:4px;font-size:12px;font-weight:bold;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+          🐛 Report a Bug
+        </a>
+        <a href="https://github.com/rnksekmeth/icarus-breeding-tracker/issues/new?labels=enhancement&template=feature_request.md" target="_blank"
+          style="background:var(--grn2);color:var(--grn);border:1px solid var(--grn2);padding:7px 16px;border-radius:4px;font-size:12px;font-weight:bold;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+          ✨ Feature Request
+        </a>
+        <a href="https://github.com/rnksekmeth/icarus-breeding-tracker/issues" target="_blank"
+          style="background:var(--panel);color:var(--dim);border:1px solid var(--bdr);padding:7px 16px;border-radius:4px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+          📋 View All Issues
+        </a>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -604,10 +627,35 @@ const RARITY_LABEL  = { base:'Base', uncommon:'Uncommon', rare:'Rare', legendary
 
 const TEMP_BOOST_MIN = 3;
 
-const STATUS_LIST  = ['?','Keep','Breed','Temp','Reserve','Discard','Dead'];
-const STATUS_ICON  = { '?':'❓', Keep:'✅', Breed:'🐣', Temp:'⚡', Reserve:'🔶', Discard:'🗑️', Dead:'🪦' };
-const STATUS_LABEL = { '?':'Undecided', Keep:'Keep', Breed:'Breed', Temp:'Temp Breed', Reserve:'Reserve', Discard:'Discard', Dead:'Dead/Culled' };
-const STATUS_COLOR = { '?':'#666', Keep:'#00cc55', Breed:'#e8a020', Temp:'#ffaa00', Reserve:'#88aaff', Discard:'#888', Dead:'#555' };
+const STATUS_LIST  = ['?','Keep','Breed','Temp','Reserve','Station','Discard','Dead'];
+const STATUS_ICON  = { '?':'❓', Keep:'✅', Breed:'🐣', Temp:'⚡', Reserve:'🔶', Station:'🛸', Discard:'🗑️', Dead:'🪦' };
+const STATUS_LABEL = { '?':'Undecided', Keep:'Keep', Breed:'Breed', Temp:'Temp Breed', Reserve:'Reserve', Station:'On Station', Discard:'Discard', Dead:'Dead/Culled' };
+const STATUS_COLOR = { '?':'#666', Keep:'#00cc55', Breed:'#e8a020', Temp:'#ffaa00', Reserve:'#88aaff', Station:'#5bc8d4', Discard:'#888', Dead:'#555' };
+
+const STAT_INFO = {
+  VIG: { full:'Vigor',      desc:'Stamina pool and overall energy' },
+  FIT: { full:'Fitness',    desc:'Stamina regeneration and endurance' },
+  PHY: { full:'Physique',   desc:'Physical strength and carry weight' },
+  REF: { full:'Reflex',     desc:'Movement speed' },
+  TGH: { full:'Toughness',  desc:'Physical resistance (damage reduction)' },
+  ADP: { full:'Adaptation', desc:'Cold resistance and heat resistance' },
+  INS: { full:'Instinct',   desc:'Milk/egg production speed, wool growth, cargo slots' },
+};
+
+const BLOODLINE_INFO = {
+  Wild:      'Fixed: +5% Water Consumption, +5% Food Consumption\nGrowth: +1% Minor Hemorrhage chance on hit (per 5 levels)',
+  Brave:     'Fixed: -10% Maximum Stamina\nGrowth: +1 Melee Damage (per 2 levels)',
+  Careful:   'Fixed: -10% Movement Speed\nGrowth: -1% Perceived Threat (per level)',
+  Timid:     'Fixed: -10% Melee Damage\nGrowth: +1 Movement Speed (per level)',
+  Bold:      'Fixed: -10 Physical Resistance\nGrowth: +1 Maximum Stamina (per 2 levels)',
+  Hardy:     'Fixed: +10% Food Consumption\nGrowth: +1 Max Health (per 2 levels), +1% Stamina Regen (per level)',
+  Stout:     'Fixed: +10% Perceived Threat\nGrowth: +1kg Weight Capacity (per level)',
+  Ambitious: 'Fixed: +50% Experience Gained\nNo growth stat',
+  Resolute:  'Fixed: -10% Maximum Health\nGrowth: +1% Stamina Regen (per level), +1% Fertilization Recovery (per level)',
+  Unstable:  'Fixed: -50% Fertilization Recovery Speed\nGrowth: +1% Genotype Mutation Chance (per 2 levels)\n        +1% Phenotype Mutation Chance (per 2 levels)',
+  Savage:    'Fixed: -50% Health Regeneration\nGrowth: +1% Health Leech on hit (per level)',
+  Alpha:     'Fixed: +20% Size Increase\nGrowth: +1 Melee Damage (per level), +1 Max Health (per level)\nNote: affects Base Stat numbers directly',
+};
 
 // ── SPECIES DATA ─────────────────────────────────────────────────
 /**
@@ -1341,7 +1389,7 @@ function computeAdvice() {
 
   const pairs    = pairsMap[sp] || [];
   const sexKey   = sex === 'M' ? 'm' : 'f';
-  const spAnimals = animals.filter(a => a.sp === sp && a.sex === sex && a.status !== 'Dead');
+  const spAnimals = animals.filter(a => a.sp === sp && a.sex === sex && a.status !== 'Dead' && a.status !== 'Station');
   const goals    = goalsMap[sp] || {};
   const results  = [];
 
@@ -1567,7 +1615,9 @@ function buildStatsRow() {
     const isBO = stat === bo;
     const blk = document.createElement('div');
     blk.className = `stat-block ${isBO ? 'breed-out-stat' : 'normal-stat'}`;
-    blk.innerHTML = `<label>${stat}${isBO ? ' ▼' : ''}</label>
+    const si = STAT_INFO[stat];
+    const tipText = si ? `${si.full}\n${si.desc}` : stat;
+    blk.innerHTML = `<label data-tip="${tipText}">${stat}${isBO ? ' ▼' : ''}</label>
       <input type="number" id="stat-${stat}" min="0" max="10" value="" placeholder="-"
         oninput="onStatInput(this,'${stat}')"
         onkeydown="onStatKey(event,'${stat}')"
@@ -1597,7 +1647,7 @@ function updateParentDatalist() {
   const list = $id('animal-names-list');
   if (!list) return;
   const opts = [];
-  animals.filter(a => a.status !== 'Dead').forEach(a => {
+  animals.filter(a => a.status !== 'Dead' && a.status !== 'Station').forEach(a => {
     const spId = a.spId ? formatSpId(a.sp, a.spId) : '';
     opts.push(`<option value="${a.name}">${spId ? spId + ' ' : ''}${a.name}</option>`);
     if (spId) opts.push(`<option value="${spId}">${a.name}</option>`);
@@ -1891,7 +1941,7 @@ function renderHerd() {
   let list = animals.slice();
 
   // ── Build dynamic bloodline + phenotype filter pills ─────────────
-  const baseAnimals = showDead ? animals : animals.filter(a => a.status !== 'Dead');
+  const baseAnimals = showDead ? animals : animals.filter(a => a.status !== 'Dead' && a.status !== 'Station');
   const buildDynamicPills = (containerId, filterType, currentVal, getVal) => {
     const container = $id(containerId);
     if (!container) return;
@@ -1908,7 +1958,7 @@ function renderHerd() {
   buildDynamicPills('filter-phenotype-pills', 'phenotype', filterPhenotype, a => a.ph ? phenoDisplay(a.sp, a.ph) || a.ph : null);
 
   // ── Apply filters ─────────────────────────────────────────────────
-  if (!showDead)              list = list.filter(a => a.status !== 'Dead');
+  if (!showDead)              list = list.filter(a => a.status !== 'Dead' && a.status !== 'Station');
   if (filterSpecies   !== 'all') list = list.filter(a => a.sp === filterSpecies);
   if (filterStatus    !== 'all') list = list.filter(a => a.status === filterStatus);
   if (filterSex       !== 'all') list = list.filter(a => a.sex === filterSex);
@@ -1923,7 +1973,7 @@ function renderHerd() {
     return (av < bv ? -1 : av > bv ? 1 : 0) * (sortAsc ? 1 : -1);
   });
 
-  $id('herd-count').textContent = `${list.length} / ${animals.filter(a => showDead || a.status !== 'Dead').length} animals`;
+  $id('herd-count').textContent = `${list.length} / ${animals.filter(a => showDead || a.status !== 'Dead' && a.status !== 'Station').length} animals`;
 
   if (!list.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
@@ -1960,9 +2010,9 @@ function renderHerd() {
     const sexColor = a.sex === 'M' ? '#88aaff' : a.sex === 'F' ? '#ff88aa' : '#888';
     return `<tr style="${deadStyle}">
       <td class="name-cell">${spIdBadge}<button class="btn-copy" style="padding:2px 6px;font-size:11px;margin-right:4px" onclick="quickCopy('${$esc(a.name)}')">copy</button>${a.name}${tempBadge}${reserveBadge}</td>
-      <td>${dot}${spCfg.short || a.sp}</td>
+      <td data-tip="${a.sp}">${dot}${spCfg.short || a.sp}</td>
       <td style="text-align:center;color:${sexColor};font-weight:bold">${a.sex === 'M' ? '♂' : a.sex === 'F' ? '♀' : a.sex || '?'}</td>
-      <td class="${blCls}">${a.bl}</td>
+      <td class="${blCls}" ${BLOODLINE_INFO[a.bl] ? `data-tip="${BLOODLINE_INFO[a.bl].replace(/"/g,'&quot;')}"` : ''}>${a.bl}</td>
       <td style="color:${phColor};font-size:11px">${phDisp}</td>
       <td style="text-align:center;color:#aaa">${a.gen || 1}</td>
       <td style="font-size:11px;color:#aaa">${parents}</td>
@@ -1971,7 +2021,7 @@ function renderHerd() {
       <td>${statusSelectHtml(a)}</td>
       <td style="white-space:nowrap">
         <button class="btn-sm" onclick="editAnimal(${a.id})" style="font-size:11px">edit</button>
-        ${a.status !== 'Dead'
+        ${a.status !== 'Dead' && a.status !== 'Station'
           ? `<button class="btn-sm" onclick="markDead(${a.id})" style="font-size:11px;color:#888">🪦</button>`
           : `<button class="btn-sm" onclick="reviveAnimal(${a.id})" style="font-size:11px;color:#2ecc71">↩</button>`}
         <button class="btn-ghost" onclick="deleteAnimal(${a.id}, false)" style="font-size:11px">del</button>
@@ -2304,10 +2354,10 @@ function renderPairs() {
     const crossPartners = CROSS_BREEDS[sp] || [];
 
     // Own-species animals
-    const spAnimals = animals.filter(a => a.sp === sp && a.status !== 'Dead');
+    const spAnimals = animals.filter(a => a.sp === sp && a.status !== 'Dead' && a.status !== 'Station');
     // Cross-breed partner animals (labelled with species short code)
     const crossAnimals = crossPartners.flatMap(csp =>
-      animals.filter(a => a.sp === csp && a.status !== 'Dead')
+      animals.filter(a => a.sp === csp && a.status !== 'Dead' && a.status !== 'Station')
     );
     const allPairAnimals = [...spAnimals, ...crossAnimals];
 
@@ -2437,7 +2487,7 @@ function updateLineageSelector() {
   const cur = sel.value;
   sel.innerHTML = `<option value="">— Select an animal to trace —</option>` +
     Object.entries(SPECIES_DATA).map(([sp, cfg]) => {
-      const sa = animals.filter(a => a.sp === sp && a.status !== 'Dead');
+      const sa = animals.filter(a => a.sp === sp && a.status !== 'Dead' && a.status !== 'Station');
       if (!sa.length) return '';
       const opts = sa.sort((a,b) => getTotal(b.stats,sp) - getTotal(a.stats,sp))
         .map(a => `<option value="${a.name}"${a.name===cur?' selected':''}>${a.spId ? formatSpId(a.sp,a.spId)+' ' : ''}${a.name} (${getTotal(a.stats,sp)})</option>`)
@@ -2685,6 +2735,38 @@ function showToast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
+
+// ── TOOLTIP ENGINE ───────────────────────────────────────────────
+(function () {
+  const tip = document.createElement('div');
+  tip.id = 'global-tip';
+  Object.assign(tip.style, {
+    position:'fixed', background:'#0d1a2e', border:'1px solid #2a4a6a',
+    color:'#f0f0f0', fontSize:'12px', padding:'7px 11px', borderRadius:'6px',
+    pointerEvents:'none', zIndex:'9999', display:'none', maxWidth:'260px',
+    lineHeight:'1.6', whiteSpace:'pre-line', boxShadow:'0 4px 12px rgba(0,0,0,.5)',
+  });
+  document.body.appendChild(tip);
+
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('[data-tip]');
+    if (!el || !el.dataset.tip) { tip.style.display = 'none'; return; }
+    tip.textContent = el.dataset.tip;
+    tip.style.display = 'block';
+  });
+  document.addEventListener('mouseout', e => {
+    if (!e.target.closest('[data-tip]')) tip.style.display = 'none';
+  });
+  document.addEventListener('mousemove', e => {
+    if (tip.style.display === 'none') return;
+    let x = e.clientX + 14, y = e.clientY + 14;
+    const r = tip.getBoundingClientRect();
+    if (x + r.width  > window.innerWidth)  x = e.clientX - r.width  - 10;
+    if (y + r.height > window.innerHeight) y = e.clientY - r.height - 10;
+    tip.style.left = x + 'px';
+    tip.style.top  = y + 'px';
+  });
+})();
 
 // ── INIT ─────────────────────────────────────────────────────────
 // The startup modal handles loading; it calls closeStartup() when done.

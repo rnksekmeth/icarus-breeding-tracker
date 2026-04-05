@@ -4,6 +4,19 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.9 – Tooltips & Station
+**2026-04-05**
+
+- Hover tooltips on all stat labels (form and table headers): full name and what the stat affects
+- Hover tooltips on bloodline cells in My Herd with fixed stats and growth stat effects for all 12 bloodlines
+- Hover tooltips on species abbreviation cells showing the full species name
+- New 🛸 On Station status — for animals stored on the space station between maps
+- Station animals are excluded from pair slots (same as Dead/Culled)
+- GitHub feedback buttons added to Settings tab: Report a Bug, Feature Request, View All Issues
+- README rewritten: web version recommended first, status reference table added, all sections expanded and updated
+
+---
+
 ## v0.8 – Pair Assignment
 **2026-04-05**
 

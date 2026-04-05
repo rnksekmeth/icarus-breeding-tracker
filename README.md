@@ -1,105 +1,149 @@
 # 🦖 Icarus Breeding Tracker
 
-A herd tracker and breeding planner for the game [Icarus](https://store.steampowered.com/app/1149460/Icarus/). Single HTML file — no install, no account, no internet required after download.
-
-Your data is saved to a local JSON file on your computer that you choose on first launch.
+A herd tracker and breeding planner for the game [Icarus](https://store.steampowered.com/app/1149460/Icarus/). Track your animals, plan breeding pairs, manage bloodlines and phenotypes, and record lineage — all in a single file with no install, no account, and no internet required.
 
 ---
 
-## Requirements
+## 🌐 Recommended: Use the Web Version
 
-- **Chrome** or **Edge** (version 86 or newer)
-- No other software needed
+The easiest way to use the app is directly in your browser — nothing to download or update:
 
-> Firefox is not supported — it does not implement the File System Access API used for local saving. The app will offer a browser storage fallback, but local file saving requires Chrome or Edge.
+**https://rnksekmeth.github.io/icarus-breeding-tracker**
+
+The web version is always up to date with the latest features. Your data is saved to a local JSON file on your own computer using the File System Access API — nothing is sent to any server.
+
+> **Browser requirement:** Chrome or Edge (version 86+). Firefox does not support the File System Access API. The app will work in Firefox using browser storage as a fallback, but local file saving requires Chrome or Edge.
 
 ---
 
-## Getting the App
+## 💾 Alternative: Download and Run Locally
 
-### Option A — Download from GitHub (recommended)
+If you prefer to keep a local copy (useful for offline play or if you want a specific version):
+
+### Option A — Download the file directly
 
 1. Go to the [repository on GitHub](https://github.com/rnksekmeth/icarus-breeding-tracker)
-2. Click the **`index.html`** file in the file list
-3. On the file page, click the **download icon** (⬇) in the top right corner
-4. Save it somewhere permanent on your computer — for example `E:\Icarus\BreedingTracker\index.html`
+2. Click `index.html` in the file list
+3. Click the **download icon (⬇)** in the top right of the file view
+4. Save it to a permanent local folder, e.g. `E:\Icarus\BreedingTracker\index.html`
+5. Open it in Chrome or Edge
 
-> Avoid saving it to a cloud-synced folder like OneDrive or Google Drive, as file syncing can occasionally conflict with the auto-save. A local drive is ideal.
+> Avoid saving to a cloud-synced folder like OneDrive or Google Drive — file syncing can occasionally conflict with auto-save. A local drive is ideal.
 
-### Option B — Clone the repository
-
-If you use Git, you can clone the repo and pull updates as they're released:
+### Option B — Clone with Git
 
 ```
 git clone https://github.com/rnksekmeth/icarus-breeding-tracker.git
 ```
 
+Pull updates with `git pull` whenever a new version is released.
+
 ---
 
-## First Launch
+## 🚀 First Launch
 
-1. Open `index.html` in Chrome or Edge
-2. A startup screen will appear asking where to save your data
+1. Open the app (web version or local file) in Chrome or Edge
+2. A startup screen appears asking how to store your data
 3. Click **✨ Start fresh (create new file)**
-4. A save dialog will open — navigate to the same folder as `index.html` and save as `herd_data.json`
-5. The app is now ready to use
+4. A save dialog opens — pick any folder and save as `herd_data.json`
+5. The app is ready to use
 
-On every future launch, the app will remember your file. Click **▶ Continue with herd_data.json** and grant permission when the browser asks — this is a one-click step each session.
+On every future visit, the app remembers your file. Click **▶ Continue with herd_data.json** and grant permission when prompted — a one-click step each session.
 
-### If you already have data from a previous version
+### Migrating from an older version
 
-If you used an earlier version of the app that stored data in the browser, click **⬆ Migrate data from browser storage** on the startup screen. This will read your existing data and save it to the new file format, then clear the old browser storage.
-
----
-
-## Saving
-
-The app saves automatically after every change. A small **💾 Saved** indicator appears briefly in the top right corner to confirm each save. You do not need to manually save.
-
-Your data file (`herd_data.json`) can be backed up, copied to another computer, or shared with other players just like any regular file.
+If you previously used the app when it stored data in the browser, click **⬆ Migrate data from browser storage** on the startup screen. Your data will be exported to the new file format and the old browser storage will be cleared.
 
 ---
 
-## How to Use
+## 💾 Saving
 
-### Adding an Animal
+The app saves automatically after every change. A small **💾 Saved** indicator appears briefly in the top right to confirm each save. You never need to save manually.
 
-Go to the **➕ New Animal** tab. Fill in the species, sex, bloodline, stats, and optionally the parents and phenotype. The app will generate a name automatically in the format `DR01 48F-Wild P3 VIG2`. Click **Add to Herd**.
-
-### My Herd
-
-The **📋 My Herd** tab shows all your animals. You can filter by species and status, and show or hide dead/culled animals with the **🪦 Show Dead** toggle. Each animal has a status you can set: Keep, Breed, Temp, Reserve, Discard, or Dead.
-
-### Pairs & Breeding Advice
-
-The **🔀 Pairs** tab lets you set up breeding pairs. Select a male and female and the app will show breeding advice — which stats can be improved and which animals to retire.
-
-### Goals
-
-The **⚙ Goals** tab lets you set target stats per species and configure which stat to breed out (removed from the total score).
-
-### Lineage
-
-The **🧬 Lineage** tab shows the family tree for any animal in your herd.
+Your `herd_data.json` file can be backed up, copied to another computer, or shared with other players like any regular file.
 
 ---
 
-## Species Reference
+## 📖 How to Use
+
+### ➕ New Animal
+
+Fill in the species, sex, bloodline, phenotype, generation, stats (VIG, FIT, PHY, REF, TGH, ADP, INS), and optionally the parents. The app generates a name automatically in the format `DR01 55F-Bold P3 VIG2`. Hover over any stat label or column header to see what the stat does.
+
+After saving, a **Place in Breeding Pair** panel appears offering to slot the animal directly into a pair. The app scores all available slots and highlights the best suggestion. If a slot already has an occupant, you can choose what happens to the displaced animal.
+
+### 📋 My Herd
+
+Shows all your animals in a sortable, filterable table. Key features:
+
+- **Sort** by any column — click a header once to sort, again to reverse
+- **Filter** by species, status, sex, bloodline, phenotype, and minimum total score
+- **Change status inline** — each row has a status dropdown; no need to open Edit Animal
+- **Edit** an animal with the edit button; a **Cancel** button lets you exit without saving changes
+- **🪦 Show Dead** toggle to include or exclude dead/culled animals from the view
+
+### 🔀 Breeding Pairs
+
+Set up your active breeding pairs per species. The app enforces global exclusivity — an animal can only appear in one pair slot at a time. Dune Raptors and Swamp Raptors can be cross-bred; their animals appear in each other's pair slots.
+
+Each pair shows a goal badge indicating whether the current animals match your set bloodline and phenotype goals. An upgrade recommendation panel below suggests free animals that could improve the weakest pair slot.
+
+### ⚙ Goals
+
+Per-species configuration:
+
+- **Breed-out stat** — the stat you are breeding toward 0 (excluded from the total score and animal name). Default is VIG. For animals that cannot be ridden or don't produce resources, consider INS instead.
+- **Pair goals** — set a target bloodline and phenotype for each pair slot
+- **Priority weights** — star-rate bloodlines and phenotypes to influence the scoring and advice system
+- **Phenotype sightings** — tracks how many tamed vs bred animals of each phenotype you've seen
+
+### 🧬 Lineage
+
+Select any animal to view its family tree up to 4 generations deep. Each node shows stats, bloodline, generation, and inheritance indicators — whether each stat was inherited from the mother, father, improved beyond both parents, or regressed.
+
+The sidebar shows species-level breeding insights: average stat gain per breeding, best performing stat trend, and total recorded animals.
+
+---
+
+## 🐾 Status Reference
+
+| Icon | Status | Meaning |
+|---|---|---|
+| ❓ | Undecided | Newly added, not yet assessed |
+| ✅ | Keep | Good animal, part of the herd long-term |
+| 🐣 | Breed | Active breeder |
+| ⚡ | Temp Breed | Temporary breeder — wrong bloodline but used for a stat boost |
+| 🔶 | Reserve | Held in reserve, not currently active |
+| 🛸 | On Station | Stored on the space station (transit between maps or safe storage) |
+| 🗑️ | Discard | Scheduled for removal |
+| 🪦 | Dead/Culled | Deceased — hidden by default, kept in records |
+
+---
+
+## 🧬 Species Reference
 
 | Species | Code | Notes |
 |---|---|---|
-| Dune Raptor | DR | |
-| Swamp Raptor | SR | |
-| Moa | BM | Base Moa |
+| Dune Raptor | DR | Can cross-breed with Swamp Raptor |
+| Swamp Raptor | SR | Can cross-breed with Dune Raptor |
+| Moa | BM | Base Moa — production animal |
 | Slinker | SL | |
+
+Cross-breed offspring are either a DR or SR (not a hybrid) — determined by which species tab the pair is in.
 
 ---
 
-## Sharing the App
+## 💬 Feedback & Bug Reports
 
-You can share the `index.html` file directly with other players — it is completely self-contained. They follow the same first launch steps above to set up their own data file.
+Use the **⚙ Settings** tab inside the app for direct links to submit bug reports and feature requests on GitHub. A free GitHub account is required to post, but anyone can view existing issues.
 
-The app is also accessible online at:
-**https://rnksekmeth.github.io/icarus-breeding-tracker**
+Direct links:
+- 🐛 [Report a Bug](https://github.com/rnksekmeth/icarus-breeding-tracker/issues/new?labels=bug)
+- ✨ [Feature Request](https://github.com/rnksekmeth/icarus-breeding-tracker/issues/new?labels=enhancement)
+- 📋 [View All Issues](https://github.com/rnksekmeth/icarus-breeding-tracker/issues)
 
-Note that when using the online version, the File System Access API still works — you will be prompted to pick a save location as normal.
+---
+
+## 🤝 Sharing the App
+
+Share the `index.html` file directly — it is completely self-contained. Recipients follow the same first launch steps to set up their own data file. Or just send them the web version link.
