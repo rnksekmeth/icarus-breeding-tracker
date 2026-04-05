@@ -358,7 +358,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.17 – Species Goals & Smart Layout</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.17b – Masonry layout fix</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -1990,8 +1990,13 @@ function applyMasonry(gridId) {
   if (!grid) return;
   const gap = parseInt(getComputedStyle(grid).rowGap) || 16;
   const items = [...grid.children];
-  items.forEach(el => { el.style.gridRowEnd = ''; }); // reset first
-  // Second rAF: measure after reset reflow
+  // align-self:start makes each item size to its content height rather than
+  // stretching to fill the grid track. This lets getBoundingClientRect return
+  // the true content height even though grid-auto-rows is 1px.
+  items.forEach(el => {
+    el.style.alignSelf = 'start';
+    el.style.gridRowEnd = '';
+  });
   requestAnimationFrame(() => {
     items.forEach(el => {
       const h = el.getBoundingClientRect().height;
