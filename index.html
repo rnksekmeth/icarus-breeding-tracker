@@ -1976,15 +1976,15 @@ function applyOptimizeSinglePair(planIdx, pairIdx, btn) {
   if (!_optimizePlan?.[planIdx]) return;
   const plan = _optimizePlan[planIdx];
   const p    = plan.proposedPairs[pairIdx];
+  btn.textContent = '✓ Applied'; btn.disabled = true; btn.style.opacity = '0.5';
   if (!pairsMap[plan.sp]) initPairs();
   while (pairsMap[plan.sp].length <= pairIdx) pairsMap[plan.sp].push({ m: '', f: '' });
   pairsMap[plan.sp][pairIdx].m = p.m;
   pairsMap[plan.sp][pairIdx].f = p.f;
+  const msg = `⚡ ${plan.sp} Pair ${pairIdx + 1}: ♂ ${p.m || '—'} × ♀ ${p.f || '—'}`;
+  addLog(msg, 'pair');
+  showToast(msg);
   saveAndRefresh();
-  addLog(`⚡ Optimized ${plan.sp} Pair ${pairIdx + 1}: ♂ ${p.m || '—'} × ♀ ${p.f || '—'}`, 'pair');
-  btn.textContent = '✓ Applied';
-  btn.disabled = true;
-  btn.style.opacity = '0.5';
 }
 
 /**
@@ -1996,15 +1996,15 @@ function applyOptimizeSingleSuggestion(planIdx, suggIdx, btn) {
   const s   = _optimizePlan[planIdx].suggestions[suggIdx];
   const tgt = animals.find(a => a.id === s.animal.id);
   if (!tgt) return;
+  btn.textContent = '✓ Applied'; btn.disabled = true; btn.style.opacity = '0.5';
   if      (s.action === 'cull')    tgt.status = 'Dead';
   else if (s.action === 'store')   tgt.status = 'Station';
   else if (s.action === 'reserve') tgt.status = 'Reserve';
-  saveAndRefresh();
   const label = { cull:'Dead/Culled', store:'On Station', reserve:'Reserve', keep:'Keep' }[s.action] || s.action;
-  addLog(`⚡ ${displayName(tgt)} → ${label} (optimizer)`, 'status');
-  btn.textContent = '✓ Applied';
-  btn.disabled = true;
-  btn.style.opacity = '0.5';
+  const msg = `⚡ ${displayName(tgt)} → ${label}`;
+  addLog(msg, 'status');
+  showToast(msg);
+  saveAndRefresh();
 }
 
 function closeOptimizeModal() {

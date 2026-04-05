@@ -12,6 +12,7 @@ All notable changes to this project are documented here.
 - **Cross-breed offspring disclaimer** — corrected to "Offspring will be DR or SR" (was incorrectly showing only the host species)
 - **Fix optimizer modal crash** — suggestion rows used `si` (index) without declaring it in the `.map()` callback, causing a ReferenceError that prevented the modal from rendering; fixed to `.map((s, si) => ...`
 - **Fix version label not updating** — `APP_VERSION` was not bumped during the v0.21 patch; now correctly shows v0.21
+- **Fix optimizer Apply button feedback** — button visual update (`✓ Applied`, disabled) now happens before `saveAndRefresh()` so a re-render cannot clobber it; individual Apply buttons also now show a toast confirmation
 
 ---
 
