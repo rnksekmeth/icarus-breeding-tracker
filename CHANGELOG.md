@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.18 – Persistent layout
+**2026-04-05**
+
+- Collapsed/expanded state of species cards in Pairs and Goals tabs now persists across reloads
+- Collapsed/expanded state of individual sections within Goals cards (Phenotype Priority, Bloodline Priority, Suggestions, etc.) also persists
+- Stored as arrays in the save file alongside other layout state (cardWidths, speciesOrder); no data migration needed
+
+---
+
 ## v0.17b – Masonry layout fix
 **2026-04-05**
 

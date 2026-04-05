@@ -84,7 +84,7 @@ Shows all your animals in a sortable, filterable table. Key features:
 
 ### 🔀 Breeding Pairs
 
-Set up your active breeding pairs per species. The app enforces global exclusivity — an animal can only appear in one pair slot at a time. Dune Raptors and Swamp Raptors can be cross-bred; their animals appear in each other's pair slots.
+Set up your active breeding pairs per species. The app enforces global exclusivity — an animal can only appear in one pair slot at a time. Dune Raptors and Swamp Raptors can be cross-bred; their animals appear in each other's pair slots. Cross-breed offspring are either a DR or SR — determined by which species tab the pair is in.
 
 Each pair slot shows a goal badge:
 - **✓ Goal N** — this animal matches one of your species goals
@@ -93,11 +93,11 @@ Each pair slot shows a goal badge:
 
 A stat upgrade recommendation panel below each species card suggests free animals that would improve the weakest pair slot.
 
-Cards can be collapsed to compact chips using the **▼ Hide / ▶ Show** button, and toggled between Narrow and Wide layout. The grid uses a masonry layout — shorter cards automatically fill the vertical space under taller ones rather than wrapping to the leftmost column.
+Cards can be collapsed to compact chips using the **▼ Hide / ▶ Show** button, and toggled between Narrow and Wide layout. The grid uses a masonry layout — shorter cards automatically fill the vertical space under taller ones rather than wrapping to the leftmost column. Collapsed state and card width persist across reloads.
 
 ### ⚙ Goals
 
-Per-species configuration. Each section can be collapsed or expanded independently.
+Per-species configuration. Each section can be collapsed or expanded independently, and the collapsed state of both the card and its sections persists across reloads.
 
 **Breed-Out Stat** — the stat you are breeding toward 0 (excluded from the total score and animal name). Default is VIG. For animals that cannot be ridden or don't produce resources, consider INS instead.
 
@@ -112,7 +112,7 @@ Per-species configuration. Each section can be collapsed or expanded independent
 **Phenotype Sightings / Bloodline Sightings** — tracks how many tamed vs bred animals of each type you've recorded.
 
 **Breeding Suggestions** — automatically generated based on your priorities:
-- *Pair recommendations* — one per species goal, showing the best M × F combination available to achieve it
+- *Pair recommendations* — one per species goal, showing the best M × F combination to achieve it
 - *Priority animals not in pairs* — high-value unassigned animals that should be placed
 - *⚠ Negative-trait temp breeders* — animals with bad traits but stats ≥20% above the best clean alternative; flagged for temporary use with a warning if both parents share the same negative trait
 - *Consider reserving* — animals with desired traits but below-average stats, worth holding until a better partner is available
@@ -144,16 +144,12 @@ The sidebar shows species-level breeding insights: average stat gain per breedin
 
 ## 🧬 Species Reference
 
-| Species | Code | Notes |
-|---|---|---|
-| Dune Raptor | DR | Can cross-breed with Swamp Raptor |
-| Swamp Raptor | SR | Can cross-breed with Dune Raptor |
-| Moa | BM | Mount and fast travel animal |
-| Slinker | SL | |
-
-Cross-breed offspring are either a DR or SR (not a hybrid) — determined by which species tab the pair is in.
-
-> **Note:** Cross-breeding between Dune Raptors and Swamp Raptors may become unavailable in a future game update once each species receives its own skill tree.
+| Code | Species |
+|---|---|
+| DR | Dune Raptor |
+| SR | Swamp Raptor |
+| BM | Moa |
+| SL | Slinker |
 
 ---
 

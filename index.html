@@ -358,7 +358,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.17b – Masonry layout fix</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.18 – Persistent layout</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -1014,7 +1014,10 @@ let loadedDataVersion = 0;
 /** Bundle all in-memory state into one object */
 function getAllData() {
   return { version: DATA_VERSION, herd: animals, pairs: pairsMap, goals: goalsMap,
-           pairCounts, nextSpAid, phenoStats, blStats, speciesOrder, cardWidths };
+           pairCounts, nextSpAid, phenoStats, blStats, speciesOrder, cardWidths,
+           collapsedPairs:    [...collapsedPairSpecies],
+           collapsedGoalCards:[...collapsedGoalCards],
+           collapsedGoalSecs: [...collapsedGoalSections] };
 }
 
 /** Apply a loaded data object to in-memory state */
@@ -1029,6 +1032,12 @@ function applyData(d) {
   blStats    = d.blStats    || {};
   speciesOrder = d.speciesOrder || [];
   cardWidths   = d.cardWidths   || {};
+  collapsedPairSpecies.clear();
+  (d.collapsedPairs     || []).forEach(s => collapsedPairSpecies.add(s));
+  collapsedGoalCards.clear();
+  (d.collapsedGoalCards || []).forEach(s => collapsedGoalCards.add(s));
+  collapsedGoalSections.clear();
+  (d.collapsedGoalSecs  || []).forEach(s => collapsedGoalSections.add(s));
 }
 
 /** Write the full data snapshot to the chosen file */
@@ -1383,12 +1392,14 @@ function initPairs() {
 function togglePairCollapse(sp) {
   if (collapsedPairSpecies.has(sp)) collapsedPairSpecies.delete(sp);
   else collapsedPairSpecies.add(sp);
+  save();
   renderPairs();
 }
 
 function toggleGoalCard(sp) {
   if (collapsedGoalCards.has(sp)) collapsedGoalCards.delete(sp);
   else collapsedGoalCards.add(sp);
+  save();
   renderGoals();
 }
 
@@ -1396,6 +1407,7 @@ function toggleGoalSection(sp, secId) {
   const key = `${sp}::${secId}`;
   if (collapsedGoalSections.has(key)) collapsedGoalSections.delete(key);
   else collapsedGoalSections.add(key);
+  save();
   renderGoals();
 }
 
