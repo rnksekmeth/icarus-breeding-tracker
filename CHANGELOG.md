@@ -4,6 +4,20 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.20r1 – Code revision
+**2026-04-05**
+
+- Extracted repeated form-reset logic into `resetFormUI()` — previously copy-pasted across three functions; also fixes `cancelEdit` not clearing the nickname field
+- Extracted stat-input reading into `getFormStats()`
+- Extracted `save(); renderHerd(); renderPairs()` chains (appeared 10 times) into `saveAndRefresh()` / `saveAndRefreshFull()`
+- Promoted inline `optLabel` and `mkUpg` closures to top-level named functions (`pairOptionLabel`, `renderPairUpgradeRow`)
+- Renamed `phW_` (underscore-suffix-to-avoid-shadowing) to `phItemScore` / `phScore`
+- Added JSDoc comments to all major functions
+- Added CSS utility classes (`.text-dim`, `.text-sm`, `.text-xs`, etc.) for the most-repeated inline styles
+- No behaviour changes
+
+---
+
 ## v0.20 – Favorites, nicknames & pair optimizer
 **2026-04-05**
 

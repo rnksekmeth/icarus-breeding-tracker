@@ -384,6 +384,19 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 .opt-none{padding:7px 12px;color:var(--dim);font-size:12px;font-style:italic;}
 .opt-modal-btns{display:flex;gap:8px;margin-top:16px;justify-content:flex-end;}
 
+
+/* ── UTILITY CLASSES ────────────────────────────────────────────
+   Replaces the most-repeated inline style attributes.           */
+.text-dim   { color:var(--dim); }
+.text-red   { color:var(--red); }
+.text-grn   { color:var(--grn); }
+.text-acc   { color:var(--acc); }
+.text-yel   { color:var(--yel); }
+.text-xs    { font-size:10px; }
+.text-sm    { font-size:11px; }
+.text-mono  { font-family:monospace; }
+.text-upper { text-transform:uppercase; letter-spacing:.5px; }
+
 </style>
 </head>
 <body>
@@ -936,6 +949,98 @@ const $id  = id  => document.getElementById(id);
 const $val = id  => ($id(id)?.value ?? '').trim();
 const $esc = str => str.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 
+
+// ── SHARED UI HELPERS ────────────────────────────────────────────────
+
+/**
+ * Persist state and refresh the herd + pairs views.
+ * Use after any operation that modifies animals or pair assignments.
+ */
+function saveAndRefresh() {
+  saveAndRefresh();
+}
+
+/**
+ * Persist state and refresh all data-dependent UI.
+ * Use after add/edit/delete operations that also affect the parent datalist
+ * and the lineage selector.
+ */
+function saveAndRefreshFull() {
+  saveAndRefreshFull();
+}
+
+/**
+ * Read the current stat input values from the New/Edit Animal form.
+ * @returns {Object} stats map — e.g. { VIG: 3, FIT: 7, PHY: 6, ... }
+ */
+function getFormStats() {
+  const stats = {};
+  STATS.forEach(s => {
+    const el = $id(`stat-${s}`);
+    stats[s] = el ? (parseInt(el.value) || 0) : 0;
+  });
+  return stats;
+}
+
+/**
+ * Reset all animal-entry form fields and transient panels to their blank state.
+ * Called from saveAnimal() after a successful save, cancelEdit(), and clearEntryForm().
+ */
+function resetFormUI() {
+  // Clear stat inputs and their visual state classes
+  STATS.forEach(s => {
+    const el = $id(`stat-${s}`);
+    if (el) { el.value = ''; el.classList.remove('maxed', 'zero'); }
+  });
+  // Clear all text entry fields
+  ['f-p1', 'f-p2', 'f-notes', 'f-custom-name', 'f-nickname'].forEach(id => {
+    const el = $id(id);
+    if (el) el.value = '';
+  });
+  // Hide probability comparison panels
+  ['pc1', 'pc2'].forEach(id => { const el = $id(id); if (el) el.classList.remove('show'); });
+  const pp = $id('prob-panel');      if (pp) pp.classList.remove('show');
+  // Reset status selector, name display, and floating panels
+  const statusEl = $id('f-status'); if (statusEl) statusEl.value = '?';
+  const cwEl = $id('custom-name-warn'); if (cwEl) cwEl.style.display = 'none';
+  const gnEl = $id('generated-name');   if (gnEl) gnEl.textContent = '\u2014';
+  const tvEl = $id('total-val');        if (tvEl) tvEl.textContent = '\u2014';
+  const tpEl = $id('total-pct');        if (tpEl) tpEl.textContent = '';
+  const ap = $id('advice-panel');       if (ap)   ap.classList.remove('show');
+}
+
+/**
+ * Generate the display label for an animal in a pair-slot dropdown.
+ * Shows nickname (if set) with the original name as a secondary label,
+ * plus total stats and a "T" badge for Temp breeders.
+ */
+function pairOptionLabel(a, sp) {
+  const dn         = displayName(a);
+  const origSuffix = a.nickname ? ` \u00b7 ${a.name}` : '';
+  return `${dn}${origSuffix} (${getTotal(a.stats, sp || a.sp)})${a.status === 'Temp' ? ' T' : ''}`;
+}
+
+/**
+ * Render one row of the "Stat Upgrade Recommendations" box on a pair card.
+ * Compares the best free animal against the weakest current breeder for one sex.
+ * @param {Object|null} best – highest-stat free animal of this sex
+ * @param {Object|null} weak – lowest-stat currently-paired animal of this sex
+ * @param {string}      sex  – 'M' or 'F'  (display label only)
+ * @param {string}      sp   – species context for stat calculation
+ * @returns {string} HTML string, or '' if either animal is absent
+ */
+function renderPairUpgradeRow(best, weak, sex, sp) {
+  if (!best || !weak) return '';
+  const delta = getTotal(best.stats, sp) - getTotal(weak.stats, sp);
+  return `<div class="upg-row">
+    <span class="upg-label">Best ${sex}</span>
+    <span class="upg-name">${displayName(best)}${best.status === 'Temp' ? ' T' : ''}</span>
+    <span class="upg-total">${getTotal(best.stats, sp)}</span>
+    <span class="upg-delta ${delta < 0 ? 'neg' : ''}">${delta > 0 ? '+' + delta : delta === 0 ? '=' : delta}</span>
+    <span class="upg-action ${delta > 0 ? 'good' : 'ok'}">${delta > 0 ? 'swap ' + displayName(weak) : delta === 0 ? 'equal' : 'optimal'}</span>
+  </div>`;
+}
+
 // ── SPECIES / PHENOTYPE HELPERS ──────────────────────────────────
 /** Short code for a species name, e.g. 'Dune Raptor' → 'DR' */
 const getShort = sp => SPECIES_DATA[sp]?.short ?? sp.slice(0,2).toUpperCase();
@@ -1038,6 +1143,12 @@ function formatSpId(sp, spId) {
  * Format: {SHORT}{id:02d} {sex}{nonBO_total}-{bloodline}{pheno_suffix}{ BOstat>0 ? ' BOstatN' : ''}
  * Example: "DR01 48F-Wild P5 VIG2" or "BM03 52M-Brave P1 Choc"
  */
+/**
+ * Generate the canonical animal name from its attributes.
+ * Format: "[code][spId] [total][sex]-[bloodline] P[gen] [breedOut][value]"
+ * Example: "DR03 45F-Bold P2 VIG1"
+ * The breed-out stat value is appended so it is visible at a glance.
+ */
 function computeName(sp, sex, bl, phenotype, stats, spId) {
   if (!sex || !bl) return '--';
   const bo = getBreedOut(sp);
@@ -1055,6 +1166,11 @@ function computeName(sp, sex, bl, phenotype, stats, spId) {
  * Accepts: "DR01" → species short + id; "01" / "#01" → id within currentSp; "Unknown" → null;
  * Fallback: name match.
  * Returns { animal, error } where error is a string if not found (not 'Unknown').
+ */
+/**
+ * Resolve a raw parent-field string to an animal object.
+ * Accepts the animal name, a species-prefixed display string, or plain text.
+ * Returns { animal, label } — animal is null when no match is found.
  */
 function findParentAnimal(val, currentSp) {
   if (!val || val === 'Unknown') return { animal: null, error: null };
@@ -1119,6 +1235,10 @@ const DATA_VERSION = 5;
 let loadedDataVersion = 0;
 
 /** Bundle all in-memory state into one object */
+/**
+ * Serialize all in-memory state to a plain object for JSON persistence.
+ * Every field returned here must be handled in applyData() to round-trip.
+ */
 function getAllData() {
   return { version: DATA_VERSION, herd: animals, pairs: pairsMap, goals: goalsMap,
            pairCounts, nextSpAid, phenoStats, blStats, speciesOrder, cardWidths,
@@ -1129,6 +1249,10 @@ function getAllData() {
 }
 
 /** Apply a loaded data object to in-memory state */
+/**
+ * Restore in-memory state from a saved data object (loaded from herd_data.json).
+ * Missing fields default gracefully so older save files load without errors.
+ */
 function applyData(d) {
   loadedDataVersion = d.version || 1;
   animals    = d.herd       || [];
@@ -1582,6 +1706,12 @@ function deletePairRow(sp, idx) {
  * Score an animal for breeding suitability in a given species context.
  * Higher = better candidate for a pair slot.
  */
+/**
+ * Score an animal for the pair optimizer (⚡ Optimize Pairs).
+ * Uses heavy penalties for negative traits (−300) so they are truly a last
+ * resort, and large goal-match bonuses to ensure goal coverage is prioritised
+ * over raw stats. Distinct from scoreAnimalForGoals() used in the Goals tab.
+ */
 function scoreForOptimize(sp, a) {
   const g   = goalsMap[sp] || {};
   const blP = g.blPriority  || {};
@@ -1725,6 +1855,11 @@ function buildOptimizePlanForSpecies(sp, globallyAssigned) {
 }
 
 /** Open the optimize modal for one species (sp) or all (sp=null) */
+/**
+ * Build and display the Optimize Pairs modal.
+ * sp=null optimises all species; sp=string optimises one species.
+ * Stores the computed plan in _optimizePlan for applyOptimizePlan() to consume.
+ */
 function showOptimizeModal(sp) {
   const globallyAssigned = new Set();
   const speciesList = sp
@@ -1804,6 +1939,11 @@ function closeOptimizeModal() {
 }
 
 /** Apply the current optimize plan. applyStatuses=true also executes suggested status changes. */
+/**
+ * Apply the plan produced by showOptimizeModal().
+ * applyStatuses=true also executes suggested status changes (cull/store/reserve);
+ * false applies pair assignments only.
+ */
 function applyOptimizePlan(applyStatuses) {
   if (!_optimizePlan) return;
   let pairChanges = 0, statusChanges = 0;
@@ -1832,7 +1972,7 @@ function applyOptimizePlan(applyStatuses) {
     }
   });
 
-  save(); renderHerd(); renderPairs();
+  saveAndRefresh();
   const msg = applyStatuses
     ? `⚡ Optimize applied — ${pairChanges} pair slot${pairChanges!==1?'s':''} updated, ${statusChanges} status change${statusChanges!==1?'s':''}`
     : `⚡ Pairs updated — ${pairChanges} slot${pairChanges!==1?'s':''} changed`;
@@ -1864,6 +2004,12 @@ function initGoals() {
  * Score an animal against the global goals (blPriority + phenoWeights) for its species.
  * Unstable bloodline gets a fixed breeding bonus regardless of star rating.
  */
+/**
+ * Score an animal for the breeding suggestion engine (Goals tab).
+ * Uses gentle weights — negative traits lower the score but do not exclude
+ * the animal, so it can still surface as a temp-breeder suggestion.
+ * See scoreForOptimize() for the stricter version used by the pair optimizer.
+ */
 function scoreAnimalForGoals(sp, animal) {
   const g = goalsMap[sp] || {};
   const blP = g.blPriority  || {};
@@ -1887,6 +2033,18 @@ function hasNegativeTrait(sp, animal) {
  * Build breeding suggestions for a species.
  * Returns { priorityCandidates, pairRecs, reserveCandidates, currentReserve, reserveTarget }
  */
+/**
+ * Compute all breeding suggestion data for one species.
+ * Returns an object consumed by renderSuggestions():
+ *   priorityCandidates  — high-value unassigned animals that should be placed
+ *   goalRecs            — best M×F pair per species goal
+ *   pairRecs            — current vs optimal for each existing pair slot
+ *   reserveCandidates   — desired-trait animals below the stat threshold
+ *   negativeCandidates  — bad-trait animals whose stats justify temp use
+ *   achievedGoals       — bred animals that already satisfy a species goal
+ *   upgradeRecs         — reserve animals with a better available replacement
+ *   diversityWarning    — set if all active pairs share the same bloodline
+ */
 function buildBreedingSuggestions(sp) {
   initGoals();
   const g      = goalsMap[sp] || {};
@@ -1908,14 +2066,14 @@ function buildBreedingSuggestions(sp) {
   // Priority candidates: unassigned animals with any positive starred bl/ph (or Unstable)
   const priorityCandidates = unassigned
     .map(a => {
-      const blW = blP[a.bl] ?? 0;
-      const phW_ = phW[a.ph] ?? 0;
+      const blScore     = blP[a.bl] ?? 0;
+      const phItemScore = phW[a.ph] ?? 0;
       return {
         animal: a,
         score: scoreAnimalForGoals(sp, a),
-        blStars: a.bl === 'Unstable' && blW >= 0 ? '★ (breed)' : blW > 0 ? '★'.repeat(blW) : '',
-        phStars: phW_ > 0 ? '★'.repeat(phW_) : '',
-        isNeg:   blW < 0 || phW_ < 0,
+        blStars: a.bl === 'Unstable' && blScore >= 0 ? '★ (breed)' : blScore > 0 ? '★'.repeat(blScore) : '',
+        phStars: phItemScore > 0 ? '★'.repeat(phItemScore) : '',
+        isNeg:   blScore < 0 || phItemScore < 0,
       };
     })
     .filter(({ blStars, phStars, animal }) =>
@@ -2039,6 +2197,10 @@ function buildBreedingSuggestions(sp) {
            achievedGoals, upgradeRecs, diversityWarning };
 }
 
+/**
+ * Render the Breeding Suggestions panel for one species.
+ * Calls buildBreedingSuggestions() and converts its output to HTML sections.
+ */
 function renderSuggestions(sp) {
   const s = buildBreedingSuggestions(sp);
   const blP = (goalsMap[sp] || {}).blPriority || {};
@@ -2105,9 +2267,9 @@ function renderSuggestions(sp) {
     html += `<div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#e74c3c;margin:8px 0 4px">⚠ Negative-trait animals worth considering as temp breeders</div>`;
     s.negativeCandidates.forEach(animal => {
       const tot = getTotal(animal.stats, sp);
-      const blW = blP[animal.bl] ?? 0;
-      const phW_ = phW[animal.ph] ?? 0;
-      const traitWarning = blW < 0 ? `${animal.bl} (${blW}★)` : phW_ < 0 ? `${animal.ph} (${phW_}★)` : '';
+      const blScore = blP[animal.bl] ?? 0;
+      const phScore = phW[animal.ph] ?? 0;
+      const traitWarning = blScore < 0 ? `${animal.bl} (${blScore}★)` : phScore < 0 ? `${animal.ph} (${phScore}★)` : '';
       html += `<div class="suggestion-row">
         <span class="sug-badge" style="color:#e74c3c">${STATUS_ICON[animal.status] || ''} ${animal.sex === 'M' ? '♂' : '♀'} ${tot}</span>
         <div class="sug-animal">${animal.name}<br>
@@ -2866,6 +3028,11 @@ function fmtLogTime(ts) {
   return `${months[d.getMonth()]} ${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/**
+ * Append an entry to the activity log.
+ * type: 'add' | 'edit' | 'status' | 'pair' | 'delete' | 'suggestion'
+ * Auto-trims to logMax entries, persists state, and updates the banner.
+ */
 function addLog(msg, type='add') {
   logEntries.unshift({ ts: Date.now(), msg, type });
   if (logEntries.length > logMax) logEntries = logEntries.slice(0, logMax);
@@ -2875,6 +3042,9 @@ function addLog(msg, type='add') {
   if (lt && lt.classList.contains('active')) renderLog();
 }
 
+/**
+ * Update the fixed bottom banner to show the most recent log entry.
+ */
 function updateLogBanner() {
   const banner = $id('log-banner');
   const msgEl  = $id('log-banner-msg');
@@ -2885,6 +3055,9 @@ function updateLogBanner() {
   timeEl.textContent = fmtLogTime(logEntries[0].ts);
 }
 
+/**
+ * Re-render the Log tab list applying the active type filter and text search.
+ */
 function renderLog() {
   const list = $id('log-list');
   if (!list) return;
@@ -3000,6 +3173,11 @@ function quickCopy(name) {
 }
 
 // ── SAVE / EDIT ──────────────────────────────────────────────────
+/**
+ * Validate and save the New/Edit Animal form.
+ * Creates a new animal or overwrites an existing one depending on editingId.
+ * Resets the form after saving and shows the pair-assignment panel for new animals.
+ */
 function saveAnimal() {
   const sp     = $val('f-species');
   const sex    = $val('f-sex');
@@ -3010,8 +3188,7 @@ function saveAnimal() {
   const p2raw  = $val('f-p2');
   const status = $val('f-status');
   const notes  = $val('f-notes');
-  const stats  = {};
-  STATS.forEach(s => { const el = $id(`stat-${s}`); stats[s] = el ? parseInt(el.value) || 0 : 0; });
+  const stats  = getFormStats();
 
   const resolveParent = raw => {
     if (!raw) return '';
@@ -3081,7 +3258,7 @@ function saveAnimal() {
     trackBloodline(sp, animal.bl, isBred);
   }
 
-  save(); renderHerd(); renderPairs(); updateParentDatalist(); updateLineageSelector();
+  saveAndRefreshFull();
   addLog(wasEditing ? `✏ Edited ${name}` : `➕ Added ${name}`, wasEditing ? 'edit' : 'add');
 
   const fb = $id('save-feedback');
@@ -3090,21 +3267,7 @@ function saveAnimal() {
   setTimeout(() => fb.style.display = 'none', 2500);
 
   // Reset form
-  STATS.forEach(s => {
-    const el = $id(`stat-${s}`);
-    if (el) { el.value = ''; el.classList.remove('maxed','zero'); }
-  });
-  ['f-p1','f-p2','f-notes','f-custom-name','f-nickname'].forEach(fid => { const el = $id(fid); if (el) el.value = ''; });
-  const _cw = $id('custom-name-warn'); if (_cw) _cw.style.display = 'none';
-  ['pc1','pc2'].forEach(fid => { const d = $id(fid); if (d) d.classList.remove('show'); });
-  const pp = $id('prob-panel'); if (pp) pp.classList.remove('show');
-  $id('f-status').value = '?';
-  const cnEl = $id('f-custom-name'); if (cnEl) cnEl.value = '';
-  const cwEl = $id('custom-name-warn'); if (cwEl) cwEl.style.display = 'none';
-  $id('generated-name').textContent = '—';
-  $id('total-val').textContent = '—';
-  $id('total-pct').textContent = '';
-  $id('advice-panel').classList.remove('show');
+  resetFormUI();
 
   // For new animals, offer pair placement
   if (!editingId) showPairAssignPanel(id);
@@ -3173,12 +3336,16 @@ function statusSelectHtml(a) {
   return `<select class="status-inline" style="color:${STATUS_COLOR[a.status]||'#888'}" onchange="setAnimalStatus(${a.id},this.value)">${opts}</select>`;
 }
 
+/**
+ * Change an animal's status via the inline dropdown in the herd table.
+ * Saves immediately and logs the change.
+ */
 function setAnimalStatus(id, val) {
   const a = animals.find(x => x.id === id);
   if (!a) return;
   const oldLabel = STATUS_LABEL[a.status] || a.status;
   a.status = val;
-  save(); renderHerd(); renderPairs();
+  saveAndRefresh();
   addLog(`${a.name}: ${oldLabel} → ${STATUS_ICON[val]} ${STATUS_LABEL[val]}`, 'status');
 }
 
@@ -3196,6 +3363,10 @@ function getSortVal(a, col) {
   return '';
 }
 
+/**
+ * Re-render the My Herd table based on current filter and sort state.
+ * Also rebuilds the dynamic bloodline and phenotype filter pills.
+ */
 function renderHerd() {
   const tbody = $id('herd-tbody');
   const empty = $id('herd-empty');
@@ -3301,7 +3472,7 @@ function markDead(id) {
   if (!a) return;
   if (!confirm(`Mark "${a.name}" as dead/culled? It will be hidden but kept in records.`)) return;
   a.status = 'Dead';
-  save(); renderHerd(); renderPairs(); showToast(`${a.name} marked as dead`);
+  saveAndRefresh(); showToast(`${a.name} marked as dead`);
 }
 
 /** Restore a dead animal */
@@ -3309,10 +3480,14 @@ function reviveAnimal(id) {
   const a = animals.find(x => x.id === id);
   if (!a) return;
   a.status = '?';
-  save(); renderHerd(); renderPairs(); showToast(`${a.name} restored`);
+  saveAndRefresh(); showToast(`${a.name} restored`);
 }
 
 /** Toggle favorite status on an animal — favorites are never suggested for culling */
+/**
+ * Toggle the ⭐ favourite flag on an animal.
+ * Favourited animals are excluded from cull suggestions in the pair optimizer.
+ */
 function toggleFavorite(id) {
   const a = animals.find(x => x.id === id);
   if (!a) return;
@@ -3377,13 +3552,18 @@ function setAdviceStatus(id, status) {
   if (panel && panel.classList.contains('show')) buildBreedingAdvice();
 }
 
+/**
+ * Permanently remove an animal from the herd.
+ * quiet=true skips the confirmation prompt (used internally).
+ * Also clears any pair slots the animal currently occupies.
+ */
 function deleteAnimal(id, quiet) {
   const a = animals.find(x => x.id === id);
   if (!a) return;
   if (!quiet && !confirm(`Permanently delete "${a.name}"?\nTip: use 🪦 to mark as Dead instead.`)) return;
   const delName = a.name;
   animals = animals.filter(x => x.id !== id);
-  save(); renderHerd(); renderPairs(); updateParentDatalist(); updateLineageSelector();
+  saveAndRefreshFull();
   showToast('Animal deleted');
   addLog(`Ὕ1 Deleted ${delName}`, 'delete');
 }
@@ -3392,39 +3572,13 @@ function cancelEdit() {
   editingId = null;
   $id('save-btn').textContent = '💾 Save Animal';
   $id('cancel-edit-btn').style.display = 'none';
-  STATS.forEach(s => {
-    const el = $id(`stat-${s}`);
-    if (el) { el.value = ''; el.classList.remove('maxed','zero'); }
-  });
-  ['f-p1','f-p2','f-notes'].forEach(fid => { const el = $id(fid); if (el) el.value = ''; });
-  ['pc1','pc2'].forEach(fid => { const d = $id(fid); if (d) d.classList.remove('show'); });
-  const pp = $id('prob-panel'); if (pp) pp.classList.remove('show');
-  $id('f-status').value = '?';
-  const cnEl = $id('f-custom-name'); if (cnEl) cnEl.value = '';
-  const cwEl = $id('custom-name-warn'); if (cwEl) cwEl.style.display = 'none';
-  $id('generated-name').textContent = '—';
-  $id('total-val').textContent = '—';
-  $id('total-pct').textContent = '';
-  $id('advice-panel').classList.remove('show');
+  resetFormUI();
   showTab('herd', document.querySelector('nav button'));
 }
 
 function clearEntryForm() {
   if (editingId) return; // don't clobber an in-progress edit — use Cancel Edit for that
-  STATS.forEach(s => {
-    const el = $id(`stat-${s}`);
-    if (el) { el.value = ''; el.classList.remove('maxed','zero'); }
-  });
-  ['f-p1','f-p2','f-notes'].forEach(fid => { const el = $id(fid); if (el) el.value = ''; });
-  ['pc1','pc2'].forEach(fid => { const d = $id(fid); if (d) d.classList.remove('show'); });
-  const pp = $id('prob-panel'); if (pp) pp.classList.remove('show');
-  $id('f-status').value = '?';
-  const cnEl = $id('f-custom-name'); if (cnEl) cnEl.value = '';
-  const cwEl = $id('custom-name-warn'); if (cwEl) cwEl.style.display = 'none';
-  $id('generated-name').textContent = '—';
-  $id('total-val').textContent = '—';
-  $id('total-pct').textContent = '';
-  $id('advice-panel').classList.remove('show');
+  resetFormUI();
   const pa = $id('pair-assign-panel'); if (pa) pa.style.display = 'none';
 }
 
@@ -3434,6 +3588,11 @@ let _paAnimalId = null;
 /**
  * Compute ranked pair-slot options for a given animal.
  * Returns array sorted: empty slots first (by score desc), then by delta desc.
+ */
+/**
+ * Score all pair slots for a given animal (used by the post-save placement panel).
+ * Returns slots sorted: empty slots first (by goal-match score), then by
+ * the improvement delta over the current occupant.
  */
 function computePairSuggestions(animal) {
   const sexKey = animal.sex === 'M' ? 'm' : 'f';
@@ -3621,7 +3780,7 @@ function confirmPairAssignment() {
     animal.status = 'Breed';
   }
 
-  save(); renderHerd(); renderPairs();
+  saveAndRefresh();
   dismissPairAssign();
   showToast(`✓ ${animal.name} → ${SPECIES_DATA[slot.sp]?.short || slot.sp} Pair ${slot.pairIdx + 1}`);
 }
@@ -3874,13 +4033,19 @@ function clearAllDataConfirmed() {
   const cb = $id('clear-confirm-checkbox');
   if (!cb?.checked) return;
   animals = []; pairsMap = {};
-  save(); renderHerd(); renderPairs(); updateParentDatalist(); updateLineageSelector();
+  saveAndRefreshFull();
   cb.checked = false;
   updateClearBtn();
   showToast('All data cleared');
 }
 
 // ── PAIRS ────────────────────────────────────────────────────────
+/**
+ * Re-render the Breeding Pairs grid.
+ * Builds one card per species with pair-slot dropdowns, goal badges,
+ * stat-upgrade recommendations, and the ⚡ optimize button.
+ * Collapsed species are rendered as compact chips.
+ */
 function renderPairs() {
   initPairs(); initGoals();
   const grid = $id('pairs-grid');
@@ -3967,15 +4132,10 @@ function renderPairs() {
       const usedElsewhere = globalUsed(sp, i);
       const availM = males.filter(a => !usedElsewhere.has(a.name));
       const availF = females.filter(a => !usedElsewhere.has(a.name));
-      const optLabel = a => {
-        const dn = displayName(a);
-        const origSuffix = a.nickname ? ` · ${a.name}` : '';
-        return `${dn}${origSuffix} (${getTotal(a.stats, a.sp)})${a.status==='Temp'?' T':''}`;
-      };
       const mOpts = `<option value="">-- none --</option>` +
-        availM.map(a => `<option value="${a.name}"${p.m===a.name?' selected':''}>${optLabel(a)}</option>`).join('');
+        availM.map(a => `<option value="${a.name}"${p.m===a.name?' selected':''}>${pairOptionLabel(a, sp)}</option>`).join('');
       const fOpts = `<option value="">-- none --</option>` +
-        availF.map(a => `<option value="${a.name}"${p.f===a.name?' selected':''}>${optLabel(a)}</option>`).join('');
+        availF.map(a => `<option value="${a.name}"${p.f===a.name?' selected':''}>${pairOptionLabel(a, sp)}</option>`).join('');
       const score = (mAnimal && fAnimal) ? `S:${getTotal(mAnimal.stats,sp) + getTotal(fAnimal.stats,sp)}` : '';
       return `<div class="pair-row">
         <span class="pair-num">${i+1}</span>
@@ -3998,19 +4158,7 @@ function renderPairs() {
     const weakM = breedingM.slice().sort((a,b) => getTotal(a.stats,sp) - getTotal(b.stats,sp))[0];
     const weakF = breedingF.slice().sort((a,b) => getTotal(a.stats,sp) - getTotal(b.stats,sp))[0];
 
-    const mkUpg = (best, weak, sex) => {
-      if (!best || !weak) return '';
-      const delta = getTotal(best.stats,sp) - getTotal(weak.stats,sp);
-      return `<div class="upg-row">
-        <span class="upg-label">Best ${sex}</span>
-        <span class="upg-name">${best.name}${best.status==='Temp'?' T':''}</span>
-        <span class="upg-total">${getTotal(best.stats,sp)}</span>
-        <span class="upg-delta ${delta<0?'neg':''}">${delta>0?'+'+delta:delta===0?'=':delta}</span>
-        <span class="upg-action ${delta>0?'good':'ok'}">${delta>0?'swap '+weak.name:delta===0?'equal':'optimal'}</span>
-      </div>`;
-    };
-
-    let upgHtml = mkUpg(freeM[0], weakM, 'M') + mkUpg(freeF[0], weakF, 'F');
+    let upgHtml = renderPairUpgradeRow(freeM[0], weakM, 'M', sp) + renderPairUpgradeRow(freeF[0], weakF, 'F', sp);
     if (!upgHtml) upgHtml = `<div style="color:var(--dim);font-size:11px;padding:4px 0">Add animals to see recommendations.</div>`;
 
     const bo = getBreedOut(sp);
@@ -4080,6 +4228,11 @@ function renderPairs() {
   requestAnimationFrame(() => applyMasonry('pairs-grid'));
 }
 
+/**
+ * Assign an animal to a specific pair slot.
+ * Enforces global exclusivity — rejects if the animal is already in another slot.
+ * Logs the old→new change and saves.
+ */
 function updatePair(sp, idx, sex, name) {
   if (!pairsMap[sp]) initPairs();
   // Guard: global exclusivity — reject if animal is already assigned anywhere else
@@ -4323,7 +4476,7 @@ function importCSV(e) {
       };
       if (animal.sp && animal.bl) { animals.push(animal); count++; }
     });
-    save(); renderHerd(); renderPairs(); updateParentDatalist(); updateLineageSelector();
+    saveAndRefreshFull();
     showToast(`Imported ${count} animals`);
   };
   reader.readAsText(file);
@@ -4333,7 +4486,7 @@ function importCSV(e) {
 function clearAllData() {
   if (!confirm('Delete ALL animal data?')) return;
   animals = []; pairsMap = {};
-  save(); renderHerd(); renderPairs(); updateParentDatalist(); updateLineageSelector();
+  saveAndRefreshFull();
   showToast('All data cleared');
 }
 
