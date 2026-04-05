@@ -4,6 +4,21 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.18e – Parent & pair dropdown fixes
+**2026-04-05**
+
+- New Animal / Edit Animal: Dead/Culled and On Station animals now appear in the parent datalist — shown with 🪦/🛸 icons so they are visually distinct from active animals
+- Pairs: removed redundant [DR]/[SR] species tag from cross-breed animal names in pair dropdowns (moved from v0.18d)
+
+---
+
+## v0.18d – Pair dropdown cleanup
+**2026-04-05**
+
+- Pairs: removed redundant [DR]/[SR] species tag from cross-breed animal names in pair dropdowns — the species code is already part of the animal name
+
+---
+
 ## v0.18c – Custom animal names
 **2026-04-05**
 

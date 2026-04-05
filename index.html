@@ -358,7 +358,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.18c – Custom animal names</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.18e – Parent & pair dropdown fixes</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -2323,10 +2323,10 @@ function updateParentDatalist() {
   // One clean entry per animal — value is the full name (works with findParentAnimal),
   // label shows the short ID as a search hint.
   list.innerHTML = animals
-    .filter(a => a.status !== 'Dead' && a.status !== 'Station')
     .map(a => {
       const spId = a.spId ? formatSpId(a.sp, a.spId) : '';
-      const label = spId ? `${spId} · ${a.name}` : a.name;
+      const icon  = a.status === 'Dead' ? '🪦 ' : a.status === 'Station' ? '🛸 ' : '';
+      const label = `${icon}${spId ? spId + ' · ' : ''}${a.name}`;
       return `<option value="${a.name}">${label}</option>`;
     }).join('');
 }
@@ -3424,9 +3424,7 @@ function renderPairs() {
       const availM = males.filter(a => !usedElsewhere.has(a.name));
       const availF = females.filter(a => !usedElsewhere.has(a.name));
       const optLabel = a => {
-        const isCross = a.sp !== sp;
-        const tag = isCross ? `[${SPECIES_DATA[a.sp].short}] ` : '';
-        return `${tag}${a.name} (${getTotal(a.stats, a.sp)})${a.status==='Temp'?' T':''}`;
+        return `${a.name} (${getTotal(a.stats, a.sp)})${a.status==='Temp'?' T':''}`;
       };
       const mOpts = `<option value="">-- none --</option>` +
         availM.map(a => `<option value="${a.name}"${p.m===a.name?' selected':''}>${optLabel(a)}</option>`).join('');
