@@ -321,7 +321,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.9 – Tooltips & Station</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.10 – Wiki Links & Herd Share</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -591,6 +591,28 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
     </div>
 
     <div class="entry-card">
+      <h2 style="margin-bottom:12px;">📸 Share Your Herd</h2>
+      <p style="color:#aaa;margin-bottom:14px;font-size:12px;line-height:1.6;">
+        Generate a shareable image of your animals — great for posting on forums or Discord.
+        The image is copied to your clipboard automatically; a download button appears as a fallback.
+      </p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+        <label style="color:#bbb;font-size:12px;">Show:</label>
+        <select id="share-mode" style="background:var(--panel);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:5px 10px;font-size:12px;">
+          <option value="top10">Top 10 overall</option>
+          <option value="byspecies">Best per species</option>
+          <option value="breeders">Active breeders only</option>
+          <option value="all">All active animals</option>
+        </select>
+        <button class="btn-sm" onclick="shareHerd()" style="padding:7px 18px;font-size:12px;font-weight:bold;">
+          🖼 Generate &amp; Copy
+        </button>
+      </div>
+      <div id="share-status" style="font-size:12px;color:#aaa;min-height:18px;"></div>
+      <canvas id="share-canvas" style="display:none;max-width:100%;margin-top:12px;border-radius:6px;border:1px solid var(--bdr);"></canvas>
+    </div>
+
+    <div class="entry-card">
       <h2 style="margin-bottom:8px;">💬 Feedback &amp; Bug Reports</h2>
       <p style="color:#aaa;margin-bottom:14px;font-size:12px;line-height:1.6;">
         Found a bug? Have a feature request or suggestion? Submit it directly on GitHub — no account required to view existing issues, but a free GitHub account is needed to post.
@@ -663,19 +685,19 @@ const BLOODLINE_INFO = {
  * suffix for name is auto-derived: P0=base (empty), P1..PN = " P1 Name" or " P1"
  */
 const SPECIES_DATA = {
-  'Dune Raptor': { short:'DR', icon:'D', color:'#e8a020', defaultPairs:4, phenotypes:[
+  'Dune Raptor': { short:'DR', color:'#e8a020', wiki:'https://icarus.wiki.gg/wiki/Dune_Raptor', defaultPairs:4, phenotypes:[
     {label:'Dune Raptor (base)', weight:2000},
     {label:'Dune P1', weight:50}, {label:'Dune P2', weight:50},
     {label:'Dune P3', weight:50}, {label:'Dune P4', weight:50},
     {label:'Dune P5', weight:50},
     {label:'Dune P6', weight:5}, {label:'Dune P7', weight:5}]},
-  'Swamp Raptor': { short:'SR', icon:'S', color:'#2e8b57', defaultPairs:1, phenotypes:[
+  'Swamp Raptor': { short:'SR', color:'#2e8b57', wiki:'https://icarus.wiki.gg/wiki/Swamp_Raptor', defaultPairs:1, phenotypes:[
     {label:'Swamp Raptor (base)', weight:2000},
     {label:'Swamp P1', weight:50}, {label:'Swamp P2', weight:50},
     {label:'Swamp P3', weight:50}, {label:'Swamp P4', weight:50},
     {label:'Swamp P5', weight:50},
     {label:'Swamp P6', weight:5}, {label:'Swamp P7', weight:5}]},
-  'Moa': { short:'BM', icon:'M', color:'#4169e1', defaultPairs:4, phenotypes:[
+  'Moa': { short:'BM', color:'#4169e1', wiki:'https://icarus.wiki.gg/wiki/Moa', defaultPairs:4, phenotypes:[
     {label:'Normal (base)',    weight:2000},
     {label:'Chocolate',        weight:50},
     {label:'Blue',             weight:50},
@@ -684,13 +706,21 @@ const SPECIES_DATA = {
     {label:'Peacock/Kea',      weight:25},
     {label:'Green',            weight:25},
     {label:'Black',            weight:5}]},
-  'Slinker': { short:'SL', icon:'K', color:'#9b59b6', defaultPairs:2, phenotypes:[
+  'Slinker': { short:'SL', color:'#9b59b6', wiki:'https://icarus.wiki.gg/wiki/Slinker', defaultPairs:2, phenotypes:[
     {label:'Slinker (base)', weight:2000},
     {label:'Slinker P1', weight:50}, {label:'Slinker P2', weight:50},
     {label:'Slinker P3', weight:5},
     {label:'Slinker P4', weight:50}, {label:'Slinker P5', weight:50},
     {label:'Slinker P6', weight:5}]}
 };
+// ── FUTURE SPECIES (not yet implemented) ─────────────────────────
+// Mounts (rideable): Bison, Deer, Horse (Desert/Forest/Snow), Mammoth,
+//   Mega Tortoise, Ostrich, Polar Bear, Razorback, Rhinox, Stag, Wolf, Zebra
+// Station-exclusive pets: Arctic Fox, Arctic Wolf, Bat, Crow, Fennec Fox, Fox,
+//   Hamster, Rabbit, Rat, Raven, Snow Owl, Squirrel
+// Note: When adding new species, review pair management UI — consider a
+//   species selector at the top of the Pairs tab and minimising inactive pairs
+//   to avoid the tab becoming unmanageable with 15+ species.
 
 // ── CROSS-BREEDING CONFIG ─────────────────────────────────────────
 // Add species pairs here if more cross-breed combinations are introduced in future.
@@ -2318,6 +2348,183 @@ function updateClearBtn() {
   btn.style.cursor  = cb.checked ? 'pointer' : 'not-allowed';
 }
 
+// ── SHARE YOUR HERD ──────────────────────────────────────────────
+async function shareHerd() {
+  const mode   = ($id('share-mode') || {}).value || 'top10';
+  const status = $id('share-status');
+  const canvas = $id('share-canvas');
+  if (status) status.textContent = 'Generating…';
+
+  // Build animal list for selected mode
+  const active = animals.filter(a => a.status !== 'Dead' && a.status !== 'Discard' && a.status !== 'Station');
+  let list = [];
+  if (mode === 'top10') {
+    list = [...active].sort((a,b) => getTotal(b.stats,b.sp) - getTotal(a.stats,a.sp)).slice(0,10);
+  } else if (mode === 'byspecies') {
+    const seen = {};
+    [...active].sort((a,b) => getTotal(b.stats,b.sp) - getTotal(a.stats,a.sp))
+      .forEach(a => { if (!seen[a.sp]) { seen[a.sp] = true; list.push(a); } });
+  } else if (mode === 'breeders') {
+    list = active.filter(a => a.status === 'Breed' || a.status === 'Temp')
+      .sort((a,b) => getTotal(b.stats,b.sp) - getTotal(a.stats,a.sp));
+  } else {
+    list = [...active].sort((a,b) => {
+      if (a.sp !== b.sp) return a.sp < b.sp ? -1 : 1;
+      return getTotal(b.stats,b.sp) - getTotal(a.stats,a.sp);
+    });
+  }
+
+  if (!list.length) {
+    if (status) status.textContent = 'No animals to display.';
+    return;
+  }
+
+  // ── Layout constants
+  const COLS     = Math.min(list.length, 5);
+  const ROWS     = Math.ceil(list.length / COLS);
+  const CW       = 220, CH = 110;   // card width / height
+  const PAD      = 16;              // outer padding
+  const GAP      = 10;              // gap between cards
+  const HDR      = 52;              // top header height
+  const FTR      = 28;              // bottom footer height
+  const W        = PAD*2 + COLS*CW + (COLS-1)*GAP;
+  const H        = PAD + HDR + ROWS*CH + (ROWS-1)*GAP + PAD + FTR;
+
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  ctx.fillStyle = '#0a1628';
+  ctx.fillRect(0, 0, W, H);
+
+  // Header
+  ctx.fillStyle = '#112040';
+  ctx.fillRect(0, 0, W, HDR + PAD);
+  ctx.fillStyle = '#f0f0f0';
+  ctx.font = 'bold 18px system-ui, sans-serif';
+  ctx.fillText('🦖 Icarus Breeding Tracker', PAD, PAD + 22);
+  const modeLabel = { top10:'Top 10', byspecies:'Best per Species', breeders:'Active Breeders', all:'All Active' }[mode] || mode;
+  ctx.fillStyle = '#88aabb';
+  ctx.font = '12px system-ui, sans-serif';
+  ctx.fillText(modeLabel + ' · ' + list.length + ' animal' + (list.length>1?'s':''), PAD, PAD + 40);
+
+  // Cards
+  list.forEach((animal, i) => {
+    const col  = i % COLS;
+    const row  = Math.floor(i / COLS);
+    const x    = PAD + col*(CW + GAP);
+    const y    = PAD + HDR + row*(CH + GAP);
+    const cfg  = SPECIES_DATA[animal.sp] || {};
+    const tot  = getTotal(animal.stats, animal.sp);
+    const sIcon = STATUS_ICON[animal.status] || '';
+
+    // Card background
+    ctx.fillStyle = '#112040';
+    _roundRect(ctx, x, y, CW, CH, 6);
+    ctx.fill();
+
+    // Species colour bar on left
+    ctx.fillStyle = cfg.color || '#555';
+    _roundRect(ctx, x, y, 4, CH, 3);
+    ctx.fill();
+
+    // Short ID / Species badge
+    ctx.fillStyle = cfg.color || '#aaa';
+    ctx.font = 'bold 11px monospace';
+    ctx.fillText(cfg.short || animal.sp.slice(0,2), x + 12, y + 16);
+
+    // Status icon
+    ctx.font = '13px system-ui';
+    ctx.fillText(sIcon, x + CW - 22, y + 16);
+
+    // Animal name (truncate to fit)
+    const nameMax = CW - 42;
+    ctx.fillStyle = '#f0f0f0';
+    ctx.font = 'bold 12px system-ui, sans-serif';
+    let name = animal.name || '—';
+    while (ctx.measureText(name).width > nameMax && name.length > 4) name = name.slice(0,-1);
+    if (name !== animal.name) name += '…';
+    ctx.fillText(name, x + 12, y + 32);
+
+    // Bloodline
+    ctx.fillStyle = '#7799bb';
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.fillText(animal.bloodline || '—', x + 12, y + 47);
+
+    // Divider
+    ctx.strokeStyle = '#1e3a5a';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x+8, y+53); ctx.lineTo(x+CW-8, y+53); ctx.stroke();
+
+    // Stats row
+    const statKeys = Object.keys(animal.stats || {});
+    const sW = (CW - 20) / statKeys.length;
+    ctx.font = '9px system-ui, sans-serif';
+    statKeys.forEach((k, si) => {
+      const sx = x + 10 + si * sW;
+      const v  = animal.stats[k] ?? 0;
+      ctx.fillStyle = '#556677';
+      ctx.fillText(k, sx, y + 66);
+      ctx.fillStyle = '#ddeeff';
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.fillText(v, sx, y + 80);
+      ctx.font = '9px system-ui, sans-serif';
+    });
+
+    // Total
+    ctx.fillStyle = '#ffcc55';
+    ctx.font = 'bold 13px system-ui, sans-serif';
+    ctx.fillText('Σ ' + tot, x + 12, y + CH - 10);
+
+    // Phenotype
+    ctx.fillStyle = '#9977bb';
+    ctx.font = '10px system-ui, sans-serif';
+    let phen = animal.phenotype || '';
+    while (ctx.measureText(phen).width > 110 && phen.length > 3) phen = phen.slice(0,-1);
+    if (phen !== animal.phenotype) phen += '…';
+    ctx.textAlign = 'right';
+    ctx.fillText(phen, x + CW - 8, y + CH - 10);
+    ctx.textAlign = 'left';
+  });
+
+  // Footer
+  ctx.fillStyle = '#334455';
+  ctx.font = '10px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('icarus.wiki.gg/wiki/Breeding  ·  Made with Icarus Breeding Tracker', W/2, H - 10);
+  ctx.textAlign = 'left';
+
+  // Show canvas preview
+  canvas.style.display = 'block';
+
+  // Try clipboard copy
+  try {
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    if (status) status.innerHTML = '✅ Copied to clipboard!';
+  } catch (e) {
+    // Fallback: show download link
+    const url = canvas.toDataURL('image/png');
+    const a   = document.createElement('a');
+    a.href = url; a.download = 'icarus-herd.png';
+    a.textContent = '⬇ Download image';
+    a.style.cssText = 'font-size:12px;color:#5bc8d4;';
+    if (status) { status.textContent = '⚠ Clipboard not available. '; status.appendChild(a); }
+  }
+}
+
+/** Draw a rounded rectangle path */
+function _roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y); ctx.arcTo(x+w, y, x+w, y+r, r);
+  ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx.lineTo(x+r, y+h); ctx.arcTo(x, y+h, x, y+h-r, r);
+  ctx.lineTo(x, y+r); ctx.arcTo(x, y, x+r, y, r);
+  ctx.closePath();
+}
+
 function clearAllDataConfirmed() {
   const cb = $id('clear-confirm-checkbox');
   if (!cb?.checked) return;
@@ -2443,8 +2650,10 @@ function renderPairs() {
       </div>` : '';
 
     card.innerHTML = `
-      <h3>${cfg.icon} ${sp} <span class="goals-shortcode">${cfg.short}</span>
+      <h3><span class="species-dot" style="background:${cfg.color}"></span>${sp} <span class="goals-shortcode">${cfg.short}</span>
         <span style="font-size:10px;color:#888;font-weight:normal;text-transform:none;margin-left:4px">breed out: <span style="color:var(--red)">${bo}</span></span>
+        <a href="${cfg.wiki}" target="_blank" title="Open ${sp} wiki page"
+          style="font-size:10px;color:#5bc8d4;text-decoration:none;font-weight:normal;text-transform:none;margin-left:8px;border:1px solid #2a4a6a;padding:1px 7px;border-radius:4px;">📖 Wiki</a>
         <span class="pairs-controls">
           <span class="pairs-count">${n} pair${n>1?'s':''}</span>
           <button class="btn-add" onclick="addPairSlot('${sp}')">+</button>
@@ -2492,7 +2701,7 @@ function updateLineageSelector() {
       const opts = sa.sort((a,b) => getTotal(b.stats,sp) - getTotal(a.stats,sp))
         .map(a => `<option value="${a.name}"${a.name===cur?' selected':''}>${a.spId ? formatSpId(a.sp,a.spId)+' ' : ''}${a.name} (${getTotal(a.stats,sp)})</option>`)
         .join('');
-      return `<optgroup label="${cfg.icon} ${sp}">${opts}</optgroup>`;
+      return `<optgroup label="${cfg.short} – ${sp}">${opts}</optgroup>`;
     }).join('');
   if (cur) sel.value = cur;
 }

@@ -126,10 +126,12 @@ The sidebar shows species-level breeding insights: average stat gain per breedin
 |---|---|---|
 | Dune Raptor | DR | Can cross-breed with Swamp Raptor |
 | Swamp Raptor | SR | Can cross-breed with Dune Raptor |
-| Moa | BM | Base Moa — production animal |
+| Moa | BM | Mount and fast travel animal |
 | Slinker | SL | |
 
 Cross-breed offspring are either a DR or SR (not a hybrid) — determined by which species tab the pair is in.
+
+> **Note:** Cross-breeding between Dune Raptors and Swamp Raptors may become unavailable in a future game update once each species receives its own skill tree.
 
 ---
 

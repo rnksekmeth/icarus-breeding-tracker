@@ -4,6 +4,20 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.10 – Wiki Links & Herd Share
+**2026-04-05**
+
+- Wiki link button added to each species card header in the Breeding Pairs tab — opens the species page on icarus.wiki.gg in a new tab
+- Species shorthand in Pairs tab fixed: was showing D/S/M/K, now correctly shows DR/SR/BM/SL (species-dot + full name + code badge, matching the Goals tab)
+- `SPECIES_DATA` extended with `wiki` URL per species; `icon` field removed
+- Future species data saved as a code comment in `SPECIES_DATA` for later implementation (mounts, station pets, pair management scaling notes)
+- New 📸 Share Your Herd section in Settings — generates a canvas image of your animals with four modes: Top 10, Best per Species, Active Breeders, All Active
+- Image is copied to clipboard automatically; a download link is shown as a fallback if clipboard API is unavailable
+- README: Moa description corrected from "production animal" to "mount and fast travel animal"
+- README: Cross-breed disclaimer added noting DR/SR cross-breeding may change when separate skill trees are introduced
+
+---
+
 ## v0.9 – Tooltips & Station
 **2026-04-05**
 
