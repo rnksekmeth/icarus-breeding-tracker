@@ -84,12 +84,15 @@ Shows all your animals in a sortable, filterable table. Key features:
 - **Edit** an animal with the edit button; a **Cancel** button lets you exit without saving changes
 - **⭐ Favorite** — click the star button on any row to mark an animal as a favourite; favourited animals are never suggested for culling by the pair optimizer but can still be moved to reserve or taken out of rotation
 - **Nicknames** — if an animal has a nickname set, the nickname is shown in bold and the original generated name appears dimly beside it
+- **Click any animal name** to open a read-only **Animal Viewer** panel — shows full details, stats, current pair assignment, the optimizer's suggestion for that animal, and quick-action buttons to change status, assign to or remove from a pair slot, or jump to the edit form
 - **🪦 Show Dead** / **🛸 Show Station** toggles to include or exclude those animals from the view
 - **⚡ Optimize Pairs** button in the section header — opens the pair optimizer for all species (see Breeding Pairs)
 
 ### 🔀 Breeding Pairs
 
-Set up your active breeding pairs per species. The app enforces global exclusivity — an animal can only appear in one pair slot at a time. Dune Raptors and Swamp Raptors can be cross-bred; their animals appear in each other's pair slots. Cross-breed offspring are either a DR or SR — determined by which species tab the pair is in.
+Set up your active breeding pairs per species. The app enforces global exclusivity — an animal can only appear in one pair slot at a time.
+
+When an animal is added to a pair slot (manually or via the optimizer), their status is automatically set to **Breed**. When removed or replaced, their status reverts to **Undecided** — unless you had set it to something else deliberately (Reserve, Station, etc.), in which case it is left as-is. Dune Raptors and Swamp Raptors can be cross-bred; their animals appear in each other's pair slots. Cross-breed offspring are either a DR or SR — determined by which species tab the pair is in.
 
 Each pair slot shows a goal badge:
 - **✓ Goal N** — this animal matches one of your species goals
@@ -100,7 +103,9 @@ A stat upgrade recommendation panel below each species card suggests free animal
 
 Cards can be collapsed to compact chips using the **▼ Hide / ▶ Show** button, and toggled between Narrow and Wide layout. The grid uses a masonry layout — shorter cards automatically fill the vertical space under taller ones rather than wrapping to the leftmost column. Collapsed state and card width persist across reloads.
 
-**⚡ Optimize Pairs** — available in the section header (all species) and as a small ⚡ button on each species card (single species). The optimizer scores all active animals against your goals, bloodline priorities, and phenotype priorities, then proposes the best M×F assignment for each pair slot. It covers goals first (one pair per goal where possible), fills any remaining slots with the highest-scoring remaining animals, and biases toward bloodline diversity across multiple pairs so separate lines are maintained. A list of suggested status changes for unassigned animals is shown alongside: animals with desired traits but low stats are suggested for Reserve, high-stat animals that don't fit are suggested for Store, and animals with negative traits below the stat goal are suggested for Cull. Favourited animals are never suggested for culling. You can choose to **Apply Pairs Only** or **Apply All** (pairs + all status suggestions) from the modal.
+**⚡ Optimize Pairs** — available in the section header (all species) and as a small ⚡ button on each species card (single species). The optimizer scores all active animals against your goals, bloodline priorities, and phenotype priorities, then proposes the best M×F assignment for each pair slot. It covers goals first (one pair per goal where possible), fills any remaining slots with the highest-scoring remaining animals, and biases toward bloodline diversity across multiple pairs so separate lines are maintained. A list of suggested status changes for unassigned animals is shown alongside: animals with desired traits but low stats are suggested for Reserve, high-stat animals that don't fit are suggested for Store, and animals with negative traits or no valued traits below the stat goal are suggested for Cull. Animals that are outclassed by a paired same-sex/species animal (with no unique positive traits of their own) are also suggested for Cull — unless they are near-max stat (≥90% of species maximum). Favourited animals are never suggested for culling. You can choose to **Apply Pairs Only** or **Apply All** (pairs + all status suggestions) from the modal.
+
+If a proposed pair animal is currently assigned to a different pair slot, a **⚠ in pair** warning appears in the optimizer row, showing which pair they will be moved from when you apply.
 
 ### ⚙ Goals
 

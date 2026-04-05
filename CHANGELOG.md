@@ -4,6 +4,23 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.22 – Animal viewer & smart pairing
+**2026-04-05**
+
+- **Animal viewer panel** — clicking any animal name in the herd table opens a read-only view panel showing full details, stats, current pair assignment, and optimizer suggestion for that animal; includes quick-action buttons to change status, assign to/remove from a pair slot, or jump to the edit form
+- **Auto-status on pair assignment** — adding an animal to a pair slot (manually or via the optimizer) automatically sets their status to Breed; removing or replacing them reverts status to Undecided, but only if the status was Breed (prevents overriding Reserve/Station set deliberately)
+- **Optimizer: pair conflict warnings** — if the optimizer proposes moving an animal that is already in a different pair slot, a ⚠ warning now appears in the modal row indicating which pair they will be moved from
+- **Smarter cull suggestions** — optimizer now suggests culling when: a desired trait is covered in a pair slot and the animal is well below stat goal (70% threshold); an animal is outclassed by a paired same-sex/species animal and has no unique positive traits; near-max-stat animals are protected from this redundancy cull
+
+---
+
+## v0.21d – Smarter optimizer suggestions
+**2026-04-05**
+
+- **Suggestion: trait already covered** — when an animal has a desired trait but below-goal stats, the optimizer now checks how many pair slots already carry that trait; if 2 or more pair animals already share it, the suggestion becomes Cull (the trait is well-represented and a weaker below-goal animal with no unique value should not occupy a station slot)
+
+---
+
 ## v0.21c – Optimizer & stability fixes
 **2026-04-05**
 

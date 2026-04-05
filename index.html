@@ -364,6 +364,27 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 
 /* ── OPTIMIZE MODAL ─────────────────────────────────────────── */
 .opt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:900;display:flex;align-items:center;justify-content:center;}
+.view-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:950;display:flex;align-items:center;justify-content:center;}
+.view-modal{background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:20px 24px;max-width:600px;width:95vw;max-height:88vh;overflow-y:auto;}
+.view-modal h3{color:var(--acc);font-size:15px;margin:0 0 2px;display:flex;align-items:center;gap:8px;}
+.view-modal .view-subtitle{font-size:11px;color:var(--dim);margin-bottom:14px;}
+.view-stats-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:10px 0;}
+.view-stat-cell{text-align:center;background:rgba(255,255,255,.05);border-radius:4px;padding:4px 2px;font-size:11px;}
+.view-stat-label{font-size:9px;color:var(--dim);margin-bottom:2px;}
+.view-stat-val{font-weight:bold;}
+.view-section{margin:12px 0 6px;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;border-top:1px solid var(--bdr);padding-top:8px;}
+.view-suggestion{padding:8px 12px;border-radius:5px;font-size:12px;display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;}
+.view-sug-cull{background:rgba(255,85,85,.08);border:1px solid rgba(255,85,85,.25);}
+.view-sug-reserve{background:rgba(136,170,255,.08);border:1px solid rgba(136,170,255,.25);}
+.view-sug-store{background:rgba(91,200,212,.08);border:1px solid rgba(91,200,212,.25);}
+.view-sug-keep{background:rgba(0,204,85,.08);border:1px solid rgba(0,204,85,.25);}
+.view-sug-icon{font-size:15px;min-width:20px;}
+.view-sug-text{flex:1;}
+.view-sug-action{font-weight:bold;font-size:11px;}
+.view-pair-slot{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.04);}
+.view-pair-slot:last-child{border-bottom:none;}
+.view-name-link{cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px;}
+.view-name-link:hover{color:var(--acc);}
 .opt-modal{background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:20px 24px;max-width:680px;width:95vw;max-height:88vh;overflow-y:auto;}
 .opt-modal h3{color:var(--acc);font-size:14px;text-transform:uppercase;letter-spacing:1px;margin:0 0 12px;}
 .opt-sp-section{margin-bottom:16px;border:1px solid var(--bdr);border-radius:6px;overflow:hidden;}
@@ -1231,7 +1252,7 @@ let _saveTimer  = null;
 // v4 – no schema change (cross-breeding was config + UI-only)
 // v5 – goals[]: species-level goals replace per-pair bl/ph; phenoWeights/blPriority extended to -3..3; statGoal added
 /** Single source of truth for the displayed app version — update this on every release. */
-const APP_VERSION  = 'v0.21c – Optimizer & stability fixes';
+const APP_VERSION  = 'v0.22 – Animal viewer & smart pairing';
 document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('app-version'); if (el) el.textContent = APP_VERSION; });
 const DATA_VERSION = 5;
 
@@ -1855,6 +1876,22 @@ function buildOptimizePlanForSpecies(sp, globallyAssigned) {
     if (p.m) globallyAssigned.add(p.m);
     if (p.f) globallyAssigned.add(p.f);
   });
+  // Feature 3: flag proposed animals that are currently in a different pair slot
+  proposedPairs.forEach((p, pIdx) => {
+    const findPairConflict = name => {
+      if (!name) return null;
+      for (const [s, ps] of Object.entries(pairsMap)) {
+        for (let j = 0; j < (ps || []).length; j++) {
+          if ((ps[j].m === name || ps[j].f === name) && (s !== sp || j !== pIdx)) {
+            return { sp: s, pairIdx: j };
+          }
+        }
+      }
+      return null;
+    };
+    p.mConflict = findPairConflict(p.m);
+    p.fConflict = findPairConflict(p.f);
+  });
 
   // Classify own-species active animals not in pairs
   const assignedNames = new Set(proposedPairs.flatMap(p => [p.m, p.f]).filter(Boolean));
@@ -1877,16 +1914,44 @@ function buildOptimizePlanForSpecies(sp, globallyAssigned) {
         return;
       }
 
+      // Count how many animals in proposed pairs already carry this animal's positive trait
+      const isBl = blScore > 0;
+      const posTrait = isBl ? a.bl : a.ph;
+      const traitInPairs = proposedPairs.reduce((n, p) => {
+        const mA = allUsable.find(x => x.name === p.m);
+        const fA = allUsable.find(x => x.name === p.f);
+        return n + (mA && (isBl ? mA.bl : mA.ph) === posTrait ? 1 : 0)
+                 + (fA && (isBl ? fA.bl : fA.ph) === posTrait ? 1 : 0);
+      }, 0);
+
+      // Feature 4: check if outclassed by paired same-sex/species animals
+      const _pairedSameSex = proposedPairs.flatMap(pp => {
+        const nm = a.sex === 'M' ? pp.m : pp.f;
+        const pa = nm ? allUsable.find(x => x.name === nm) : null;
+        return (pa && pa.sp === sp) ? [pa] : [];
+      });
+      const _isOutclassed = _pairedSameSex.some(b => scoreForOptimize(sp, b) > scoreForOptimize(sp, a));
+      const _maxTot = getMaxTotal(sp);
+      const _isNearMax = tot >= _maxTot * 0.9;
+
       if (matchesGoal && tot >= statGoal) {
         suggestions.push({ animal: a, action: 'reserve', reason: `Matches a species goal — reserve for future breeding` });
       } else if (hasPositive && tot < statGoal) {
-        const trait = blScore > 0 ? a.bl : a.ph;
-        suggestions.push({ animal: a, action: 'reserve', reason: `Desired trait (${trait}) but below stat goal (${tot}/${statGoal})` });
+        const trait = posTrait;
+        if (traitInPairs >= 2) {
+          suggestions.push({ animal: a, action: 'cull', reason: `Desired trait (${trait}) already in ${traitInPairs} pair slots and below stat goal (${tot}/${statGoal})` });
+        } else if (traitInPairs >= 1 && tot < statGoal * 0.7) {
+          suggestions.push({ animal: a, action: 'cull', reason: `Desired trait (${trait}) covered in a pair slot and well below stat goal (${tot}/${statGoal})` });
+        } else {
+          suggestions.push({ animal: a, action: 'reserve', reason: `Desired trait (${trait}) but below stat goal (${tot}/${statGoal})` });
+        }
       } else if (hasNeg && tot < statGoal) {
         const trait = blScore < 0 ? a.bl : a.ph;
         suggestions.push({ animal: a, action: 'cull', reason: `Negative trait (${trait}) and below stat goal (${tot}/${statGoal})` });
       } else if (!hasPositive && tot < statGoal) {
         suggestions.push({ animal: a, action: 'cull', reason: `No valued traits, below stat goal (${tot}/${statGoal})` });
+      } else if (!_isNearMax && _isOutclassed && !hasPositive) {
+        suggestions.push({ animal: a, action: 'cull', reason: `Outclassed by paired ${a.sex === 'M' ? '♂' : '♀'} of same species (${tot}/${statGoal} goal)` });
       } else {
         suggestions.push({ animal: a, action: 'store', reason: `Good stats (${tot}) but all pair slots filled` });
       }
@@ -1924,11 +1989,13 @@ function showOptimizeModal(sp) {
       ? plan.proposedPairs.map((p, i) => {
           const mA = animals.find(a => a.name === p.m);
           const fA = animals.find(a => a.name === p.f);
+          const mConfl = p.mConflict ? `<span style="color:#ffd700;font-size:10px;margin-left:4px" title="Currently in ${p.mConflict.sp} Pair ${p.mConflict.pairIdx+1} — will be moved">⚠ in pair</span>` : '';
+          const fConfl = p.fConflict ? `<span style="color:#ffd700;font-size:10px;margin-left:4px" title="Currently in ${p.fConflict.sp} Pair ${p.fConflict.pairIdx+1} — will be moved">⚠ in pair</span>` : '';
           const mD = mA
-            ? `<span style="color:#88aaff">♂ ${displayName(mA)}</span><span style="color:#555;font-size:10px"> (${getTotal(mA.stats, plan.sp)})</span>`
+            ? `<span style="color:#88aaff">♂ ${displayName(mA)}</span><span style="color:#555;font-size:10px"> (${getTotal(mA.stats, plan.sp)})</span>${mConfl}`
             : '<span style="color:#555">— empty —</span>';
           const fD = fA
-            ? `<span style="color:#ff88aa">♀ ${displayName(fA)}</span><span style="color:#555;font-size:10px"> (${getTotal(fA.stats, plan.sp)})</span>`
+            ? `<span style="color:#ff88aa">♀ ${displayName(fA)}</span><span style="color:#555;font-size:10px"> (${getTotal(fA.stats, plan.sp)})</span>${fConfl}`
             : '<span style="color:#555">— empty —</span>';
           const badge = p.goalLabel ? `<span class="opt-goal-badge">${p.goalLabel}</span>` : '';
           const pi = planIndexOf(plan);
@@ -1992,8 +2059,18 @@ function applyOptimizeSinglePair(planIdx, pairIdx, btn) {
   btn.textContent = '✓ Applied'; btn.disabled = true; btn.style.opacity = '0.5';
   if (!pairsMap[plan.sp]) initPairs();
   while (pairsMap[plan.sp].length <= pairIdx) pairsMap[plan.sp].push({ m: '', f: '' });
+  // Auto-status: revert displaced animals to Undecided
+  const _oldM = pairsMap[plan.sp][pairIdx]?.m || '';
+  const _oldF = pairsMap[plan.sp][pairIdx]?.f || '';
+  if (_oldM && _oldM !== p.m) { const _a = animals.find(x => x.name === _oldM); if (_a && _a.status === 'Breed') _a.status = '?'; }
+  if (_oldF && _oldF !== p.f) { const _a = animals.find(x => x.name === _oldF); if (_a && _a.status === 'Breed') _a.status = '?'; }
   pairsMap[plan.sp][pairIdx].m = p.m;
   pairsMap[plan.sp][pairIdx].f = p.f;
+  // Auto-status: set assigned animals to Breed
+  [p.m, p.f].filter(Boolean).forEach(n => {
+    const _a = animals.find(x => x.name === n);
+    if (_a && !['Dead','Station','Discard'].includes(_a.status)) _a.status = 'Breed';
+  });
   const msg = `⚡ ${plan.sp} Pair ${pairIdx + 1}: ♂ ${p.m || '—'} × ♀ ${p.f || '—'}`;
   addLog(msg, 'pair');
   showToast(msg);
@@ -2051,9 +2128,19 @@ function applyOptimizePlan(applyStatuses) {
     while (pairsMap[plan.sp].length < n) pairsMap[plan.sp].push({ m: '', f: '' });
     plan.proposedPairs.forEach((p, i) => {
       if (pairsMap[plan.sp][i]) {
-        if (pairsMap[plan.sp][i].m !== p.m || pairsMap[plan.sp][i].f !== p.f) pairChanges++;
+        const _changed = pairsMap[plan.sp][i].m !== p.m || pairsMap[plan.sp][i].f !== p.f;
+        if (_changed) {
+          pairChanges++;
+          const _om = pairsMap[plan.sp][i].m, _of = pairsMap[plan.sp][i].f;
+          if (_om && _om !== p.m) { const _a = animals.find(x => x.name === _om); if (_a && _a.status === 'Breed') _a.status = '?'; }
+          if (_of && _of !== p.f) { const _a = animals.find(x => x.name === _of); if (_a && _a.status === 'Breed') _a.status = '?'; }
+        }
         pairsMap[plan.sp][i].m = p.m;
         pairsMap[plan.sp][i].f = p.f;
+        [p.m, p.f].filter(Boolean).forEach(n => {
+          const _a = animals.find(x => x.name === n);
+          if (_a && !['Dead','Station','Discard'].includes(_a.status)) _a.status = 'Breed';
+        });
       }
     });
     if (applyStatuses) {
@@ -3541,7 +3628,7 @@ function renderHerd() {
 
     const sexColor = a.sex === 'M' ? '#88aaff' : a.sex === 'F' ? '#ff88aa' : '#888';
     return `<tr style="${deadStyle}">
-      <td class="name-cell">${spIdBadge}<button class="btn-fav${a.favorite ? ' active' : ''}" onclick="toggleFavorite(${a.id})" title="${a.favorite ? 'Unfavorite' : 'Favorite — protects from cull suggestions'}">★</button><button class="btn-copy" style="padding:2px 6px;font-size:11px;margin-right:4px" onclick="quickCopy('${$esc(a.nickname || a.name)}')">copy</button>${a.nickname ? `<span class="nickname-display">${a.nickname}</span><span class="orig-name-dim">${a.name}</span>` : a.name}${tempBadge}${reserveBadge}</td>
+      <td class="name-cell">${spIdBadge}<button class="btn-fav${a.favorite ? ' active' : ''}" onclick="toggleFavorite(${a.id})" title="${a.favorite ? 'Unfavorite' : 'Favorite — protects from cull suggestions'}">★</button><button class="btn-copy" style="padding:2px 6px;font-size:11px;margin-right:4px" onclick="quickCopy('${$esc(a.nickname || a.name)}')">copy</button>${a.nickname ? `<span class="nickname-display view-name-link" onclick="viewAnimal(${a.id})" title="Click to view animal details">${a.nickname}</span><span class="orig-name-dim">${a.name}</span>` : `<span class="view-name-link" onclick="viewAnimal(${a.id})" title="Click to view animal details">${a.name}</span>`}${tempBadge}${reserveBadge}</td>
       <td data-tip="${a.sp}">${dot}${spCfg.short || a.sp}</td>
       <td style="text-align:center;color:${sexColor};font-weight:bold">${a.sex === 'M' ? '♂' : a.sex === 'F' ? '♀' : a.sex || '?'}</td>
       <td class="${blCls}" ${BLOODLINE_INFO[a.bl] ? `data-tip="${BLOODLINE_INFO[a.bl].replace(/"/g,'&quot;')}"` : ''}>${a.bl}</td>
@@ -4144,6 +4231,152 @@ function clearAllDataConfirmed() {
  * stat-upgrade recommendations, and the ⚡ optimize button.
  * Collapsed species are rendered as compact chips.
  */
+// ── ANIMAL VIEW PANEL ────────────────────────────────────────────
+/**
+ * Open a read-only view panel for an animal.
+ * Shows details, optimizer suggestion, and quick actions.
+ */
+function viewAnimal(id) {
+  const a = animals.find(x => x.id === id);
+  if (!a) return;
+  const spCfg = SPECIES_DATA[a.sp] || {};
+  const bo    = getBreedOut(a.sp);
+  const tot   = getTotal(a.stats, a.sp);
+  const maxT  = getMaxTotal(a.sp);
+  const pct   = Math.round(tot / maxT * 100);
+
+  // Which pair slot is this animal currently in?
+  let currentPair = null;
+  for (const [s, ps] of Object.entries(pairsMap)) {
+    for (let j = 0; j < (ps || []).length; j++) {
+      if (ps[j].m === a.name || ps[j].f === a.name) {
+        currentPair = { sp: s, idx: j, sex: ps[j].m === a.name ? 'M' : 'F' };
+        break;
+      }
+    }
+    if (currentPair) break;
+  }
+
+  // Compute optimizer suggestion for this animal
+  const _ga = new Set();
+  const plan = buildOptimizePlanForSpecies(a.sp, _ga);
+  const sug  = plan.suggestions.find(s => s.animal.id === a.id);
+  const inPairSlot = plan.proposedPairs.some(p => p.m === a.name || p.f === a.name);
+
+  // Stats cells
+  const statCells = STATS.map(s => {
+    const v = a.stats[s] || 0;
+    const isBO = s === bo;
+    const valColor = (isBO && v === 0) ? '#ff8888' : (!isBO && v === 10) ? '#00cc55' : (v <= 2 && !isBO) ? '#ff5555' : 'var(--fg)';
+    return `<div class="view-stat-cell"><div class="view-stat-label">${s}${isBO ? ' BO' : ''}</div><div class="view-stat-val" style="color:${valColor}">${v}</div></div>`;
+  }).join('');
+
+  // Suggestion block
+  let sugHtml = '';
+  if (inPairSlot) {
+    sugHtml = `<div class="view-suggestion view-sug-keep"><span class="view-sug-icon">✅</span><span class="view-sug-text"><span class="view-sug-action" style="color:var(--grn)">In Pair</span><br><span style="color:var(--dim);font-size:11px">This animal is currently selected in the optimizer's proposed pairs</span></span></div>`;
+  } else if (sug) {
+    const sugColors = { cull:'#ff5555', store:'#5bc8d4', reserve:'#88aaff', keep:'#00cc55' };
+    const sugIcons  = { cull:'🪦', store:'🛸', reserve:'🔶', keep:'✅' };
+    const sugLabels = { cull:'Cull', store:'Store on Station', reserve:'Reserve', keep:'Keep' };
+    const cls = `view-suggestion view-sug-${sug.action}`;
+    sugHtml = `<div class="${cls}"><span class="view-sug-icon">${sugIcons[sug.action]}</span><span class="view-sug-text"><span class="view-sug-action" style="color:${sugColors[sug.action]}">${sugLabels[sug.action]}</span><br><span style="color:var(--dim);font-size:11px">${sug.reason}</span></span></div>`;
+  } else {
+    sugHtml = `<div class="view-suggestion view-sug-keep"><span class="view-sug-icon">❓</span><span class="view-sug-text"><span class="view-sug-action">No suggestion</span><br><span style="color:var(--dim);font-size:11px">Run the optimizer for a full herd analysis</span></span></div>`;
+  }
+
+  // Available pair slots for this species (to assign into)
+  const spPairs    = pairsMap[a.sp] || [];
+  const n          = pairCounts[a.sp] || 1;
+  const crossForSp = Object.entries(CROSS_BREEDS).filter(([, v]) => v.includes(a.sp)).map(([k]) => k);
+  const allTargetSp = [a.sp, ...crossForSp];
+  let pairSlotsHtml = '';
+  allTargetSp.forEach(tsp => {
+    const tPairs = pairsMap[tsp] || [];
+    const tn = pairCounts[tsp] || 1;
+    for (let i = 0; i < tn; i++) {
+      const p = tPairs[i] || { m: '', f: '' };
+      // Show both slots; only show empty or same-animal slots
+      ['M','F'].forEach(sex => {
+        const slot = sex === 'M' ? p.m : p.f;
+        const sexOk = a.sex === sex;
+        if (!sexOk) return;
+        const occupied = slot && slot !== a.name;
+        const isMe = slot === a.name;
+        const partner = sex === 'M' ? (p.f || '—') : (p.m || '—');
+        const slotLabel = isMe ? '✔ Assigned here' : (occupied ? `${slot}` : 'empty');
+        const btnStyle = isMe ? 'background:rgba(0,204,85,.15);border-color:var(--grn);color:var(--grn)' : occupied ? 'opacity:.6' : '';
+        const btnLabel = isMe ? 'Remove' : 'Assign';
+        const btnAction = isMe
+          ? `onclick="updatePair('${tsp.replace(/'/g,"\'")}',${i},'${sex.toLowerCase()}','');closeViewPanel()"`
+          : `onclick="updatePair('${tsp.replace(/'/g,"\'")}',${i},'${sex.toLowerCase()}','${a.name.replace(/'/g,"\'")}');closeViewPanel()"`;
+        const sexSym = sex === 'M' ? '♂' : '♀';
+        pairSlotsHtml += `<div class="view-pair-slot">
+          <span style="color:var(--dim);min-width:110px">${tsp !== a.sp ? `[${SPECIES_DATA[tsp]?.short||tsp}] ` : ''}Pair ${i+1} ${sexSym}</span>
+          <span style="flex:1;font-size:11px">${slotLabel} <span style="color:var(--dim)">× ${partner}</span></span>
+          <button class="btn-sm" style="font-size:10px;padding:1px 8px;${btnStyle}" ${btnAction}>${btnLabel}</button>
+        </div>`;
+      });
+    }
+  });
+  if (!pairSlotsHtml) pairSlotsHtml = `<div style="color:var(--dim);font-size:11px">No pair slots available — add pairs first</div>`;
+
+  const currentPairNote = currentPair
+    ? `<span style="color:#88aaff;font-size:11px">👉 Currently in ${currentPair.sp} Pair ${currentPair.idx+1} (${currentPair.sex === 'M' ? '♂' : '♀'})</span>`
+    : '';
+
+  const dot = `<span class="species-dot" style="background:${spCfg.color||'#888'};display:inline-block;width:9px;height:9px;border-radius:50%"></span>`;
+  const phColor  = phenoColor(a.sp, a.ph);
+  const phDisp   = a.ph ? phenoDisplay(a.sp, a.ph) || a.ph : '—';
+  const parents  = [a.p1, a.p2].filter(p => p && p !== 'Unknown').join(' × ') || '—';
+  const sexSym   = a.sex === 'M' ? '♂ Male' : a.sex === 'F' ? '♀ Female' : a.sex || '?';
+  const sexColor = a.sex === 'M' ? '#88aaff' : a.sex === 'F' ? '#ff88aa' : '#888';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'view-overlay';
+  overlay.id = 'view-overlay';
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeViewPanel(); });
+  overlay.innerHTML = `
+<div class="view-modal">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:2px">
+    <div>
+      <h3>${dot} ${displayName(a)}${a.nickname ? `<span style="color:var(--dim);font-size:11px;font-weight:normal">${a.name}</span>` : ''}</h3>
+      <div class="view-subtitle">${spCfg.short || a.sp} &bull; <span style="color:${sexColor}">${sexSym}</span> &bull; Gen ${a.gen || 1} &bull; ${STATUS_ICON[a.status] || ''} ${STATUS_LABEL[a.status] || a.status} ${currentPairNote}</div>
+    </div>
+    <button class="btn-sm" onclick="closeViewPanel()" style="flex-shrink:0">✕ Close</button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:12px;margin-bottom:8px">
+    <div><span style="color:var(--dim)">Bloodline:</span> <strong>${a.bl || '—'}</strong></div>
+    <div><span style="color:var(--dim)">Phenotype:</span> <strong style="color:${phColor}">${phDisp}</strong></div>
+    <div><span style="color:var(--dim)">Parents:</span> <span style="color:#aaa">${parents}</span></div>
+    <div><span style="color:var(--dim)">Total:</span> <strong style="color:${pct>=92?'#00cc55':pct>=75?'#ffd700':'#ff9944'}">${tot} / ${maxT} (${pct}%)</strong></div>
+  </div>
+
+  <div class="view-stats-grid">${statCells}</div>
+
+  <div class="view-section">Optimizer Suggestion</div>
+  ${sugHtml}
+
+  <div class="view-section">Change Status</div>
+  ${statusSelectHtml(a)}
+
+  <div class="view-section">Pair Assignment</div>
+  ${pairSlotsHtml}
+
+  <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+    <button class="btn-sm" onclick="editAnimal(${a.id});closeViewPanel()">✏ Edit Animal</button>
+    <button class="btn" onclick="closeViewPanel()">✓ Done</button>
+  </div>
+</div>`;
+  document.body.appendChild(overlay);
+}
+
+function closeViewPanel() {
+  const el = $id('view-overlay');
+  if (el) el.remove();
+}
+
 function renderPairs() {
   initPairs(); initGoals();
   const grid = $id('pairs-grid');
@@ -4347,7 +4580,17 @@ function updatePair(sp, idx, sex, name) {
     }
   }
   const oldName = (pairsMap[sp] || [])[idx]?.[sex] || '';
+  // Auto-status: if removed animal was set to Breed by pair assignment, revert to Undecided
+  if (oldName && oldName !== name) {
+    const oldA = animals.find(a => a.name === oldName);
+    if (oldA && oldA.status === 'Breed') oldA.status = '?';
+  }
   pairsMap[sp][idx][sex] = name;
+  // Auto-status: set newly added animal to Breed
+  if (name) {
+    const newA = animals.find(a => a.name === name);
+    if (newA && !['Dead','Station','Discard'].includes(newA.status)) newA.status = 'Breed';
+  }
   save(); renderPairs();
   const sexSym = sex === 'M' ? '♂' : '♀';
   const logMsg = oldName && name ? `${sp} Pair ${idx+1} ${sexSym}: ${oldName} → ${name}`
