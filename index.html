@@ -1229,7 +1229,7 @@ let _saveTimer  = null;
 // v4 – no schema change (cross-breeding was config + UI-only)
 // v5 – goals[]: species-level goals replace per-pair bl/ph; phenoWeights/blPriority extended to -3..3; statGoal added
 /** Single source of truth for the displayed app version — update this on every release. */
-const APP_VERSION  = 'v0.21 – Optimizer improvements';
+const APP_VERSION  = 'v0.21b – Optimizer improvements';
 document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('app-version'); if (el) el.textContent = APP_VERSION; });
 const DATA_VERSION = 5;
 
@@ -1985,6 +1985,7 @@ function applyOptimizeSinglePair(planIdx, pairIdx, btn) {
   addLog(msg, 'pair');
   showToast(msg);
   saveAndRefresh();
+  checkOptimizeAllApplied();
 }
 
 /**
@@ -2005,8 +2006,17 @@ function applyOptimizeSingleSuggestion(planIdx, suggIdx, btn) {
   addLog(msg, 'status');
   showToast(msg);
   saveAndRefresh();
+  checkOptimizeAllApplied();
 }
 
+
+/** After each individual apply, close the modal if every item has been applied. */
+function checkOptimizeAllApplied() {
+  const overlay = $id('opt-overlay');
+  if (!overlay) return;
+  const btns = overlay.querySelectorAll('.opt-pair-row button, .opt-action-row button');
+  if (btns.length > 0 && [...btns].every(b => b.disabled)) closeOptimizeModal();
+}
 function closeOptimizeModal() {
   const el = $id('opt-overlay');
   if (el) el.remove();

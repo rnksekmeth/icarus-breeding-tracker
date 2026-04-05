@@ -4,8 +4,14 @@ All notable changes to this project are documented here.
 
 ---
 
-## v0.21 – Optimizer improvements
+## v0.21b – Optimizer improvements
 **2026-04-05**
+
+- Apply button feedback, auto-close, and naming fixes (see v0.21 for main feature list)
+
+---
+
+## v0.21 – Optimizer improvements
 
 - **Cross-breed native constraint** — the optimizer now guarantees at least one native-species animal per pair slot; previously it could fill all DR or SR slots with cross-species animals if they scored higher, breaking native bloodline continuity
 - **Individual Apply buttons** — each proposed pair row and each status-suggestion row in the Optimize modal now has its own Apply button; clicking it applies that single change without closing the modal, then marks the button as ✓ Applied and disables it
@@ -13,6 +19,8 @@ All notable changes to this project are documented here.
 - **Fix optimizer modal crash** — suggestion rows used `si` (index) without declaring it in the `.map()` callback, causing a ReferenceError that prevented the modal from rendering; fixed to `.map((s, si) => ...`
 - **Fix version label not updating** — `APP_VERSION` was not bumped during the v0.21 patch; now correctly shows v0.21
 - **Fix optimizer Apply button feedback** — button visual update (`✓ Applied`, disabled) now happens before `saveAndRefresh()` so a re-render cannot clobber it; individual Apply buttons also now show a toast confirmation
+- **Auto-close on completion** — the optimizer modal now closes automatically once every individual Apply button has been used; Apply Pairs Only and Apply All also close the modal
+- **Version naming** — `APP_VERSION` and commit titles now consistently match the CHANGELOG section heading
 
 ---
 
