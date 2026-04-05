@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.17b – Masonry layout fix
+**2026-04-05**
+
+- Fix cards overflowing into each other in Goals and Pairs grids
+- Root cause: `getBoundingClientRect()` was returning the 1px grid-track height instead of the card's content height, so every card got a near-zero row span and its content visually overlapped the card below
+- Fix: set `align-self: start` on each grid item before measuring — forces the item to size to its content regardless of the allocated track height
+- Establish patch letter versioning convention: bug fixes use a letter suffix (v0.17b), new features get the next integer
+
+---
+
 ## v0.17 – Species Goals & Smart Layout
 **2026-04-05**
 
