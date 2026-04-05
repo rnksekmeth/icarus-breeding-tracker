@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.15 – Goals Sections & Width Toggle
+**2026-04-05**
+
+- Goals: each section (Breed-Out Stat, Pair Goals, Phenotype Priority, Bloodline Priority, Phenotype Sightings, Bloodline Sightings, Breeding Suggestions) now has a clickable ▼/▶ header to collapse/expand it independently per species
+- Pairs: Narrow/Wide toggle button added to the pairs card header (was Goals-only); changes are now reflected in both tabs as before
+- Renamed "1-wide / 2-wide" toggle labels to "Narrow / Wide" across both tabs
+
+---
+
 ## v0.14 – New Animal Polish
 **2026-04-05**
 

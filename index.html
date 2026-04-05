@@ -227,7 +227,10 @@ th .sort-arrow.on{color:var(--acc);opacity:1;}
 .goals-shortcode{font-size:11px;background:var(--card);border:1px solid var(--bdr);color:#aaa;padding:1px 7px;border-radius:4px;font-family:monospace;font-weight:bold;}
 .goals-section{margin-bottom:14px;}
 .goals-section:last-child{margin-bottom:0;}
-.goals-section-hdr{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid var(--bdr);}
+.goals-section-hdr{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid var(--bdr);cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px;}
+.goals-section-hdr:hover{color:#aaa;}
+.gs-arrow{font-size:9px;opacity:.7;flex-shrink:0;}
+.gs-body.collapsed{display:none;}
 .goal-pair-row{display:flex;gap:8px;align-items:center;margin-bottom:5px;}
 .goal-pair-label{color:var(--dim);font-size:11px;min-width:46px;}
 .goal-pair-row select{background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:4px 6px;font-size:12px;flex:1;outline:none;}
@@ -340,7 +343,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.14 – New Animal Polish</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.15 – Goals Sections & Width Toggle</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -800,7 +803,8 @@ let filterSpecies = 'all', filterStatus = 'all', filterSex = 'all';
 let filterBloodline = 'all', filterPhenotype = 'all', filterMinTotal = 0;
 let showDead = false, showStation = false;
 let editingId = null;
-const collapsedPairSpecies = new Set(); // in-memory; resets on reload
+const collapsedPairSpecies  = new Set(); // in-memory; resets on reload
+const collapsedGoalSections = new Set(); // keys: "${sp}::${sectionId}"
 
 // ── DOM HELPERS ──────────────────────────────────────────────────
 const $id  = id  => document.getElementById(id);
@@ -1347,6 +1351,14 @@ function togglePairCollapse(sp) {
   renderPairs();
 }
 
+function toggleGoalSection(sp, secId) {
+  const key = `${sp}::${secId}`;
+  if (collapsedGoalSections.has(key)) collapsedGoalSections.delete(key);
+  else collapsedGoalSections.add(key);
+  renderGoals();
+}
+function isGSecCollapsed(sp, secId) { return collapsedGoalSections.has(`${sp}::${secId}`); }
+
 function addPairFromTopBar() {
   const sp = ($id('pairs-add-species') || {}).value;
   if (!sp) return;
@@ -1604,18 +1616,9 @@ function renderGoals() {
     card.addEventListener('dragleave', () => card.style.outline = '');
     card.addEventListener('drop', e => { e.preventDefault(); card.style.outline = ''; const from = e.dataTransfer.getData('text/plain'); reorderSpecies(from, sp); });
 
-    // ── Breed-out stat ──
+    // ── Breed-out stat options (used inline in card.innerHTML below) ──
     const boOpts = STATS.map(s =>
       `<option value="${s}"${goals.breedOutStat === s ? ' selected' : ''}>${s}</option>`).join('');
-    const breedOutSec = `
-      <div class="goals-section">
-        <div class="goals-section-hdr">Breed-Out Stat (target = 0, excluded from score &amp; name)</div>
-        <div class="breedout-row">
-          <span style="color:var(--dim);font-size:11px;min-width:80px">Breed to 0:</span>
-          <select class="breedout-select" onchange="updateGoalBreedOut('${sp}',this.value)">${boOpts}</select>
-          <span style="font-size:11px;color:var(--dim);margin-left:8px">Default: VIG &nbsp;&#x2022;&nbsp; Non-rideable: try INS</span>
-        </div>
-      </div>`;
 
     // ── Pair goals ──
     const pairRows = goals.pairs.slice(0, n).map((g, i) => {
@@ -1682,46 +1685,51 @@ function renderGoals() {
       </div>`;
     }).join('') || `<div style="color:var(--dim);font-size:11px;padding:4px 0">No bloodline sightings recorded yet.</div>`;
 
+    const gsHdr = (secId, label) => {
+      const c = isGSecCollapsed(sp, secId);
+      return `<div class="goals-section-hdr" onclick="toggleGoalSection('${$esc(sp)}','${secId}')"><span class="gs-arrow">${c?'▶':'▼'}</span>${label}</div>`;
+    };
+    const gsBody = (secId, content) =>
+      `<div class="gs-body${isGSecCollapsed(sp, secId)?' collapsed':''}">${content}</div>`;
+
     card.innerHTML = `
       <h3>
         <span class="card-drag-handle" title="Drag to reorder">⠿</span>
         <span class="species-dot" style="background:${cfg.color}"></span>${sp}
         <span class="goals-shortcode">${cfg.short}</span>
-        <button class="card-width-btn" onclick="toggleCardWidth('${$esc(sp)}')" title="Toggle 1/2 wide">${isWide ? '◧ 1-wide' : '▣ 2-wide'}</button>
+        <button class="card-width-btn" onclick="toggleCardWidth('${$esc(sp)}')" title="Toggle Narrow/Wide">${isWide ? '◧ Narrow' : '▣ Wide'}</button>
       </h3>
-      ${breedOutSec}
       <div class="goals-section">
-        <div class="goals-section-hdr">Pair Goals — Bloodline × Phenotype</div>${pairRows}
+        ${gsHdr('breedout','Breed-Out Stat (target = 0, excluded from score &amp; name)')}
+        ${gsBody('breedout',`<div class="breedout-row">
+          <span style="color:var(--dim);font-size:11px;min-width:80px">Breed to 0:</span>
+          <select class="breedout-select" onchange="updateGoalBreedOut('${$esc(sp)}',this.value)">${boOpts}</select>
+          <span style="font-size:11px;color:var(--dim);margin-left:8px">Default: VIG &nbsp;&#x2022;&nbsp; Non-rideable: try INS</span>
+        </div>`)}
       </div>
       <div class="goals-section">
-        <div class="goals-section-hdr">Phenotype Priority ★★★</div>${phenoRows}
+        ${gsHdr('pairs','Pair Goals — Bloodline × Phenotype')}
+        ${gsBody('pairs', pairRows)}
       </div>
       <div class="goals-section">
-        <div class="goals-section-hdr">Bloodline Priority ★★★</div>${blRows}
+        ${gsHdr('pheno','Phenotype Priority ★★★')}
+        ${gsBody('pheno', phenoRows)}
       </div>
       <div class="goals-section">
-        <div class="goals-section-hdr">
-          Phenotype Sightings
-          <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal">
-            🌿 = tamed (wild-caught, no lineage) &nbsp; 🧬 = bred (has parents)
-          </span>
-        </div>
-        <div class="pheno-sightings">${sightingRows}</div>
+        ${gsHdr('bloodline','Bloodline Priority ★★★')}
+        ${gsBody('bloodline', blRows)}
       </div>
       <div class="goals-section">
-        <div class="goals-section-hdr">
-          Bloodline Sightings
-          <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal">
-            🌿 = tamed &nbsp; 🧬 = bred &nbsp; Only shows bloodlines you've recorded
-          </span>
-        </div>
-        <div class="pheno-sightings">${blSightingRows}</div>
+        ${gsHdr('pheno-sightings','Phenotype Sightings <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal;text-transform:none;letter-spacing:0">🌿 = tamed (wild-caught, no lineage) &nbsp; 🧬 = bred (has parents)</span>')}
+        ${gsBody('pheno-sightings',`<div class="pheno-sightings">${sightingRows}</div>`)}
       </div>
       <div class="goals-section">
-        <div class="goals-section-hdr">Breeding Suggestions
-          <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal">based on your priority stars above</span>
-        </div>
-        <div class="suggestion-panel">${renderSuggestions(sp)}</div>
+        ${gsHdr('bl-sightings','Bloodline Sightings <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal;text-transform:none;letter-spacing:0">🌿 = tamed &nbsp; 🧬 = bred &nbsp; Only shows bloodlines you\'ve recorded</span>')}
+        ${gsBody('bl-sightings',`<div class="pheno-sightings">${blSightingRows}</div>`)}
+      </div>
+      <div class="goals-section">
+        ${gsHdr('suggestions','Breeding Suggestions <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal;text-transform:none;letter-spacing:0">based on your priority stars above</span>')}
+        ${gsBody('suggestions',`<div class="suggestion-panel">${renderSuggestions(sp)}</div>`)}
       </div>`;
     grid.appendChild(card);
   }
@@ -3199,6 +3207,7 @@ function renderPairs() {
         <span style="font-size:10px;color:#888;font-weight:normal;text-transform:none;margin-left:4px">breed out: <span style="color:var(--red)">${bo}</span></span>
         <a href="${cfg.wiki}" target="_blank" title="Open ${sp} wiki page"
           style="font-size:10px;color:#5bc8d4;text-decoration:none;font-weight:normal;text-transform:none;margin-left:8px;border:1px solid #2a4a6a;padding:1px 7px;border-radius:4px;">📖 Wiki</a>
+        <button class="card-width-btn" onclick="toggleCardWidth('${$esc(sp)}')" title="Toggle Narrow/Wide">${isWide ? '◧ Narrow' : '▣ Wide'}</button>
         <span class="pairs-controls">
           <span class="pairs-count">${n} pair${n>1?'s':''}</span>
           <button class="btn-add" onclick="addPairSlot('${$esc(sp)}')">+</button>
