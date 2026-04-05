@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.11 – Quality of Life
+**2026-04-05**
+
+- Share Your Herd: added "Best of species…" mode with species selector and top-N count; added "Custom selection…" mode with per-animal checkboxes; species label on cards now shows "DR – Dune Raptor" format
+- Pairs tab: collapse/expand ▼/▶ button per species card to minimise sections; top toolbar with species dropdown + "Add Pair Slot" button for quick pair management
+- My Herd: 🛸 Show Station toggle added next to 🪦 Show Dead, so you can see station animals when planning new breeding
+- Goals: Bloodline Sightings section added per species card (same format as Phenotype Sightings, 🌿 tamed / 🧬 bred); `blStats` added to persisted data
+
+---
+
 ## v0.10 – Wiki Links & Herd Share
 **2026-04-05**
 

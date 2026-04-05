@@ -177,6 +177,10 @@ th .sort-arrow.on{color:var(--acc);opacity:1;}
 .pairs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:16px;}
 .pair-species-card{background:var(--panel);border:1px solid var(--bdr);border-radius:8px;padding:14px;}
 .pair-species-card h3{font-size:13px;margin-bottom:10px;color:var(--acc);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:8px;}
+.pair-species-card.collapsed .pair-card-body{display:none;}
+.pair-species-card.collapsed{padding-bottom:10px;}
+.pairs-collapse-btn{background:none;border:1px solid var(--bdr);color:var(--dim);border-radius:4px;padding:1px 7px;font-size:11px;cursor:pointer;margin-left:4px;line-height:1.4;}
+.pairs-collapse-btn:hover{color:var(--wht);border-color:#888;}
 .pair-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;padding:6px 8px;background:var(--card);border-radius:5px;}
 .pair-num{color:var(--dim);font-size:11px;min-width:20px;padding-top:7px;}
 .pair-animal{flex:1;display:flex;flex-direction:column;gap:3px;}
@@ -321,7 +325,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.10 – Wiki Links & Herd Share</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.11 – Quality of Life</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -500,9 +504,11 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
     <h2>Breeding Pairs</h2>
     <button class="btn-sm" onclick="renderPairs()">&#x21BB; Refresh</button>
   </div>
-  <p style="color:var(--dim);font-size:12px;margin-bottom:14px">
-    Use <b style="color:var(--grn)">+</b> / <b style="color:var(--red)">&#x2212;</b> to add or remove pair slots. &#x26A1; = Temp breeder (wrong bloodline, used for stat boost).
-  </p>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+    <select id="pairs-add-species" style="background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:5px 10px;font-size:12px;"></select>
+    <button class="btn-sm" onclick="addPairFromTopBar()" style="white-space:nowrap">+ Add Pair Slot</button>
+    <span style="color:var(--dim);font-size:11px;margin-left:4px">&#x26A1; = Temp breeder &nbsp;|&nbsp; use <b style="color:var(--grn)">+</b> / <b style="color:var(--red)">&#x2212;</b> per card to change slot count</span>
+  </div>
   <div class="pairs-grid" id="pairs-grid"></div>
 </div>
 
@@ -596,17 +602,33 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
         Generate a shareable image of your animals — great for posting on forums or Discord.
         The image is copied to your clipboard automatically; a download button appears as a fallback.
       </p>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
         <label style="color:#bbb;font-size:12px;">Show:</label>
-        <select id="share-mode" style="background:var(--panel);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:5px 10px;font-size:12px;">
+        <select id="share-mode" onchange="onShareModeChange()" style="background:var(--panel);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:5px 10px;font-size:12px;">
           <option value="top10">Top 10 overall</option>
-          <option value="byspecies">Best per species</option>
+          <option value="byspecies">Best per species (one each)</option>
+          <option value="species_filter">Best of species…</option>
           <option value="breeders">Active breeders only</option>
           <option value="all">All active animals</option>
+          <option value="manual">Custom selection…</option>
         </select>
         <button class="btn-sm" onclick="shareHerd()" style="padding:7px 18px;font-size:12px;font-weight:bold;">
           🖼 Generate &amp; Copy
         </button>
+      </div>
+      <div id="share-species-row" style="display:none;margin-bottom:10px;">
+        <label style="color:#bbb;font-size:12px;margin-right:8px;">Species:</label>
+        <select id="share-species-pick" style="background:var(--panel);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:5px 10px;font-size:12px;"></select>
+        <label style="color:#bbb;font-size:12px;margin-left:12px;">Top:</label>
+        <select id="share-species-top" style="background:var(--panel);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:5px 8px;font-size:12px;">
+          <option value="5">5</option>
+          <option value="10" selected>10</option>
+          <option value="0">All</option>
+        </select>
+      </div>
+      <div id="share-manual-row" style="display:none;margin-bottom:10px;">
+        <div style="color:#bbb;font-size:12px;margin-bottom:6px;">Select animals to include:</div>
+        <div id="share-animal-list" style="display:flex;flex-wrap:wrap;gap:6px;max-height:160px;overflow-y:auto;padding:8px;background:var(--bg);border:1px solid var(--bdr);border-radius:4px;"></div>
       </div>
       <div id="share-status" style="font-size:12px;color:#aaa;min-height:18px;"></div>
       <canvas id="share-canvas" style="display:none;max-width:100%;margin-top:12px;border-radius:6px;border:1px solid var(--bdr);"></canvas>
@@ -737,16 +759,18 @@ const KEYS = {
   PAIR_COUNTS: 'icarus_pair_counts_v1',
   NEXT_SP_AID: 'icarus_next_sp_aid_v1',   // { DR:N, SR:N, BM:N, SL:N }
   PHENO_STATS: 'icarus_pheno_stats_v1',    // { [sp]: { [label]: {tamed,bred} } }
+  BL_STATS:    'icarus_bl_stats_v1',       // { [sp]: { [bloodline]: {tamed,bred} } }
 };
 
 // ── APP STATE ────────────────────────────────────────────────────
-let animals = [], pairsMap = {}, goalsMap = {}, pairCounts = {}, phenoStats = {};
+let animals = [], pairsMap = {}, goalsMap = {}, pairCounts = {}, phenoStats = {}, blStats = {};
 let nextSpAid = {};       // per-species sequential counters { DR:1, SR:1, ... }
 let sortCol = 'total', sortAsc = false;
 let filterSpecies = 'all', filterStatus = 'all', filterSex = 'all';
 let filterBloodline = 'all', filterPhenotype = 'all', filterMinTotal = 0;
-let showDead = false;
+let showDead = false, showStation = false;
 let editingId = null;
+const collapsedPairSpecies = new Set(); // in-memory; resets on reload
 
 // ── DOM HELPERS ──────────────────────────────────────────────────
 const $id  = id  => document.getElementById(id);
@@ -923,7 +947,7 @@ let loadedDataVersion = 0;
 /** Bundle all in-memory state into one object */
 function getAllData() {
   return { version: DATA_VERSION, herd: animals, pairs: pairsMap, goals: goalsMap,
-           pairCounts, nextSpAid, phenoStats };
+           pairCounts, nextSpAid, phenoStats, blStats };
 }
 
 /** Apply a loaded data object to in-memory state */
@@ -935,6 +959,7 @@ function applyData(d) {
   pairCounts = d.pairCounts || {};
   nextSpAid  = d.nextSpAid  || {};
   phenoStats = d.phenoStats || {};
+  blStats    = d.blStats    || {};
 }
 
 /** Write the full data snapshot to the chosen file */
@@ -980,6 +1005,7 @@ function saveGoals() {
 function savePhenoStats() {
   if (storageMode === 'file') { save(); return; }
   localStorage.setItem(KEYS.PHENO_STATS, JSON.stringify(phenoStats));
+  localStorage.setItem(KEYS.BL_STATS,   JSON.stringify(blStats));
 }
 
 /**
@@ -1033,6 +1059,7 @@ function loadFromLocalStorage() {
   try { pairCounts = JSON.parse(localStorage.getItem(KEYS.PAIR_COUNTS)) || {}; } catch { pairCounts = {}; }
   try { nextSpAid  = JSON.parse(localStorage.getItem(KEYS.NEXT_SP_AID)) || {}; } catch { nextSpAid  = {}; }
   try { phenoStats = JSON.parse(localStorage.getItem(KEYS.PHENO_STATS)) || {}; } catch { phenoStats = {}; }
+  try { blStats    = JSON.parse(localStorage.getItem(KEYS.BL_STATS))    || {}; } catch { blStats    = {}; }
 }
 
 // ── INDEXEDDB: persist file handle across sessions ────────────────
@@ -1192,6 +1219,12 @@ function closeStartup() {
     btn.textContent = '🪦 Show Dead'; btn.onclick = toggleShowDead;
     herdHdr.appendChild(btn);
   }
+  if (herdHdr && !document.getElementById('station-toggle')) {
+    const btn2 = document.createElement('button');
+    btn2.id = 'station-toggle'; btn2.className = 'btn-sm';
+    btn2.textContent = '🛸 Show Station'; btn2.onclick = toggleShowStation;
+    herdHdr.appendChild(btn2);
+  }
   setTimeout(() => document.getElementById('stat-VIG')?.focus(), 100);
 }
 
@@ -1213,6 +1246,15 @@ function trackPhenotype(sp, label, isBred) {
   savePhenoStats();
 }
 
+function trackBloodline(sp, bloodline, isBred) {
+  if (!bloodline) return;
+  if (!blStats[sp]) blStats[sp] = {};
+  if (!blStats[sp][bloodline]) blStats[sp][bloodline] = { tamed: 0, bred: 0 };
+  if (isBred) blStats[sp][bloodline].bred++;
+  else        blStats[sp][bloodline].tamed++;
+  savePhenoStats(); // reuses same save path (already saves blStats)
+}
+
 // ── PAIR COUNTS ──────────────────────────────────────────────────
 function initPairCounts() {
   for (const [sp, cfg] of Object.entries(SPECIES_DATA)) {
@@ -1227,6 +1269,18 @@ function initPairs() {
     if (!pairsMap[sp]) pairsMap[sp] = [];
     while (pairsMap[sp].length < n) pairsMap[sp].push({ m:'', f:'' });
   }
+}
+
+function togglePairCollapse(sp) {
+  if (collapsedPairSpecies.has(sp)) collapsedPairSpecies.delete(sp);
+  else collapsedPairSpecies.add(sp);
+  renderPairs();
+}
+
+function addPairFromTopBar() {
+  const sp = ($id('pairs-add-species') || {}).value;
+  if (!sp) return;
+  addPairSlot(sp);
 }
 
 function addPairSlot(sp) {
@@ -1341,6 +1395,18 @@ function renderGoals() {
       </div>`;
     }).join('');
 
+    // ── Bloodline sightings ──
+    const spBlStats = blStats[sp] || {};
+    const blSightingRows = BLOODLINES.map(bl => {
+      const s = spBlStats[bl] || { tamed: 0, bred: 0 };
+      if (!s.tamed && !s.bred) return '';
+      return `<div class="sighting-row">
+        <span class="sighting-name">${bl}</span>
+        <span class="sighting-tamed" title="Tamed from wild">🌿 ${s.tamed}</span>
+        <span class="sighting-bred"  title="Born from breeding">🧬 ${s.bred}</span>
+      </div>`;
+    }).join('') || `<div style="color:var(--dim);font-size:11px;padding:4px 0">No bloodline sightings recorded yet.</div>`;
+
     card.innerHTML = `
       <h3><span class="species-dot" style="background:${cfg.color}"></span>${sp}
         <span class="goals-shortcode">${cfg.short}</span></h3>
@@ -1362,6 +1428,15 @@ function renderGoals() {
           </span>
         </div>
         <div class="pheno-sightings">${sightingRows}</div>
+      </div>
+      <div class="goals-section">
+        <div class="goals-section-hdr">
+          Bloodline Sightings
+          <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal">
+            🌿 = tamed &nbsp; 🧬 = bred &nbsp; Only shows bloodlines you've recorded
+          </span>
+        </div>
+        <div class="pheno-sightings">${blSightingRows}</div>
       </div>`;
     grid.appendChild(card);
   }
@@ -1859,8 +1934,9 @@ function saveAnimal() {
     $id('cancel-edit-btn').style.display = 'none';
   } else {
     animals.push(animal);
-    // Track phenotype sighting
+    // Track phenotype + bloodline sightings
     trackPhenotype(sp, ph, isBred);
+    trackBloodline(sp, animal.bl, isBred);
   }
 
   save(); renderHerd(); renderPairs(); updateParentDatalist(); updateLineageSelector();
@@ -1913,6 +1989,13 @@ function toggleShowDead() {
   showDead = !showDead;
   const btn = $id('dead-toggle');
   if (btn) btn.textContent = showDead ? '🪦 Hide Dead' : '🪦 Show Dead';
+  renderHerd();
+}
+
+function toggleShowStation() {
+  showStation = !showStation;
+  const btn = $id('station-toggle');
+  if (btn) btn.textContent = showStation ? '🛸 Hide Station' : '🛸 Show Station';
   renderHerd();
 }
 
@@ -1971,7 +2054,10 @@ function renderHerd() {
   let list = animals.slice();
 
   // ── Build dynamic bloodline + phenotype filter pills ─────────────
-  const baseAnimals = showDead ? animals : animals.filter(a => a.status !== 'Dead' && a.status !== 'Station');
+  const baseAnimals = animals.filter(a =>
+    (showDead    || a.status !== 'Dead') &&
+    (showStation || a.status !== 'Station')
+  );
   const buildDynamicPills = (containerId, filterType, currentVal, getVal) => {
     const container = $id(containerId);
     if (!container) return;
@@ -1988,7 +2074,8 @@ function renderHerd() {
   buildDynamicPills('filter-phenotype-pills', 'phenotype', filterPhenotype, a => a.ph ? phenoDisplay(a.sp, a.ph) || a.ph : null);
 
   // ── Apply filters ─────────────────────────────────────────────────
-  if (!showDead)              list = list.filter(a => a.status !== 'Dead' && a.status !== 'Station');
+  if (!showDead)     list = list.filter(a => a.status !== 'Dead');
+  if (!showStation)  list = list.filter(a => a.status !== 'Station');
   if (filterSpecies   !== 'all') list = list.filter(a => a.sp === filterSpecies);
   if (filterStatus    !== 'all') list = list.filter(a => a.status === filterStatus);
   if (filterSex       !== 'all') list = list.filter(a => a.sex === filterSex);
@@ -2003,7 +2090,7 @@ function renderHerd() {
     return (av < bv ? -1 : av > bv ? 1 : 0) * (sortAsc ? 1 : -1);
   });
 
-  $id('herd-count').textContent = `${list.length} / ${animals.filter(a => showDead || a.status !== 'Dead' && a.status !== 'Station').length} animals`;
+  $id('herd-count').textContent = `${list.length} / ${animals.filter(a => (showDead || a.status !== 'Dead') && (showStation || a.status !== 'Station')).length} animals`;
 
   if (!list.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
@@ -2349,6 +2436,42 @@ function updateClearBtn() {
 }
 
 // ── SHARE YOUR HERD ──────────────────────────────────────────────
+function onShareModeChange() {
+  const mode = ($id('share-mode') || {}).value;
+  const specRow   = $id('share-species-row');
+  const manualRow = $id('share-manual-row');
+  if (specRow)   specRow.style.display   = mode === 'species_filter' ? 'block' : 'none';
+  if (manualRow) manualRow.style.display = mode === 'manual'         ? 'block' : 'none';
+  if (mode === 'species_filter') {
+    const pick = $id('share-species-pick');
+    if (pick) {
+      pick.innerHTML = Object.entries(SPECIES_DATA)
+        .map(([sp, cfg]) => `<option value="${sp}">${cfg.short} – ${sp}</option>`).join('');
+    }
+  }
+  if (mode === 'manual') populateShareAnimalList();
+}
+
+function populateShareAnimalList() {
+  const container = $id('share-animal-list');
+  if (!container) return;
+  const active = animals
+    .filter(a => a.status !== 'Dead' && a.status !== 'Discard' && a.status !== 'Station')
+    .sort((a,b) => {
+      if (a.sp !== b.sp) return a.sp < b.sp ? -1 : 1;
+      return getTotal(b.stats,b.sp) - getTotal(a.stats,a.sp);
+    });
+  container.innerHTML = active.map(a => {
+    const cfg = SPECIES_DATA[a.sp] || {};
+    const tot = getTotal(a.stats, a.sp);
+    return `<label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#ccc;cursor:pointer;white-space:nowrap;padding:3px 7px;background:var(--panel);border:1px solid var(--bdr);border-radius:4px;">
+      <input type="checkbox" value="${$esc(a.name)}" style="accent-color:var(--acc);">
+      <span class="species-dot" style="background:${cfg.color||'#888'};display:inline-block;width:7px;height:7px;border-radius:50%;flex-shrink:0"></span>
+      ${a.name} <span style="color:#888">(${tot})</span>
+    </label>`;
+  }).join('');
+}
+
 async function shareHerd() {
   const mode   = ($id('share-mode') || {}).value || 'top10';
   const status = $id('share-status');
@@ -2364,6 +2487,14 @@ async function shareHerd() {
     const seen = {};
     [...active].sort((a,b) => getTotal(b.stats,b.sp) - getTotal(a.stats,a.sp))
       .forEach(a => { if (!seen[a.sp]) { seen[a.sp] = true; list.push(a); } });
+  } else if (mode === 'species_filter') {
+    const sp    = ($id('share-species-pick') || {}).value;
+    const topN  = parseInt(($id('share-species-top') || {}).value) || 10;
+    const bysp  = active.filter(a => a.sp === sp).sort((a,b) => getTotal(b.stats,sp) - getTotal(a.stats,sp));
+    list = topN > 0 ? bysp.slice(0, topN) : bysp;
+  } else if (mode === 'manual') {
+    const checked = [...document.querySelectorAll('#share-animal-list input[type=checkbox]:checked')].map(c => c.value);
+    list = checked.map(name => active.find(a => a.name === name)).filter(Boolean);
   } else if (mode === 'breeders') {
     list = active.filter(a => a.status === 'Breed' || a.status === 'Temp')
       .sort((a,b) => getTotal(b.stats,b.sp) - getTotal(a.stats,a.sp));
@@ -2404,7 +2535,12 @@ async function shareHerd() {
   ctx.fillStyle = '#f0f0f0';
   ctx.font = 'bold 18px system-ui, sans-serif';
   ctx.fillText('🦖 Icarus Breeding Tracker', PAD, PAD + 22);
-  const modeLabel = { top10:'Top 10', byspecies:'Best per Species', breeders:'Active Breeders', all:'All Active' }[mode] || mode;
+  const speciesFilterSp = ($id('share-species-pick') || {}).value;
+  const modeLabel = {
+    top10:'Top 10', byspecies:'Best per Species',
+    species_filter: speciesFilterSp ? `Best ${SPECIES_DATA[speciesFilterSp]?.short || speciesFilterSp}` : 'Species Filter',
+    breeders:'Active Breeders', all:'All Active', manual:'Custom Selection'
+  }[mode] || mode;
   ctx.fillStyle = '#88aabb';
   ctx.font = '12px system-ui, sans-serif';
   ctx.fillText(modeLabel + ' · ' + list.length + ' animal' + (list.length>1?'s':''), PAD, PAD + 40);
@@ -2429,10 +2565,11 @@ async function shareHerd() {
     _roundRect(ctx, x, y, 4, CH, 3);
     ctx.fill();
 
-    // Short ID / Species badge
+    // Species badge: "DR – Dune Raptor"
     ctx.fillStyle = cfg.color || '#aaa';
     ctx.font = 'bold 11px monospace';
-    ctx.fillText(cfg.short || animal.sp.slice(0,2), x + 12, y + 16);
+    const spLabel = `${cfg.short || animal.sp.slice(0,2)} – ${animal.sp}`;
+    ctx.fillText(spLabel, x + 12, y + 16);
 
     // Status icon
     ctx.font = '13px system-ui';
@@ -2554,6 +2691,15 @@ function renderPairs() {
     return used;
   };
 
+  // Populate the top-bar species selector
+  const addSel = $id('pairs-add-species');
+  if (addSel) {
+    const cur = addSel.value;
+    addSel.innerHTML = Object.entries(SPECIES_DATA).map(([sp, cfg]) =>
+      `<option value="${sp}">${cfg.short} – ${sp}</option>`).join('');
+    if (cur) addSel.value = cur;
+  }
+
   for (const [sp, cfg] of Object.entries(SPECIES_DATA)) {
     const n = pairCounts[sp] || 1;
     const pairs = (pairsMap[sp] || []).slice(0, n);
@@ -2571,7 +2717,7 @@ function renderPairs() {
     const males   = allPairAnimals.filter(a => a.sex === 'M').sort((a,b) => getTotal(b.stats,a.sp) - getTotal(a.stats,a.sp));
     const females = allPairAnimals.filter(a => a.sex === 'F').sort((a,b) => getTotal(b.stats,a.sp) - getTotal(a.stats,a.sp));
     const card = document.createElement('div');
-    card.className = 'pair-species-card';
+    card.className = 'pair-species-card' + (collapsedPairSpecies.has(sp) ? ' collapsed' : '');
 
     // For upgrade recommendations use own-species only
     const allPaired = new Set(Object.values(pairsMap).flatMap(ps => (ps||[]).flatMap(p => [p.m, p.f])).filter(Boolean));
@@ -2649,6 +2795,7 @@ function renderPairs() {
         <span style="color:var(--dim);">⚠ The developers have stated this mechanic will change in a future update when DR and SR receive separate skill trees.</span>
       </div>` : '';
 
+    const isCollapsed = collapsedPairSpecies.has(sp);
     card.innerHTML = `
       <h3><span class="species-dot" style="background:${cfg.color}"></span>${sp} <span class="goals-shortcode">${cfg.short}</span>
         <span style="font-size:10px;color:#888;font-weight:normal;text-transform:none;margin-left:4px">breed out: <span style="color:var(--red)">${bo}</span></span>
@@ -2656,15 +2803,18 @@ function renderPairs() {
           style="font-size:10px;color:#5bc8d4;text-decoration:none;font-weight:normal;text-transform:none;margin-left:8px;border:1px solid #2a4a6a;padding:1px 7px;border-radius:4px;">📖 Wiki</a>
         <span class="pairs-controls">
           <span class="pairs-count">${n} pair${n>1?'s':''}</span>
-          <button class="btn-add" onclick="addPairSlot('${sp}')">+</button>
-          <button class="btn-rem" onclick="removePairSlot('${sp}')">−</button>
+          <button class="btn-add" onclick="addPairSlot('${$esc(sp)}')">+</button>
+          <button class="btn-rem" onclick="removePairSlot('${$esc(sp)}')">−</button>
+          <button class="pairs-collapse-btn" onclick="togglePairCollapse('${$esc(sp)}')">${isCollapsed ? '▶ Show' : '▼ Hide'}</button>
         </span>
       </h3>
-      ${crossNote}
-      ${pairRows}
-      <div class="upgrade-box">
-        <div style="color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Stat Upgrade Recommendations</div>
-        ${upgHtml}
+      <div class="pair-card-body">
+        ${crossNote}
+        ${pairRows}
+        <div class="upgrade-box">
+          <div style="color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Stat Upgrade Recommendations</div>
+          ${upgHtml}
+        </div>
       </div>`;
     grid.appendChild(card);
   }
