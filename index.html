@@ -181,6 +181,19 @@ th .sort-arrow.on{color:var(--acc);opacity:1;}
 .pair-species-card.collapsed{padding-bottom:10px;}
 .pairs-collapse-btn{background:none;border:1px solid var(--bdr);color:var(--dim);border-radius:4px;padding:1px 7px;font-size:11px;cursor:pointer;margin-left:4px;line-height:1.4;}
 .pairs-collapse-btn:hover{color:var(--wht);border-color:#888;}
+.span-2{grid-column:span 2;}
+.card-drag-handle{cursor:grab;color:var(--dim);font-size:14px;margin-right:2px;user-select:none;flex-shrink:0;}
+.card-drag-handle:active{cursor:grabbing;}
+.card-width-btn{background:none;border:1px solid var(--bdr);color:var(--dim);border-radius:4px;padding:1px 7px;font-size:10px;cursor:pointer;margin-left:4px;line-height:1.4;}
+.card-width-btn:hover{color:var(--wht);border-color:#888;}
+.suggestion-panel{background:rgba(0,150,100,.06);border:1px solid rgba(0,200,130,.2);border-radius:5px;padding:10px 12px;margin-top:8px;}
+.suggestion-row{display:flex;align-items:flex-start;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;line-height:1.5;}
+.suggestion-row:last-child{border-bottom:none;}
+.sug-badge{min-width:90px;color:#aaa;font-size:10px;text-transform:uppercase;letter-spacing:.5px;flex-shrink:0;}
+.sug-animal{flex:1;color:var(--wht);}
+.sug-reason{color:#88aabb;font-size:10px;}
+.reserve-counter{display:flex;align-items:center;gap:8px;font-size:11px;color:#aaa;margin-top:6px;}
+.reserve-counter input{width:52px;background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:3px 6px;font-size:11px;}
 .pair-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;padding:6px 8px;background:var(--card);border-radius:5px;}
 .pair-del-btn{background:none;border:1px solid var(--red2);color:var(--red);border-radius:4px;padding:2px 7px;font-size:13px;cursor:pointer;margin-top:4px;flex-shrink:0;line-height:1.3;}
 .pair-del-btn:hover{background:var(--red2);}
@@ -327,7 +340,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 <div id="save-indicator">💾 Saved</div>
 
 <header>
-  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.12 – Sightings, Pairs & Filters</span></h1>
+  <h1>&#x1F996; ICARUS BREEDING TRACKER <span style="font-size:11px;font-weight:normal;color:var(--dim);letter-spacing:0;margin-left:6px;">v0.13 – Ordering & Suggestions</span></h1>
   <div class="btns">
     <button class="btn-sm" onclick="exportCSV()">&#x2B07; Export CSV</button>
     <label class="btn-sm" style="cursor:pointer">&#x2B06; Import CSV<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
@@ -372,7 +385,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
   </div>
   <div class="form-row">
     <div class="field" style="flex:1;min-width:220px">
-      <label>Parent &#x2640; <span style="font-size:10px;color:#555;text-transform:none">(name, #ID, or Unknown)</span></label>
+      <label>Parent 1 <span style="font-size:10px;color:#555;text-transform:none">(name, #ID, or Unknown)</span></label>
       <div class="parent-field-row">
         <input type="text" id="f-p1" list="animal-names-list" placeholder="Name or #ID (e.g. #3)" oninput="onParentInput(1)" autocomplete="off">
         <button class="btn-unk" onclick="setUnknownParent(1)">? Unk</button>
@@ -380,7 +393,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
       <div class="parent-compare" id="pc1"></div>
     </div>
     <div class="field" style="flex:1;min-width:220px">
-      <label>Parent &#x2642; <span style="font-size:10px;color:#555;text-transform:none">(name, #ID, or Unknown)</span></label>
+      <label>Parent 2 <span style="font-size:10px;color:#555;text-transform:none">(name, #ID, or Unknown)</span></label>
       <div class="parent-field-row">
         <input type="text" id="f-p2" list="animal-names-list" placeholder="Name or #ID (e.g. #4)" oninput="onParentInput(2)" autocomplete="off">
         <button class="btn-unk" onclick="setUnknownParent(2)">? Unk</button>
@@ -389,6 +402,11 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
     </div>
   </div>
   <div class="prob-panel" id="prob-panel"></div>
+  <div id="entry-reserve-info" style="font-size:11px;color:#aaa;margin-bottom:4px;display:none;">
+    <span id="entry-reserve-text"></span>
+    &nbsp;—&nbsp;
+    <label>Reserve target: <input type="number" id="entry-reserve-target" min="0" max="99" style="width:48px;background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:2px 6px;font-size:11px;" onchange="updateReserveTarget()"></label>
+  </div>
   <hr>
   <div class="form-row" style="align-items:flex-end;gap:6px;">
     <div class="stats-row" id="stats-row"></div>
@@ -773,6 +791,8 @@ const KEYS = {
 
 // ── APP STATE ────────────────────────────────────────────────────
 let animals = [], pairsMap = {}, goalsMap = {}, pairCounts = {}, phenoStats = {}, blStats = {};
+let speciesOrder = [];   // user-defined order of species cards
+let cardWidths   = {};   // { [sp]: 1 | 2 } — 1=normal, 2=double-wide
 let nextSpAid = {};       // per-species sequential counters { DR:1, SR:1, ... }
 let sortCol = 'total', sortAsc = false;
 let filterSpecies = 'all', filterStatus = 'all', filterSex = 'all';
@@ -970,7 +990,7 @@ let loadedDataVersion = 0;
 /** Bundle all in-memory state into one object */
 function getAllData() {
   return { version: DATA_VERSION, herd: animals, pairs: pairsMap, goals: goalsMap,
-           pairCounts, nextSpAid, phenoStats, blStats };
+           pairCounts, nextSpAid, phenoStats, blStats, speciesOrder, cardWidths };
 }
 
 /** Apply a loaded data object to in-memory state */
@@ -983,6 +1003,8 @@ function applyData(d) {
   nextSpAid  = d.nextSpAid  || {};
   phenoStats = d.phenoStats || {};
   blStats    = d.blStats    || {};
+  speciesOrder = d.speciesOrder || [];
+  cardWidths   = d.cardWidths   || {};
 }
 
 /** Write the full data snapshot to the chosen file */
@@ -1380,9 +1402,185 @@ function initGoals() {
     if (!g.phenoWeights) g.phenoWeights = {};
     if (!g.blPriority)   g.blPriority   = {};
     if (!g.breedOutStat) g.breedOutStat = 'VIG';
+    if (g.reserveTarget === undefined) g.reserveTarget = 0;
     const n = pairCounts[sp] || cfg.defaultPairs;
     while (g.pairs.length < n) g.pairs.push({ bl:'', ph:'' });
   }
+}
+
+// ── BREEDING SUGGESTIONS ENGINE ──────────────────────────────────
+/**
+ * Score an animal against the global goals (blPriority + phenoWeights) for its species.
+ * Unstable bloodline gets a fixed breeding bonus regardless of star rating.
+ */
+function scoreAnimalForGoals(sp, animal) {
+  const g = goalsMap[sp] || {};
+  const blP = g.blPriority  || {};
+  const phW = g.phenoWeights || {};
+  let score = getTotal(animal.stats, sp);
+  if (animal.bl === 'Unstable') score += 12;    // breeding multiplier bonus
+  else score += (blP[animal.bl] || 0) * 10;
+  score += (phW[animal.ph] || 0) * 8;
+  return score;
+}
+
+/**
+ * Build breeding suggestions for a species.
+ * Returns { priorityCandidates, pairRecs, reserveCandidates, currentReserve, reserveTarget }
+ */
+function buildBreedingSuggestions(sp) {
+  initGoals();
+  const g      = goalsMap[sp] || {};
+  const n      = pairCounts[sp] || 1;
+  const pairs  = (pairsMap[sp] || []).slice(0, n);
+  const blP    = g.blPriority  || {};
+  const phW    = g.phenoWeights || {};
+
+  const active = animals.filter(a =>
+    a.sp === sp && a.status !== 'Dead' && a.status !== 'Discard');
+  const assigned = new Set(
+    Object.values(pairsMap).flatMap(ps => (ps || []).flatMap(p => [p.m, p.f])).filter(Boolean)
+  );
+  const unassigned = active.filter(a => !assigned.has(a.name));
+  const bestStatTotal = Math.max(0, ...active.map(a => getTotal(a.stats, sp)));
+
+  // Priority candidates: unassigned animals with any starred bloodline/phenotype
+  const priorityCandidates = unassigned
+    .map(a => ({
+      animal: a,
+      score: scoreAnimalForGoals(sp, a),
+      blStars: a.bl === 'Unstable' ? '★ (breed)' : blP[a.bl] > 0 ? '★'.repeat(blP[a.bl]) : '',
+      phStars: phW[a.ph] > 0 ? '★'.repeat(phW[a.ph]) : '',
+    }))
+    .filter(({ animal, blStars, phStars }) =>
+      blStars || phStars || animal.bl === 'Unstable')
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6);
+
+  // Reserve candidates: animals with desired traits but stats < 80% of best
+  const threshold = bestStatTotal * 0.80;
+  const reserveCandidates = unassigned
+    .filter(a => {
+      const tot = getTotal(a.stats, sp);
+      const desired = blP[a.bl] > 0 || phW[a.ph] > 0 || a.bl === 'Unstable';
+      return desired && tot < threshold && a.status !== 'Reserve';
+    })
+    .sort((a, b) => getTotal(b.stats, sp) - getTotal(a.stats, sp))
+    .slice(0, 4);
+
+  // Per-pair recommendations
+  const pairRecs = pairs.map((p, i) => {
+    const pairGoal = (g.pairs || [])[i] || {};
+    // Build pool for this slot (global exclusivity: exclude animals already in other slots)
+    const usedElsewhere = new Set(
+      pairs.flatMap((pp, j) => j === i ? [] : [pp.m, pp.f]).filter(Boolean)
+    );
+    const pool = active.filter(a => !usedElsewhere.has(a.name));
+    const males   = pool.filter(a => a.sex === 'M').sort((a,b) => scoreAnimalForGoals(sp,b) - scoreAnimalForGoals(sp,a));
+    const females = pool.filter(a => a.sex === 'F').sort((a,b) => scoreAnimalForGoals(sp,b) - scoreAnimalForGoals(sp,a));
+
+    // If pair already has animals assigned and they're the best → no change needed
+    const curM = active.find(a => a.name === p.m);
+    const curF = active.find(a => a.name === p.f);
+
+    const pickBest = (candidates, goalBl, goalPh) => {
+      if (goalBl || goalPh) {
+        const matching = candidates.filter(a =>
+          (!goalBl || a.bl === goalBl) && (!goalPh || a.ph === goalPh));
+        if (matching.length) return matching[0];
+      }
+      return candidates[0] || null;
+    };
+
+    const sugM = pickBest(males,   pairGoal.bl, pairGoal.ph);
+    const sugF = pickBest(females, pairGoal.bl, pairGoal.ph);
+
+    const hasGoal = pairGoal.bl || pairGoal.ph;
+    const alreadyOptimal = curM && curF
+      && curM === sugM && curF === sugF;
+
+    return { idx: i, pairGoal, sugM, sugF, curM, curF, alreadyOptimal, hasGoal };
+  });
+
+  const currentReserve = animals.filter(a => a.sp === sp && a.status === 'Reserve').length;
+  const reserveTarget  = g.reserveTarget ?? 0;
+
+  return { priorityCandidates, pairRecs, reserveCandidates, currentReserve, reserveTarget };
+}
+
+function renderSuggestions(sp) {
+  const s = buildBreedingSuggestions(sp);
+  let html = '';
+
+  // Reserve status
+  const rCol = s.currentReserve >= s.reserveTarget ? 'var(--grn)' : 'var(--yel)';
+  html += `<div style="font-size:11px;color:#aaa;margin-bottom:8px;">
+    🔶 Reserve: <span style="color:${rCol};font-weight:bold">${s.currentReserve}</span>
+    <span style="color:#555"> / ${s.reserveTarget} target</span>
+    &nbsp;
+    <label style="font-size:10px;">Target: <input type="number" min="0" max="99" value="${s.reserveTarget}"
+      onchange="updateReserveTarget('${$esc(sp)}',this.value)"
+      style="width:44px;background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:1px 5px;font-size:11px;"></label>
+  </div>`;
+
+  // Priority candidates not in pairs
+  if (s.priorityCandidates.length) {
+    html += `<div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin-bottom:4px">Priority animals (not in pairs)</div>`;
+    s.priorityCandidates.forEach(({ animal, score, blStars, phStars }) => {
+      const cfg = SPECIES_DATA[sp] || {};
+      const tot = getTotal(animal.stats, sp);
+      const blCol = BLOODLINE_COLOR[animal.bl] || '#aaa';
+      const phCol = phenoColor(sp, animal.ph) || '#aaa';
+      const tags = [
+        blStars ? `<span style="color:${blCol}">${animal.bl} ${blStars}</span>` : '',
+        phStars ? `<span style="color:${phCol}">${phenoDisplay(sp, animal.ph) || animal.ph} ${phStars}</span>` : '',
+        animal.bl === 'Unstable' && !blStars ? `<span style="color:${blCol}">Unstable ★(breed)</span>` : '',
+      ].filter(Boolean).join(' · ');
+      html += `<div class="suggestion-row">
+        <span class="sug-badge">${STATUS_ICON[animal.status] || ''} ${animal.sex === 'M' ? '♂' : '♀'} ${tot}</span>
+        <div class="sug-animal">${animal.name}${tags ? `<br><span class="sug-reason">${tags}</span>` : ''}</div>
+      </div>`;
+    });
+  }
+
+  // Reserve candidates
+  if (s.reserveCandidates.length) {
+    html += `<div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:8px 0 4px">Consider reserving (good trait, lower stats)</div>`;
+    s.reserveCandidates.forEach(animal => {
+      const tot = getTotal(animal.stats, sp);
+      const blCol = BLOODLINE_COLOR[animal.bl] || '#aaa';
+      html += `<div class="suggestion-row">
+        <span class="sug-badge">${STATUS_ICON[animal.status] || ''} ${animal.sex === 'M' ? '♂' : '♀'} ${tot}</span>
+        <div class="sug-animal">${animal.name}<br>
+          <span class="sug-reason">Has <span style="color:${blCol}">${animal.bl}</span> — stats low vs herd best · set to Reserve until better pair partner available</span>
+        </div>
+      </div>`;
+    });
+  }
+
+  // Pair recommendations (only show if something useful to say)
+  const interestingRecs = s.pairRecs.filter(r => !r.alreadyOptimal && (r.sugM || r.sugF));
+  if (interestingRecs.length) {
+    html += `<div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin:8px 0 4px">Pair recommendations</div>`;
+    interestingRecs.forEach(r => {
+      const goalStr = r.hasGoal
+        ? `<span style="color:#aaa;font-size:10px"> (goal: ${r.pairGoal.bl || 'any'} × ${r.pairGoal.ph ? phenoDisplay(sp, r.pairGoal.ph) || r.pairGoal.ph : 'any'})</span>`
+        : '';
+      const mStr = r.sugM ? `<span style="color:#88ddff">♂ ${r.sugM.name} (${getTotal(r.sugM.stats,sp)})</span>` : '<span style="color:#555">♂ none available</span>';
+      const fStr = r.sugF ? `<span style="color:#ffaacc">♀ ${r.sugF.name} (${getTotal(r.sugF.stats,sp)})</span>` : '<span style="color:#555">♀ none available</span>';
+      const same = r.curM?.name === r.sugM?.name && r.curF?.name === r.sugF?.name;
+      html += `<div class="suggestion-row">
+        <span class="sug-badge">Pair ${r.idx + 1}${goalStr}</span>
+        <div class="sug-animal">${mStr} × ${fStr}${same ? '' : r.curM || r.curF ? `<br><span style="color:#556677;font-size:10px">current: ${r.curM?.name||'—'} × ${r.curF?.name||'—'}</span>` : ''}</div>
+      </div>`;
+    });
+  }
+
+  if (!html || (!s.priorityCandidates.length && !s.reserveCandidates.length && !interestingRecs?.length)) {
+    html += `<div style="color:var(--dim);font-size:11px;padding:4px 0">No suggestions — set bloodline/phenotype priorities in the sections above to enable recommendations.</div>`;
+  }
+
+  return html;
 }
 
 function renderGoals() {
@@ -1391,11 +1589,19 @@ function renderGoals() {
   initGoals();
   grid.innerHTML = '';
 
-  for (const [sp, cfg] of Object.entries(SPECIES_DATA)) {
+  for (const sp of getSpeciesOrder()) {
+    const cfg = SPECIES_DATA[sp];
+    if (!cfg) continue;
     const goals = goalsMap[sp];
     const n = pairCounts[sp] || cfg.defaultPairs;
     const card = document.createElement('div');
-    card.className = 'goals-card';
+    const isWide = cardWidths[sp] === 2;
+    card.className = 'goals-card' + (isWide ? ' span-2' : '');
+    card.draggable = true;
+    card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', sp); e.dataTransfer.effectAllowed = 'move'; });
+    card.addEventListener('dragover',  e => { e.preventDefault(); card.style.outline = '2px dashed var(--acc)'; });
+    card.addEventListener('dragleave', () => card.style.outline = '');
+    card.addEventListener('drop', e => { e.preventDefault(); card.style.outline = ''; const from = e.dataTransfer.getData('text/plain'); reorderSpecies(from, sp); });
 
     // ── Breed-out stat ──
     const boOpts = STATS.map(s =>
@@ -1476,8 +1682,12 @@ function renderGoals() {
     }).join('') || `<div style="color:var(--dim);font-size:11px;padding:4px 0">No bloodline sightings recorded yet.</div>`;
 
     card.innerHTML = `
-      <h3><span class="species-dot" style="background:${cfg.color}"></span>${sp}
-        <span class="goals-shortcode">${cfg.short}</span></h3>
+      <h3>
+        <span class="card-drag-handle" title="Drag to reorder">⠿</span>
+        <span class="species-dot" style="background:${cfg.color}"></span>${sp}
+        <span class="goals-shortcode">${cfg.short}</span>
+        <button class="card-width-btn" onclick="toggleCardWidth('${$esc(sp)}')" title="Toggle 1/2 wide">${isWide ? '◧ 1-wide' : '▣ 2-wide'}</button>
+      </h3>
       ${breedOutSec}
       <div class="goals-section">
         <div class="goals-section-hdr">Pair Goals — Bloodline × Phenotype</div>${pairRows}
@@ -1505,6 +1715,12 @@ function renderGoals() {
           </span>
         </div>
         <div class="pheno-sightings">${blSightingRows}</div>
+      </div>
+      <div class="goals-section">
+        <div class="goals-section-hdr">Breeding Suggestions
+          <span style="font-size:10px;color:#555;margin-left:8px;font-weight:normal">based on your priority stars above</span>
+        </div>
+        <div class="suggestion-panel">${renderSuggestions(sp)}</div>
       </div>`;
     grid.appendChild(card);
   }
@@ -1534,6 +1750,48 @@ function updateBlPriority(sp, bi, w) {
   initGoals();
   goalsMap[sp].blPriority[BLOODLINES[bi]] = w;
   saveGoals(); renderGoals(); renderAdvice();
+}
+
+function updateReserveTarget(sp, val) {
+  // Can be called from Goals tab (sp provided) or New Animal tab (reads from form)
+  if (sp === undefined) {
+    sp  = $val('f-species');
+    val = parseInt($id('entry-reserve-target')?.value) || 0;
+  }
+  initGoals();
+  goalsMap[sp].reserveTarget = Math.max(0, parseInt(val) || 0);
+  saveGoals();
+  renderGoals();
+}
+
+/** Returns species names in user-defined order, with any unordered ones appended at end */
+function getSpeciesOrder() {
+  const keys = Object.keys(SPECIES_DATA);
+  const ordered = speciesOrder.filter(sp => keys.includes(sp));
+  const missing = keys.filter(sp => !ordered.includes(sp));
+  return [...ordered, ...missing];
+}
+
+/** Move species `from` to the position of species `to` in speciesOrder */
+function reorderSpecies(from, to) {
+  if (from === to) return;
+  const order = getSpeciesOrder();
+  const fi = order.indexOf(from);
+  const ti = order.indexOf(to);
+  order.splice(fi, 1);
+  order.splice(ti, 0, from);
+  speciesOrder = order;
+  save();
+  renderPairs();
+  renderGoals();
+}
+
+/** Toggle card width for a species between 1 and 2 columns */
+function toggleCardWidth(sp) {
+  cardWidths[sp] = cardWidths[sp] === 2 ? 1 : 2;
+  save();
+  renderPairs();
+  renderGoals();
 }
 
 // ── SCORING ──────────────────────────────────────────────────────
@@ -1933,6 +2191,21 @@ function updateName() {
   const tv  = $id('total-val');
   tv.style.color = pct >= 0.92 ? '#00cc55' : pct >= 0.75 ? '#ffd700' : pct >= 0.5 ? '#ff9944' : '#ff5555';
   renderAdvice();
+
+  // Update reserve info display
+  const ri = $id('entry-reserve-info');
+  const rt = $id('entry-reserve-target');
+  const rtxt = $id('entry-reserve-text');
+  if (ri && rt && rtxt && sp) {
+    initGoals();
+    const reserveCount = animals.filter(a => a.sp === sp && a.status === 'Reserve').length;
+    const reserveTarget = goalsMap[sp]?.reserveTarget ?? 0;
+    rt.value = reserveTarget;
+    rtxt.textContent = `🔶 ${reserveCount} / ${reserveTarget} reserve ${SPECIES_DATA[sp]?.short || sp}`;
+    ri.style.display = 'block';
+  } else if (ri) {
+    ri.style.display = 'none';
+  }
 }
 
 // ── CLIPBOARD ────────────────────────────────────────────────────
@@ -1978,6 +2251,16 @@ function saveAnimal() {
   const p1 = resolveParent(p1raw);
   const p2 = resolveParent(p2raw);
   const isBred = (p1 && p1 !== 'Unknown') || (p2 && p2 !== 'Unknown');
+
+  // Validate: if both parents are known animals, they must be different sexes
+  if (p1 && p2 && p1 !== 'Unknown' && p2 !== 'Unknown') {
+    const p1a = animals.find(a => a.name === p1);
+    const p2a = animals.find(a => a.name === p2);
+    if (p1a && p2a && p1a.sex === p2a.sex) {
+      showToast(`⚠ Both parents are ${p1a.sex === 'M' ? 'male' : 'female'} — need one of each`);
+      return;
+    }
+  }
 
   // Capture old state before overwriting (used for sighting adjustment on edit)
   const oldAnimal = editingId ? animals.find(a => a.id === editingId) : null;
@@ -2779,7 +3062,16 @@ function renderPairs() {
     if (cur) addSel.value = cur;
   }
 
-  for (const [sp, cfg] of Object.entries(SPECIES_DATA)) {
+  // Sort: uncollapsed first, collapsed last
+  const pairSpeciesOrder = getSpeciesOrder().sort((a, b) => {
+    const ac = collapsedPairSpecies.has(a) ? 1 : 0;
+    const bc = collapsedPairSpecies.has(b) ? 1 : 0;
+    return ac - bc;
+  });
+
+  for (const sp of pairSpeciesOrder) {
+    const cfg = SPECIES_DATA[sp];
+    if (!cfg) continue;
     const n = pairCounts[sp] || 1;
     const pairs = (pairsMap[sp] || []).slice(0, n);
     const goals = goalsMap[sp] || {};
@@ -2795,8 +3087,14 @@ function renderPairs() {
 
     const males   = allPairAnimals.filter(a => a.sex === 'M').sort((a,b) => getTotal(b.stats,a.sp) - getTotal(a.stats,a.sp));
     const females = allPairAnimals.filter(a => a.sex === 'F').sort((a,b) => getTotal(b.stats,a.sp) - getTotal(a.stats,a.sp));
+    const isWide = cardWidths[sp] === 2;
     const card = document.createElement('div');
-    card.className = 'pair-species-card' + (collapsedPairSpecies.has(sp) ? ' collapsed' : '');
+    card.className = 'pair-species-card' + (collapsedPairSpecies.has(sp) ? ' collapsed' : '') + (isWide ? ' span-2' : '');
+    card.draggable = true;
+    card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', sp); e.dataTransfer.effectAllowed = 'move'; });
+    card.addEventListener('dragover',  e => { e.preventDefault(); card.style.outline = '2px dashed var(--acc)'; });
+    card.addEventListener('dragleave', () => card.style.outline = '');
+    card.addEventListener('drop', e => { e.preventDefault(); card.style.outline = ''; const from = e.dataTransfer.getData('text/plain'); reorderSpecies(from, sp); });
 
     // For upgrade recommendations use own-species only
     const allPaired = new Set(Object.values(pairsMap).flatMap(ps => (ps||[]).flatMap(p => [p.m, p.f])).filter(Boolean));
@@ -2877,7 +3175,9 @@ function renderPairs() {
 
     const isCollapsed = collapsedPairSpecies.has(sp);
     card.innerHTML = `
-      <h3><span class="species-dot" style="background:${cfg.color}"></span>${sp} <span class="goals-shortcode">${cfg.short}</span>
+      <h3>
+        <span class="card-drag-handle" title="Drag to reorder">⠿</span>
+        <span class="species-dot" style="background:${cfg.color}"></span>${sp} <span class="goals-shortcode">${cfg.short}</span>
         <span style="font-size:10px;color:#888;font-weight:normal;text-transform:none;margin-left:4px">breed out: <span style="color:var(--red)">${bo}</span></span>
         <a href="${cfg.wiki}" target="_blank" title="Open ${sp} wiki page"
           style="font-size:10px;color:#5bc8d4;text-decoration:none;font-weight:normal;text-transform:none;margin-left:8px;border:1px solid #2a4a6a;padding:1px 7px;border-radius:4px;">📖 Wiki</a>

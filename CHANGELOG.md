@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.13 – Ordering & Suggestions
+**2026-04-05**
+
+- Breeding Pairs + Goals: drag-and-drop species card reordering (shared order, drag by ⠿ handle); order persists to save file
+- Breeding Pairs: collapsed species cards now sort to the bottom of the grid automatically
+- Breeding Pairs + Goals: ▣ 2-wide / ◧ 1-wide toggle per species card; persists to save file
+- Goals: Breeding Suggestions panel per species — shows priority animals not in pairs (by bloodline/phenotype stars), reserve candidates (desired trait but lower stats), and per-pair recommendations; Unstable treated as a breeding priority in scoring
+- Goals + New Animal: reserve target per species — set desired number of reserve animals; current vs target shown in New Animal tab when species is selected; Unstable flagged as a breeding priority
+- New Animal: parent fields changed to neutral "Parent 1 / Parent 2" — either field accepts either parent; save now validates that two known parents must be opposite sex
+
+---
+
 ## v0.12 – Sightings, Pairs & Filters
 **2026-04-05**
 
