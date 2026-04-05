@@ -70,6 +70,8 @@ Your `herd_data.json` file can be backed up, copied to another computer, or shar
 
 Fill in the species, sex, bloodline, phenotype, generation, stats (VIG, FIT, PHY, REF, TGH, ADP, INS), and optionally the parents. The app generates a name automatically in the format `DR01 55F-Bold P3 VIG2`. Hover over any stat label or column header to see what the stat does.
 
+Two optional name fields are available: **Custom name** replaces the generated name entirely (useful for re-adding a deleted animal at its original ID), and **Nickname** sets a display alias shown throughout the app while keeping the original generated name intact for internal matching.
+
 After saving, a **Place in Breeding Pair** panel appears offering to slot the animal directly into a pair. The app scores all available slots and highlights the best suggestion. If a slot already has an occupant, you can choose what happens to the displaced animal.
 
 ### 📋 My Herd
@@ -80,7 +82,10 @@ Shows all your animals in a sortable, filterable table. Key features:
 - **Filter** by species, status, sex, bloodline, phenotype, and minimum total score
 - **Change status inline** — each row has a status dropdown; no need to open Edit Animal
 - **Edit** an animal with the edit button; a **Cancel** button lets you exit without saving changes
+- **⭐ Favorite** — click the star button on any row to mark an animal as a favourite; favourited animals are never suggested for culling by the pair optimizer but can still be moved to reserve or taken out of rotation
+- **Nicknames** — if an animal has a nickname set, the nickname is shown in bold and the original generated name appears dimly beside it
 - **🪦 Show Dead** / **🛸 Show Station** toggles to include or exclude those animals from the view
+- **⚡ Optimize Pairs** button in the section header — opens the pair optimizer for all species (see Breeding Pairs)
 
 ### 🔀 Breeding Pairs
 
@@ -94,6 +99,8 @@ Each pair slot shows a goal badge:
 A stat upgrade recommendation panel below each species card suggests free animals that would improve the weakest pair slot.
 
 Cards can be collapsed to compact chips using the **▼ Hide / ▶ Show** button, and toggled between Narrow and Wide layout. The grid uses a masonry layout — shorter cards automatically fill the vertical space under taller ones rather than wrapping to the leftmost column. Collapsed state and card width persist across reloads.
+
+**⚡ Optimize Pairs** — available in the section header (all species) and as a small ⚡ button on each species card (single species). The optimizer scores all active animals against your goals, bloodline priorities, and phenotype priorities, then proposes the best M×F assignment for each pair slot. It covers goals first (one pair per goal where possible), fills any remaining slots with the highest-scoring remaining animals, and biases toward bloodline diversity across multiple pairs so separate lines are maintained. A list of suggested status changes for unassigned animals is shown alongside: animals with desired traits but low stats are suggested for Reserve, high-stat animals that don't fit are suggested for Store, and animals with negative traits below the stat goal are suggested for Cull. Favourited animals are never suggested for culling. You can choose to **Apply Pairs Only** or **Apply All** (pairs + all status suggestions) from the modal.
 
 ### ⚙ Goals
 

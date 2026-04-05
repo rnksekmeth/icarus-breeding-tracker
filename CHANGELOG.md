@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.20 – Favorites, nicknames & pair optimizer
+**2026-04-05**
+
+- **⭐ Favorites** — star any animal from the My Herd table; favorited animals are never suggested for culling by the optimizer but can still be moved to reserve or taken out of rotation
+- **Nicknames** — set an optional display alias per animal in the Add/Edit Animal form; the original generated name (e.g. DR05) is always preserved for internal matching and shown dimly next to the nickname in the herd table and pair dropdowns
+- **⚡ Optimize Pairs** — new button in My Herd and Breeding Pairs headers (plus a per-species ⚡ button on each pair card); runs a greedy algorithm that scores all active animals against your goals and bloodline/phenotype priorities, proposes the best M×F pair assignments for each slot, maintains bloodline diversity across multiple pairs, and suggests status changes (Reserve / Store / Cull) for remaining animals based on their traits and stats relative to your stat goal
+- Fixed a bug where `isBred` was computed but not stored on the animal object, causing the "Goals achieved" check in the Goals tab to never trigger
+
+---
+
 ## v0.19 – Activity log & smart suggestions
 **2026-04-05**
 

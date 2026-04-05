@@ -354,6 +354,36 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 .startup-box .migrate-note.show{display:block;}
 #save-indicator{position:fixed;top:8px;right:12px;font-size:11px;color:var(--grn);opacity:0;transition:opacity .4s;z-index:1000;pointer-events:none;}
 #save-indicator.show{opacity:1;}
+
+/* ── FAVORITES & NICKNAMES ──────────────────────────────────── */
+.btn-fav{background:transparent;border:1px solid #444;border-radius:4px;padding:2px 5px;font-size:12px;cursor:pointer;color:#666;transition:color .15s,border-color .15s;line-height:1;}
+.btn-fav:hover{border-color:#fc0;color:#fc0;}
+.btn-fav.active{color:#fc0;border-color:#f90;}
+.nickname-display{font-weight:600;color:var(--wht);}
+.orig-name-dim{font-size:10px;color:#555;margin-left:3px;}
+
+/* ── OPTIMIZE MODAL ─────────────────────────────────────────── */
+.opt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:900;display:flex;align-items:center;justify-content:center;}
+.opt-modal{background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:20px 24px;max-width:680px;width:95vw;max-height:88vh;overflow-y:auto;}
+.opt-modal h3{color:var(--acc);font-size:14px;text-transform:uppercase;letter-spacing:1px;margin:0 0 12px;}
+.opt-sp-section{margin-bottom:16px;border:1px solid var(--bdr);border-radius:6px;overflow:hidden;}
+.opt-sp-hdr{background:rgba(255,255,255,.04);padding:7px 12px;font-size:12px;font-weight:bold;color:var(--wht);border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:6px;}
+.opt-sub-lbl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;padding:7px 12px 3px;}
+.opt-pair-row{display:flex;align-items:center;gap:8px;padding:5px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;}
+.opt-pair-num{width:18px;color:var(--dim);flex-shrink:0;}
+.opt-pair-names{flex:1;}
+.opt-goal-badge{font-size:10px;padding:1px 6px;border-radius:3px;margin-left:6px;background:rgba(0,200,100,.1);color:#0c5;border:1px solid rgba(0,200,100,.3);}
+.opt-action-row{display:flex;align-items:center;gap:8px;padding:5px 12px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;}
+.opt-action-name{min-width:140px;}
+.opt-badge{font-size:11px;padding:2px 7px;border-radius:3px;font-weight:bold;white-space:nowrap;}
+.opt-cull{background:rgba(231,76,60,.15);color:#e74c3c;border:1px solid #c0392b;}
+.opt-store{background:rgba(91,200,212,.1);color:#5bc8d4;border:1px solid #2a7a8a;}
+.opt-reserve{background:rgba(136,170,255,.1);color:#88aaff;border:1px solid #4455aa;}
+.opt-keep{background:rgba(0,204,85,.1);color:#0c5;border:1px solid #074;}
+.opt-reason{font-size:10px;color:var(--dim);flex:1;}
+.opt-none{padding:7px 12px;color:var(--dim);font-size:12px;font-style:italic;}
+.opt-modal-btns{display:flex;gap:8px;margin-top:16px;justify-content:flex-end;}
+
 </style>
 </head>
 <body>
@@ -471,6 +501,12 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
       oninput="checkCustomNameDuplicate()" onfocus="this.style.borderColor='var(--acc)'" onblur="this.style.borderColor='var(--bdr)'">
     <span id="custom-name-warn" style="font-size:11px;color:var(--red);display:none;white-space:nowrap;">&#x26A0; name already exists</span>
   </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:-4px;margin-bottom:8px;">
+    <span style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Nickname</span>
+    <input type="text" id="f-nickname" placeholder="Optional display alias — original name always kept" autocomplete="off"
+      style="flex:1;background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:5px 8px;font-size:12px;font-family:monospace;outline:none;"
+      onfocus="this.style.borderColor='var(--acc)'" onblur="this.style.borderColor='var(--bdr)'">
+  </div>
   <div class="advice-panel" id="advice-panel"></div>
   <div class="form-row" style="margin-top:4px">
     <div class="field"><label>Status</label>
@@ -502,6 +538,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
   <div class="section-hdr">
     <h2>My Herd</h2>
     <span id="herd-count" class="text-dim" style="font-size:12px"></span>
+    <button class="btn-sm" onclick="showOptimizeModal(null)" title="Suggest optimal pair configuration across all species" style="margin-left:auto">⚡ Optimize Pairs</button>
   </div>
   <div class="filters" id="filters-bar">
     <div class="filter-row">
@@ -571,6 +608,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
   <div class="section-hdr">
     <h2>Breeding Pairs</h2>
     <button class="btn-sm" onclick="renderPairs()">&#x21BB; Refresh</button>
+    <button class="btn-sm" onclick="showOptimizeModal(null)" title="Optimize pairs for all species">⚡ Optimize All</button>
   </div>
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
     <select id="pairs-add-species" style="background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:5px 10px;font-size:12px;"></select>
@@ -786,6 +824,8 @@ const STATUS_LIST  = ['?','Keep','Breed','Temp','Reserve','Station','Discard','D
 const STATUS_ICON  = { '?':'❓', Keep:'✅', Breed:'🐣', Temp:'⚡', Reserve:'🔶', Station:'🛸', Discard:'🗑️', Dead:'🪦' };
 const STATUS_LABEL = { '?':'Undecided', Keep:'Keep', Breed:'Breed', Temp:'Temp Breed', Reserve:'Reserve', Station:'On Station', Discard:'Discard', Dead:'Dead/Culled' };
 const STATUS_COLOR = { '?':'#666', Keep:'#00cc55', Breed:'#e8a020', Temp:'#ffaa00', Reserve:'#88aaff', Station:'#5bc8d4', Discard:'#888', Dead:'#555' };
+/** Display name: nickname if set, else original name */
+const displayName = a => (a && a.nickname) ? a.nickname : (a ? a.name : '');
 
 const STAT_INFO = {
   VIG: { full:'Vigor',      desc:'Stamina pool and overall energy' },
@@ -887,6 +927,7 @@ const collapsedPairSpecies  = new Set(); // in-memory; resets on reload
 let logEntries = []; // { ts, msg, type }
 let logMax = 100;
 let logFilter = 'all';
+let _optimizePlan = null; // holds last computed optimize plan
 const collapsedGoalCards    = new Set(); // card-level collapse per species in Goals
 const collapsedGoalSections = new Set(); // section-level collapse keys: "${sp}::${sectionId}"
 
@@ -1535,6 +1576,271 @@ function deletePairRow(sp, idx) {
 }
 
 // ── GOALS ────────────────────────────────────────────────────────
+// ── OPTIMIZE PAIRS ───────────────────────────────────────────────
+
+/**
+ * Score an animal for breeding suitability in a given species context.
+ * Higher = better candidate for a pair slot.
+ */
+function scoreForOptimize(sp, a) {
+  const g   = goalsMap[sp] || {};
+  const blP = g.blPriority  || {};
+  const phW = g.phenoWeights || {};
+  const spGoals = g.goals || [];
+  let score = getTotal(a.stats, sp) * 10;
+  const blScore = blP[a.bl] ?? 0;
+  const phScore = phW[a.ph] ?? 0;
+  score += blScore * 60;
+  score += phScore * 60;
+  const matchesGoal = spGoals.some(gl => (!gl.bl || gl.bl === a.bl) && (!gl.ph || gl.ph === a.ph));
+  if (matchesGoal) score += 150;
+  // Unstable: bonus for mutation chance if not negatively starred
+  if (a.bl === 'Unstable' && (blP['Unstable'] ?? 0) >= 0) score += 40;
+  // Negative trait: heavy penalty so they're last resort
+  if (blScore < 0 || phScore < 0) score -= 300;
+  return score;
+}
+
+/**
+ * Build an optimization plan for one species.
+ * globallyAssigned: Set of animal names already claimed by other species' pairs.
+ */
+function buildOptimizePlanForSpecies(sp, globallyAssigned) {
+  initGoals();
+  const g       = goalsMap[sp] || {};
+  const n       = pairCounts[sp] || 1;
+  const blP     = g.blPriority  || {};
+  const phW     = g.phenoWeights || {};
+  const spGoals = g.goals || [];
+  const statGoal = g.statGoal ?? 60;
+
+  const crossPartners = CROSS_BREEDS[sp] || [];
+  const ownAnimals  = animals.filter(a => a.sp === sp && !['Dead','Discard'].includes(a.status));
+  const crossAnimals = crossPartners.flatMap(csp =>
+    animals.filter(a => a.sp === csp && !['Dead','Discard'].includes(a.status))
+  );
+  const allUsable = [...ownAnimals, ...crossAnimals];
+  const males   = allUsable.filter(a => a.sex === 'M');
+  const females = allUsable.filter(a => a.sex === 'F');
+
+  const usedIds = new Set();
+
+  // Pick the best available animal from a pool, preferring goal match and bloodline diversity
+  const pickBest = (pool, goalBl, goalPh, avoidBls) => {
+    let cands = pool.filter(a => !usedIds.has(a.id) && !globallyAssigned.has(a.name));
+    if (!cands.length) return null;
+    // Try goal-matching candidates first (only clean ones)
+    if (goalBl || goalPh) {
+      const matching = cands.filter(a =>
+        (!goalBl || a.bl === goalBl) && (!goalPh || a.ph === goalPh) && (blP[a.bl] ?? 0) >= 0
+      );
+      if (matching.length) cands = matching;
+    }
+    let sorted = [...cands].sort((a, b) => scoreForOptimize(sp, b) - scoreForOptimize(sp, a));
+    // Prefer bloodline diversity if possible
+    if (avoidBls && avoidBls.size) {
+      const diff = sorted.filter(a => !avoidBls.has(a.bl));
+      if (diff.length) sorted = diff;
+    }
+    return sorted[0] || null;
+  };
+
+  const proposedPairs = [];
+
+  // Phase 1: assign one pair per species goal (up to n slots)
+  for (let i = 0; i < Math.min(n, spGoals.length); i++) {
+    const goal = spGoals[i];
+    const usedMBls = new Set(proposedPairs.map(p => allUsable.find(a => a.name === p.m)?.bl).filter(Boolean));
+    const usedFBls = new Set(proposedPairs.map(p => allUsable.find(a => a.name === p.f)?.bl).filter(Boolean));
+    let m = pickBest(males,   goal.bl, goal.ph, usedMBls);
+    let f = pickBest(females, goal.bl, goal.ph, usedFBls);
+    // Avoid pairing two negative-same-bloodline animals
+    if (m && f && (blP[m.bl] ?? 0) < 0 && m.bl === f.bl) {
+      const altF = [...females]
+        .filter(a => !usedIds.has(a.id) && !globallyAssigned.has(a.name) && a.bl !== m.bl)
+        .sort((a, b) => scoreForOptimize(sp, b) - scoreForOptimize(sp, a))[0];
+      if (altF) f = altF;
+    }
+    const label = (goal.bl && goal.ph) ? `${goal.bl} × ${goal.ph}`
+                : goal.bl ? goal.bl : goal.ph ? goal.ph : `Goal ${i+1}`;
+    proposedPairs.push({ m: m?.name || '', f: f?.name || '', goalLabel: label });
+    if (m) usedIds.add(m.id);
+    if (f) usedIds.add(f.id);
+  }
+
+  // Phase 2: fill remaining slots with best remaining + diversity
+  for (let i = proposedPairs.length; i < n; i++) {
+    const usedMBls = new Set(proposedPairs.map(p => allUsable.find(a => a.name === p.m)?.bl).filter(Boolean));
+    const usedFBls = new Set(proposedPairs.map(p => allUsable.find(a => a.name === p.f)?.bl).filter(Boolean));
+    const m = pickBest(males,   null, null, usedMBls);
+    const f = pickBest(females, null, null, usedFBls);
+    proposedPairs.push({ m: m?.name || '', f: f?.name || '' });
+    if (m) usedIds.add(m.id);
+    if (f) usedIds.add(f.id);
+  }
+
+  // Register assigned names globally
+  proposedPairs.forEach(p => {
+    if (p.m) globallyAssigned.add(p.m);
+    if (p.f) globallyAssigned.add(p.f);
+  });
+
+  // Classify own-species active animals not in pairs
+  const assignedNames = new Set(proposedPairs.flatMap(p => [p.m, p.f]).filter(Boolean));
+  const suggestions = [];
+  ownAnimals
+    .filter(a => !assignedNames.has(a.name) && !['Reserve','Station','Dead','Discard'].includes(a.status))
+    .forEach(a => {
+      const blScore = blP[a.bl] ?? 0;
+      const phScore = phW[a.ph] ?? 0;
+      const tot     = getTotal(a.stats, sp);
+      const hasPositive = blScore > 0 || phScore > 0 || a.bl === 'Unstable';
+      const hasNeg      = blScore < 0 || phScore < 0;
+      const matchesGoal = spGoals.some(gl => (!gl.bl || gl.bl === a.bl) && (!gl.ph || gl.ph === a.ph));
+
+      if (a.favorite) {
+        const reason = hasPositive || matchesGoal
+          ? '⭐ Favorite — consider reserving for future breeding'
+          : '⭐ Favorite — protected from cull suggestions';
+        suggestions.push({ animal: a, action: hasPositive || matchesGoal ? 'reserve' : 'keep', reason });
+        return;
+      }
+
+      if (matchesGoal && tot >= statGoal) {
+        suggestions.push({ animal: a, action: 'reserve', reason: `Matches a species goal — reserve for future breeding` });
+      } else if (hasPositive && tot < statGoal) {
+        const trait = blScore > 0 ? a.bl : a.ph;
+        suggestions.push({ animal: a, action: 'reserve', reason: `Desired trait (${trait}) but below stat goal (${tot}/${statGoal})` });
+      } else if (hasNeg && tot < statGoal) {
+        const trait = blScore < 0 ? a.bl : a.ph;
+        suggestions.push({ animal: a, action: 'cull', reason: `Negative trait (${trait}) and below stat goal (${tot}/${statGoal})` });
+      } else if (!hasPositive && tot < statGoal) {
+        suggestions.push({ animal: a, action: 'cull', reason: `No valued traits, below stat goal (${tot}/${statGoal})` });
+      } else {
+        suggestions.push({ animal: a, action: 'store', reason: `Good stats (${tot}) but all pair slots filled` });
+      }
+    });
+
+  return { sp, proposedPairs, suggestions };
+}
+
+/** Open the optimize modal for one species (sp) or all (sp=null) */
+function showOptimizeModal(sp) {
+  const globallyAssigned = new Set();
+  const speciesList = sp
+    ? [sp]
+    : getSpeciesOrder().filter(s => animals.some(a => a.sp === s));
+
+  if (!speciesList.length) { showToast('No animals to optimize'); return; }
+
+  _optimizePlan = speciesList.map(s => buildOptimizePlanForSpecies(s, globallyAssigned));
+
+  const title = sp ? `⚡ Optimize — ${sp}` : '⚡ Optimize All Breeding Pairs';
+
+  const renderPlan = plan => {
+    const cfg = SPECIES_DATA[plan.sp] || {};
+    const dot = `<span class="species-dot" style="background:${cfg.color||'#888'};display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0"></span>`;
+
+    const pairRows = plan.proposedPairs.length
+      ? plan.proposedPairs.map((p, i) => {
+          const mA = animals.find(a => a.name === p.m);
+          const fA = animals.find(a => a.name === p.f);
+          const mD = mA
+            ? `<span style="color:#88aaff">♂ ${displayName(mA)}</span><span style="color:#555;font-size:10px"> (${getTotal(mA.stats, plan.sp)})</span>`
+            : '<span style="color:#555">— empty —</span>';
+          const fD = fA
+            ? `<span style="color:#ff88aa">♀ ${displayName(fA)}</span><span style="color:#555;font-size:10px"> (${getTotal(fA.stats, plan.sp)})</span>`
+            : '<span style="color:#555">— empty —</span>';
+          const badge = p.goalLabel ? `<span class="opt-goal-badge">${p.goalLabel}</span>` : '';
+          return `<div class="opt-pair-row"><span class="opt-pair-num">${i+1}</span><span class="opt-pair-names">${mD} × ${fD}${badge}</span></div>`;
+        }).join('')
+      : `<div class="opt-none">No pair slots configured — add pairs first</div>`;
+
+    const actionIcons = { cull:'🪦', store:'🛸', reserve:'🔶', keep:'✅' };
+    const actionRows = plan.suggestions.length
+      ? plan.suggestions.map(s => {
+          const tot = getTotal(s.animal.stats, plan.sp);
+          const fav = s.animal.favorite ? '⭐ ' : '';
+          const cls = `opt-badge opt-${s.action}`;
+          const lbl = s.action === 'cull' ? 'Cull' : s.action === 'store' ? 'Store' : s.action === 'reserve' ? 'Reserve' : 'Keep';
+          return `<div class="opt-action-row">
+            <span class="opt-action-name">${fav}${displayName(s.animal)} <span style="color:#555;font-size:10px">(${tot})</span></span>
+            <span class="${cls}">${actionIcons[s.action]} ${lbl}</span>
+            <span class="opt-reason">${s.reason}</span>
+          </div>`;
+        }).join('')
+      : `<div class="opt-none">No status changes suggested</div>`;
+
+    const sugSection = `<div class="opt-sub-lbl">Suggested Status Changes</div>${actionRows}`;
+
+    return `<div class="opt-sp-section">
+      <div class="opt-sp-hdr">${dot}${plan.sp}</div>
+      <div class="opt-sub-lbl">Proposed Pairs</div>
+      ${pairRows}
+      ${sugSection}
+    </div>`;
+  };
+
+  const overlay = document.createElement('div');
+  overlay.className = 'opt-overlay';
+  overlay.id = 'opt-overlay';
+  overlay.innerHTML = `<div class="opt-modal">
+    <h3>${title}</h3>
+    <p style="color:var(--dim);font-size:11px;margin-bottom:14px">Proposed pair assignments and status suggestions based on your goals and priorities. Animals already in Reserve/Station/Dead are not re-suggested.</p>
+    ${_optimizePlan.map(renderPlan).join('')}
+    <div class="opt-modal-btns">
+      <button class="btn-sm" onclick="closeOptimizeModal()">✕ Dismiss</button>
+      <button class="btn-sm" onclick="applyOptimizePlan(false)">✅ Apply Pairs Only</button>
+      <button class="btn" onclick="applyOptimizePlan(true)">⚡ Apply All</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+function closeOptimizeModal() {
+  const el = $id('opt-overlay');
+  if (el) el.remove();
+  _optimizePlan = null;
+}
+
+/** Apply the current optimize plan. applyStatuses=true also executes suggested status changes. */
+function applyOptimizePlan(applyStatuses) {
+  if (!_optimizePlan) return;
+  let pairChanges = 0, statusChanges = 0;
+
+  _optimizePlan.forEach(plan => {
+    if (!pairsMap[plan.sp]) initPairs();
+    const n = pairCounts[plan.sp] || plan.proposedPairs.length;
+    // Ensure slots exist
+    while (pairsMap[plan.sp].length < n) pairsMap[plan.sp].push({ m: '', f: '' });
+    plan.proposedPairs.forEach((p, i) => {
+      if (pairsMap[plan.sp][i]) {
+        if (pairsMap[plan.sp][i].m !== p.m || pairsMap[plan.sp][i].f !== p.f) pairChanges++;
+        pairsMap[plan.sp][i].m = p.m;
+        pairsMap[plan.sp][i].f = p.f;
+      }
+    });
+    if (applyStatuses) {
+      plan.suggestions.forEach(s => {
+        const tgt = animals.find(a => a.id === s.animal.id);
+        if (!tgt) return;
+        if (s.action === 'cull')    { tgt.status = 'Dead';    statusChanges++; }
+        else if (s.action === 'store')   { tgt.status = 'Station'; statusChanges++; }
+        else if (s.action === 'reserve') { tgt.status = 'Reserve'; statusChanges++; }
+        // 'keep' = no change
+      });
+    }
+  });
+
+  save(); renderHerd(); renderPairs();
+  const msg = applyStatuses
+    ? `⚡ Optimize applied — ${pairChanges} pair slot${pairChanges!==1?'s':''} updated, ${statusChanges} status change${statusChanges!==1?'s':''}`
+    : `⚡ Pairs updated — ${pairChanges} slot${pairChanges!==1?'s':''} changed`;
+  showToast(msg);
+  addLog(msg, 'pair');
+  closeOptimizeModal();
+}
+
 function initGoals() {
   for (const [sp, cfg] of Object.entries(SPECIES_DATA)) {
     if (!goalsMap[sp]) goalsMap[sp] = {};
@@ -2756,7 +3062,9 @@ function saveAnimal() {
     name = customName;
   }
 
-  const animal = { id, spId: animalSpId, sp, sex, bl, ph, gen, p1, p2, stats, total, name, status, notes };
+  const nickname = ($id('f-nickname')?.value || '').trim();
+  const favorite = editingId ? (oldAnimal?.favorite ?? false) : false;
+  const animal = { id, spId: animalSpId, sp, sex, bl, ph, gen, p1, p2, isBred, stats, total, name, nickname, favorite, status, notes };
 
   if (editingId) {
     const i = animals.findIndex(a => a.id === editingId);
@@ -2786,7 +3094,7 @@ function saveAnimal() {
     const el = $id(`stat-${s}`);
     if (el) { el.value = ''; el.classList.remove('maxed','zero'); }
   });
-  ['f-p1','f-p2','f-notes','f-custom-name'].forEach(fid => { const el = $id(fid); if (el) el.value = ''; });
+  ['f-p1','f-p2','f-notes','f-custom-name','f-nickname'].forEach(fid => { const el = $id(fid); if (el) el.value = ''; });
   const _cw = $id('custom-name-warn'); if (_cw) _cw.style.display = 'none';
   ['pc1','pc2'].forEach(fid => { const d = $id(fid); if (d) d.classList.remove('show'); });
   const pp = $id('prob-panel'); if (pp) pp.classList.remove('show');
@@ -2966,7 +3274,7 @@ function renderHerd() {
 
     const sexColor = a.sex === 'M' ? '#88aaff' : a.sex === 'F' ? '#ff88aa' : '#888';
     return `<tr style="${deadStyle}">
-      <td class="name-cell">${spIdBadge}<button class="btn-copy" style="padding:2px 6px;font-size:11px;margin-right:4px" onclick="quickCopy('${$esc(a.name)}')">copy</button>${a.name}${tempBadge}${reserveBadge}</td>
+      <td class="name-cell">${spIdBadge}<button class="btn-fav${a.favorite ? ' active' : ''}" onclick="toggleFavorite(${a.id})" title="${a.favorite ? 'Unfavorite' : 'Favorite — protects from cull suggestions'}">★</button><button class="btn-copy" style="padding:2px 6px;font-size:11px;margin-right:4px" onclick="quickCopy('${$esc(a.nickname || a.name)}')">copy</button>${a.nickname ? `<span class="nickname-display">${a.nickname}</span><span class="orig-name-dim">${a.name}</span>` : a.name}${tempBadge}${reserveBadge}</td>
       <td data-tip="${a.sp}">${dot}${spCfg.short || a.sp}</td>
       <td style="text-align:center;color:${sexColor};font-weight:bold">${a.sex === 'M' ? '♂' : a.sex === 'F' ? '♀' : a.sex || '?'}</td>
       <td class="${blCls}" ${BLOODLINE_INFO[a.bl] ? `data-tip="${BLOODLINE_INFO[a.bl].replace(/"/g,'&quot;')}"` : ''}>${a.bl}</td>
@@ -3004,6 +3312,19 @@ function reviveAnimal(id) {
   save(); renderHerd(); renderPairs(); showToast(`${a.name} restored`);
 }
 
+/** Toggle favorite status on an animal — favorites are never suggested for culling */
+function toggleFavorite(id) {
+  const a = animals.find(x => x.id === id);
+  if (!a) return;
+  a.favorite = !a.favorite;
+  save();
+  renderHerd();
+  showToast(a.favorite
+    ? `⭐ ${displayName(a)} favorited — won\'t be suggested for culling`
+    : `${displayName(a)} unfavorited`);
+  addLog(a.favorite ? `⭐ ${displayName(a)} favorited` : `${displayName(a)} unfavorited`, 'edit');
+}
+
 function editAnimal(id) {
   const a = animals.find(x => x.id === id);
   if (!a) return;
@@ -3029,6 +3350,8 @@ function editAnimal(id) {
     cnField.value = a.name !== computed ? a.name : '';
     checkCustomNameDuplicate();
   }
+  const nnField = $id('f-nickname');
+  if (nnField) nnField.value = a.nickname || '';
   $id('save-btn').textContent = '💾 Update Animal';
   $id('cancel-edit-btn').style.display = '';
   showTab('entry', document.querySelector('nav button'));
@@ -3645,7 +3968,9 @@ function renderPairs() {
       const availM = males.filter(a => !usedElsewhere.has(a.name));
       const availF = females.filter(a => !usedElsewhere.has(a.name));
       const optLabel = a => {
-        return `${a.name} (${getTotal(a.stats, a.sp)})${a.status==='Temp'?' T':''}`;
+        const dn = displayName(a);
+        const origSuffix = a.nickname ? ` · ${a.name}` : '';
+        return `${dn}${origSuffix} (${getTotal(a.stats, a.sp)})${a.status==='Temp'?' T':''}`;
       };
       const mOpts = `<option value="">-- none --</option>` +
         availM.map(a => `<option value="${a.name}"${p.m===a.name?' selected':''}>${optLabel(a)}</option>`).join('');
@@ -3719,6 +4044,7 @@ function renderPairs() {
           <span class="pairs-count">${n} pair${n>1?'s':''}</span>
           <button class="btn-add" onclick="addPairSlot('${$esc(sp)}')">+</button>
           <button class="btn-rem" onclick="removePairSlot('${$esc(sp)}')">−</button>
+          <button class="btn-sm" onclick="showOptimizeModal('${$esc(sp)}')" title="Optimize pairs for ${sp}" style="font-size:11px;padding:2px 8px">⚡</button>
           <button class="pairs-collapse-btn" onclick="togglePairCollapse('${$esc(sp)}')">▶ Show</button>
         </span>`;
       chipsRow.appendChild(chip);
@@ -3736,6 +4062,7 @@ function renderPairs() {
             <span class="pairs-count">${n} pair${n>1?'s':''}</span>
             <button class="btn-add" onclick="addPairSlot('${$esc(sp)}')">+</button>
             <button class="btn-rem" onclick="removePairSlot('${$esc(sp)}')">−</button>
+            <button class="btn-sm" onclick="showOptimizeModal('${$esc(sp)}')" title="Optimize pairs for ${sp}" style="font-size:11px;padding:2px 8px">⚡</button>
             <button class="pairs-collapse-btn" onclick="togglePairCollapse('${$esc(sp)}')">▼ Hide</button>
           </span>
         </h3>
