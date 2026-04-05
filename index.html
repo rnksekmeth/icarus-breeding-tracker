@@ -6,15 +6,21 @@
 <title>Icarus Breeding Tracker</title>
 <style>
 :root {
-  --bg:#1a1a2e;--panel:#16213e;--card:#0f1a2e;
-  --acc:#e8a020;--acc2:#c87010;
-  --wht:#f0f0f0;--dim:#888;
-  --grn:#00cc55;--grn2:#0a3a1a;
-  --red:#ff5555;--red2:#3a0a0a;
-  --pur:#cc88ff;--pur2:#1e0a30;
-  --yel:#ffd700;--blu:#4488ff;
-  --bdr:#2a3a5a;--inp:#0d1525;
-  --tmp:#ffaa00;--tmp2:#2a1e00;
+  --bg:#131512;--panel:#191c18;--card:#1d2019;
+  --acc:#c87a1a;--acc2:#a86218;
+  --wht:#cdd3c5;--dim:#58615a;
+  --grn:#5aad5a;--grn2:#0d2212;
+  --red:#c04040;--red2:#2a0c0c;
+  --pur:#c07ad8;--pur2:#1e0a30;
+  --yel:#c8a832;--blu:#4a7080;
+  --bdr:#22261f;--inp:#0e100d;
+  --tmp:#c87a1a;--tmp2:#2a1e00;
+  /* Sex colors */
+  --male:#4a7080;--male-bg:rgba(74,112,128,.12);
+  --fem:#804058;--fem-bg:rgba(128,64,88,.12);
+  /* Olive accent for section headers */
+  --olive:#6a7d50;--olive2:#4a5838;--olive-bg:rgba(106,125,80,.12);
+  --dim2:#3a3f3c;
   /* Phenotype rarity colors */
   --r-base:#aaaaaa;--r-uncommon:#2ecc71;--r-rare:#3498db;--r-legendary:#e67e22;
 }
@@ -41,7 +47,7 @@
 body{padding-bottom:34px;}
 
 body{background:var(--bg);color:var(--wht);font-family:Arial,sans-serif;font-size:13px;min-height:100vh;}
-header{background:var(--card);border-bottom:2px solid var(--acc);padding:10px 16px;display:flex;align-items:center;gap:12px;}
+header{background:var(--card);border-bottom:2px solid var(--olive);padding:10px 16px;display:flex;align-items:center;gap:12px;}
 header h1{color:var(--acc);font-size:18px;flex:1;letter-spacing:1px;}
 header .btns{display:flex;gap:8px;}
 nav{background:var(--panel);border-bottom:1px solid var(--bdr);display:flex;gap:2px;padding:0 12px;flex-wrap:wrap;}
@@ -154,11 +160,13 @@ button{cursor:pointer;border:none;border-radius:4px;font-size:12px;}
 /* Table */
 .table-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;font-size:12px;}
-thead th{background:var(--acc);color:#000;padding:7px 8px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;font-size:11px;}
-thead th:hover{background:var(--acc2);}
+thead th{background:var(--olive2);color:var(--wht);padding:7px 8px;text-align:left;cursor:pointer;white-space:nowrap;user-select:none;font-size:11px;letter-spacing:.06em;}
+thead th:hover{background:var(--olive);}
 thead th .sort-arrow{margin-left:4px;opacity:.5;}
 tbody tr{border-bottom:1px solid var(--bdr);}
 tbody tr:hover{background:rgba(255,255,255,.04);}
+.herd-row{cursor:pointer;}
+.herd-row:hover{background:rgba(200,122,26,.04)!important;}
 tbody td{padding:5px 8px;vertical-align:middle;}
 td.bl-unstable{color:var(--pur);font-weight:bold;}
 td.bl-alpha{color:var(--red);font-weight:bold;}
@@ -365,13 +373,15 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 /* ── OPTIMIZE MODAL ─────────────────────────────────────────── */
 .opt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:900;display:flex;align-items:center;justify-content:center;}
 .view-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:950;display:flex;align-items:center;justify-content:center;}
-.view-modal{background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:20px 24px;max-width:600px;width:95vw;max-height:88vh;overflow-y:auto;}
+.view-modal{background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:20px 24px;max-width:600px;width:95vw;max-height:88vh;overflow-y:auto;}
 .view-modal h3{color:var(--acc);font-size:15px;margin:0 0 2px;display:flex;align-items:center;gap:8px;}
 .view-modal .view-subtitle{font-size:11px;color:var(--dim);margin-bottom:14px;}
-.view-stats-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:10px 0;}
-.view-stat-cell{text-align:center;background:rgba(255,255,255,.05);border-radius:4px;padding:4px 2px;font-size:11px;}
-.view-stat-label{font-size:9px;color:var(--dim);margin-bottom:2px;}
-.view-stat-val{font-weight:bold;}
+.view-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;margin:4px 0;}
+.view-stat-cell{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.03);border-radius:2px;padding:3px 7px;font-size:11px;}
+.view-stat-label{font-size:10px;color:var(--dim);white-space:nowrap;letter-spacing:.03em;}
+.view-stat-val{font-weight:bold;min-width:22px;text-align:right;}
+.view-radar-wrap{display:flex;justify-content:center;padding:6px 0 2px;}
+.view-radar-wrap canvas{opacity:.92;}
 .view-section{margin:12px 0 6px;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;border-top:1px solid var(--bdr);padding-top:8px;}
 .view-suggestion{padding:8px 12px;border-radius:5px;font-size:12px;display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;}
 .view-sug-cull{background:rgba(255,85,85,.08);border:1px solid rgba(255,85,85,.25);}
@@ -385,7 +395,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 .view-pair-slot:last-child{border-bottom:none;}
 .view-name-link{cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px;}
 .view-name-link:hover{color:var(--acc);}
-.opt-modal{background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:20px 24px;max-width:680px;width:95vw;max-height:88vh;overflow-y:auto;}
+.opt-modal{background:#131f35;border:1px solid #3a4d70;border-radius:8px;padding:20px 24px;max-width:680px;width:95vw;max-height:88vh;overflow-y:auto;}
 .opt-modal h3{color:var(--acc);font-size:14px;text-transform:uppercase;letter-spacing:1px;margin:0 0 12px;}
 .opt-sp-section{margin-bottom:16px;border:1px solid var(--bdr);border-radius:6px;overflow:hidden;}
 .opt-sp-hdr{background:rgba(255,255,255,.04);padding:7px 12px;font-size:12px;font-weight:bold;color:var(--wht);border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:6px;}
@@ -418,6 +428,94 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
 .text-mono  { font-family:monospace; }
 .text-upper { text-transform:uppercase; letter-spacing:.5px; }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   v0.23 DESIGN SYSTEM — tile slots, animal tiles, pool
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Chamfer shape: top-left + bottom-right corners cut (Icarus item slot) */
+/* ── PAIR BLOCKS ──────────────────────────────────────────────── */
+.pairs-body-flex{display:flex;flex-wrap:wrap;gap:8px;padding:8px 10px;}
+.pair-block{display:flex;align-items:center;gap:5px;padding:4px 6px;background:rgba(0,0,0,.18);border:1px solid var(--bdr);border-radius:2px;}
+.pair-num-lbl{color:var(--dim2,#3a3f3c);font-size:10px;align-self:flex-start;padding-top:4px;min-width:12px;text-align:center;}
+.pair-x-lbl{color:var(--dim2,#3a3f3c);font-size:11px;}
+.pair-score-lbl{font-size:10px;color:var(--yel);font-weight:bold;letter-spacing:.05em;align-self:flex-end;padding-bottom:2px;min-width:32px;}
+
+/* ── SLOT TILE ────────────────────────────────────────────────── */
+.slot-outer{display:inline-flex;transition:filter .18s;}
+.slot-outer.over-ok{filter:drop-shadow(0 0 5px var(--slot-glow,rgba(74,112,128,.9)));}
+.slot-outer.over-bad{filter:drop-shadow(0 0 5px rgba(192,64,64,.9));}
+.slot-outer.slot-filled{filter:drop-shadow(0 0 2px rgba(255,255,255,.06));}
+
+.pair-slot{
+  width:68px;height:68px;background:#090b09;
+  clip-path:polygon(13px 0,100% 0,100% calc(100% - 13px),calc(100% - 13px) 100%,0 100%,0 13px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;position:relative;transition:background .15s;
+}
+.pair-slot.slot-filled{background:#0d0f0c;}
+.pair-slot::before{
+  content:'';position:absolute;top:3px;left:3px;
+  width:5px;height:5px;background:var(--dim2,#3a3f3c);
+  clip-path:polygon(0 0,100% 0,0 100%);
+  pointer-events:none;opacity:.45;
+}
+.slot-ph-icon{font-size:15px;color:var(--dim2,#3a3f3c);pointer-events:none;line-height:1;}
+.slot-ph-lbl{font-size:7px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim2,#3a3f3c);pointer-events:none;text-align:center;padding:0 4px;}
+
+/* ── ANIMAL TILE ──────────────────────────────────────────────── */
+.animal-tile{
+  width:68px;height:68px;flex-shrink:0;background:#0e100d;
+  clip-path:polygon(13px 0,100% 0,100% calc(100% - 13px),calc(100% - 13px) 100%,0 100%,0 13px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;cursor:grab;user-select:none;position:relative;overflow:hidden;
+  transition:background .12s,opacity .12s;
+}
+.animal-tile:active{cursor:grabbing;}
+.animal-tile.dragging{opacity:.25;}
+.animal-tile.m{background:linear-gradient(145deg,rgba(74,112,128,.18) 0%,#0e100d 55%);}
+.animal-tile.f{background:linear-gradient(145deg,rgba(128,64,88,.18) 0%,#0e100d 55%);}
+.animal-tile::before{
+  content:'';position:absolute;top:3px;left:3px;
+  width:5px;height:5px;background:var(--dim2,#3a3f3c);
+  clip-path:polygon(0 0,100% 0,0 100%);
+  pointer-events:none;opacity:.35;
+}
+.tile-icon{font-size:19px;line-height:1;pointer-events:none;}
+.tile-name{font-size:9px;font-weight:bold;letter-spacing:.04em;pointer-events:none;text-align:center;line-height:1.1;}
+.animal-tile.m .tile-name{color:var(--male);}
+.animal-tile.f .tile-name{color:var(--fem);}
+.tile-bl{font-size:7px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim);pointer-events:none;}
+.tile-stat{font-size:9px;font-weight:bold;color:var(--acc);pointer-events:none;}
+/* Goal badge — top-right (square corner) */
+.tile-goal{
+  position:absolute;top:3px;right:3px;
+  font-size:7px;font-weight:bold;letter-spacing:.05em;
+  background:rgba(90,173,90,.18);color:var(--grn);
+  border:1px solid rgba(90,173,90,.3);padding:1px 3px;pointer-events:none;
+}
+/* Remove ✕ — bottom-right square corner, vivid red matching SAVAGE badge */
+.tile-rm{
+  position:absolute;bottom:4px;right:5px;
+  background:none;border:none;
+  color:#e06060;  /* SAVAGE-badge red */
+  cursor:pointer;font-size:10px;font-weight:bold;padding:0;line-height:1;
+  pointer-events:auto;transition:color .1s,transform .1s;
+}
+.tile-rm:hover{color:#ff7070;transform:scale(1.2);}
+
+/* ── POOL ─────────────────────────────────────────────────────── */
+.pool-wrap{border-top:1px solid var(--bdr);padding:6px 10px 8px;}
+.pool-hdr{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.pool-lbl{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--olive);}
+.pool-ct{font-size:9px;color:var(--dim);border:1px solid var(--bdr);padding:1px 5px;border-radius:2px;}
+.pair-pool{display:flex;flex-wrap:wrap;gap:6px;min-height:72px;align-items:flex-start;padding:2px;}
+.pair-pool.pool-over{background:rgba(200,122,26,.06);border-radius:2px;}
+.pool-tile-more{font-size:9px;color:var(--dim);border:1px solid var(--bdr);padding:3px 8px;border-radius:2px;cursor:pointer;align-self:center;}
+.pool-tile-more:hover{color:var(--acc);border-color:var(--acc);}
+
+/* Pool tiles are slightly smaller and non-removable */
+.pool-tile.animal-tile{width:58px;height:58px;}
 </style>
 </head>
 <body>
@@ -1252,7 +1350,7 @@ let _saveTimer  = null;
 // v4 – no schema change (cross-breeding was config + UI-only)
 // v5 – goals[]: species-level goals replace per-pair bl/ph; phenoWeights/blPriority extended to -3..3; statGoal added
 /** Single source of truth for the displayed app version — update this on every release. */
-const APP_VERSION  = 'v0.22 – Animal viewer & smart pairing';
+const APP_VERSION  = 'v0.23 – Icarus design system';
 document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('app-version'); if (el) el.textContent = APP_VERSION; });
 const DATA_VERSION = 5;
 
@@ -2045,6 +2143,8 @@ function showOptimizeModal(sp) {
     </div>
   </div>`;
   document.body.appendChild(overlay);
+  // Draw radar polygon on the view panel canvas
+  _drawViewRadar(a.stats, bo, STATS);
 }
 
 
@@ -2702,6 +2802,7 @@ function renderGoals() {
       goalsChips.appendChild(chip);
     } else {
       grid.appendChild(card);
+      _initPairCardDnD(card);
     }
   }
   requestAnimationFrame(() => applyMasonry('goals-grid'));
@@ -3626,8 +3727,8 @@ function renderHerd() {
     const parents = [a.p1, a.p2].filter(p => p && p !== 'Unknown').join(' × ') ||
       ([a.p1, a.p2].filter(Boolean).join(' × ') || '—');
 
-    const sexColor = a.sex === 'M' ? '#88aaff' : a.sex === 'F' ? '#ff88aa' : '#888';
-    return `<tr style="${deadStyle}">
+    const sexColor = a.sex === 'M' ? 'var(--male)' : a.sex === 'F' ? 'var(--fem)' : 'var(--dim)';
+    return `<tr class="herd-row" onclick="if(!['BUTTON','SELECT','INPUT','A','SPAN'].includes(event.target.tagName)&&!event.target.closest('.btn-sm,.btn-fav,.status-inline'))viewAnimal(${a.id})" style="${deadStyle}">
       <td class="name-cell">${spIdBadge}<button class="btn-fav${a.favorite ? ' active' : ''}" onclick="toggleFavorite(${a.id})" title="${a.favorite ? 'Unfavorite' : 'Favorite — protects from cull suggestions'}">★</button><button class="btn-copy" style="padding:2px 6px;font-size:11px;margin-right:4px" onclick="quickCopy('${$esc(a.nickname || a.name)}')">copy</button>${a.nickname ? `<span class="nickname-display view-name-link" onclick="viewAnimal(${a.id})" title="Click to view animal details">${a.nickname}</span><span class="orig-name-dim">${a.name}</span>` : `<span class="view-name-link" onclick="viewAnimal(${a.id})" title="Click to view animal details">${a.name}</span>`}${tempBadge}${reserveBadge}</td>
       <td data-tip="${a.sp}">${dot}${spCfg.short || a.sp}</td>
       <td style="text-align:center;color:${sexColor};font-weight:bold">${a.sex === 'M' ? '♂' : a.sex === 'F' ? '♀' : a.sex || '?'}</td>
@@ -4330,7 +4431,7 @@ function viewAnimal(id) {
   const phDisp   = a.ph ? phenoDisplay(a.sp, a.ph) || a.ph : '—';
   const parents  = [a.p1, a.p2].filter(p => p && p !== 'Unknown').join(' × ') || '—';
   const sexSym   = a.sex === 'M' ? '♂ Male' : a.sex === 'F' ? '♀ Female' : a.sex || '?';
-  const sexColor = a.sex === 'M' ? '#88aaff' : a.sex === 'F' ? '#ff88aa' : '#888';
+  const sexColor = a.sex === 'M' ? 'var(--male)' : a.sex === 'F' ? 'var(--fem)' : 'var(--dim)';
 
   const overlay = document.createElement('div');
   overlay.className = 'view-overlay';
@@ -4353,6 +4454,7 @@ function viewAnimal(id) {
     <div><span style="color:var(--dim)">Total:</span> <strong style="color:${pct>=92?'#00cc55':pct>=75?'#ffd700':'#ff9944'}">${tot} / ${maxT} (${pct}%)</strong></div>
   </div>
 
+  <div class="view-radar-wrap"><canvas id="vr-canvas" width="200" height="160"></canvas></div>
   <div class="view-stats-grid">${statCells}</div>
 
   <div class="view-section">Optimizer Suggestion</div>
@@ -4456,33 +4558,45 @@ function renderPairs() {
       return '';
     };
 
-    const pairRows = pairs.map((p, i) => {
+    // ── Tile-based pair blocks (v0.23 DnD design) ──────────────
+    const pairBlocks = pairs.map((p, i) => {
       const mAnimal = allPairAnimals.find(a => a.name === p.m);
       const fAnimal = allPairAnimals.find(a => a.name === p.f);
-      // Global exclusivity — exclude animals used anywhere else across all species
-      const usedElsewhere = globalUsed(sp, i);
-      const availM = males.filter(a => !usedElsewhere.has(a.name));
-      const availF = females.filter(a => !usedElsewhere.has(a.name));
-      const mOpts = `<option value="">-- none --</option>` +
-        availM.map(a => `<option value="${a.name}"${p.m===a.name?' selected':''}>${pairOptionLabel(a, sp)}</option>`).join('');
-      const fOpts = `<option value="">-- none --</option>` +
-        availF.map(a => `<option value="${a.name}"${p.f===a.name?' selected':''}>${pairOptionLabel(a, sp)}</option>`).join('');
-      const score = (mAnimal && fAnimal) ? `S:${getTotal(mAnimal.stats,sp) + getTotal(fAnimal.stats,sp)}` : '';
-      return `<div class="pair-row">
-        <span class="pair-num">${i+1}</span>
-        <div class="pair-animal">
-          <select onchange="updatePair('${$esc(sp)}',${i},'m',this.value)">${mOpts}</select>
-          ${makeBadge(mAnimal)}
+      const score   = (mAnimal && fAnimal) ? `S:${getTotal(mAnimal.stats,sp) + getTotal(fAnimal.stats,sp)}` : '';
+      const mConf   = p.mConflict ? '⚠' : '';
+      const fConf   = p.fConflict ? '⚠' : '';
+
+      const mTile = mAnimal
+        ? _buildPairTile(mAnimal, sp, i, 'M', makeBadge)
+        : `<span class="slot-ph-icon">♂</span><span class="slot-ph-lbl">Drop Male</span>`;
+      const fTile = fAnimal
+        ? _buildPairTile(fAnimal, sp, i, 'F', makeBadge)
+        : `<span class="slot-ph-icon">♀</span><span class="slot-ph-lbl">Drop Female</span>`;
+
+      return `<div class="pair-block">
+        <span class="pair-num-lbl">${i+1}</span>
+        <div class="slot-outer ${mAnimal?'slot-filled':''}" data-sp="${$esc(sp)}" data-pi="${i}" data-sex="M" style="--slot-glow:rgba(74,112,128,.85)">
+          <div class="pair-slot ${mAnimal?'slot-filled':''}">${mTile}</div>
         </div>
-        <span class="pair-cross">×</span>
-        <div class="pair-animal">
-          <select onchange="updatePair('${$esc(sp)}',${i},'f',this.value)">${fOpts}</select>
-          ${makeBadge(fAnimal)}
+        <span class="pair-x-lbl">×</span>
+        <div class="slot-outer ${fAnimal?'slot-filled':''}" data-sp="${$esc(sp)}" data-pi="${i}" data-sex="F" style="--slot-glow:rgba(128,64,88,.85)">
+          <div class="pair-slot ${fAnimal?'slot-filled':''}">${fTile}</div>
         </div>
-        <span class="pair-stats">${score}</span>
-        <button class="pair-del-btn" onclick="deletePairRow('${$esc(sp)}',${i})" title="Delete this pair (animals set to Reserve)">×</button>
+        <span class="pair-score-lbl">${score}</span>
+        <button class="pair-del-btn" onclick="deletePairRow('${$esc(sp)}',${i})" title="Delete this pair">×</button>
       </div>`;
     }).join('');
+
+    // ── Pool: animals available to drag into pair slots ──────────
+    const usedInPairs = new Set(pairs.flatMap(p => [p.m, p.f]).filter(Boolean));
+    const poolAnimals = allPairAnimals.filter(a => !usedInPairs.has(a.name));
+    const POOL_MAX = 8;
+    let poolHtml = poolAnimals.slice(0, POOL_MAX).map(a => _buildPoolTile(a, sp)).join('');
+    if (poolAnimals.length > POOL_MAX) {
+      poolHtml += `<span class="pool-tile-more" onclick="_togglePool(this)"
+        data-sp="${$esc(sp)}" data-all='${JSON.stringify(poolAnimals.slice(POOL_MAX).map(a=>a.id))}'>
+        +${poolAnimals.length - POOL_MAX} more ▾</span>`;
+    }
 
     const breedingM = pairs.map(p => spAnimals.find(a => a.name === p.m)).filter(Boolean);
     const breedingF = pairs.map(p => spAnimals.find(a => a.name === p.f)).filter(Boolean);
@@ -4547,9 +4661,16 @@ function renderPairs() {
         </h3>
         <div class="pair-card-body">
           ${crossNote}
-          ${pairRows}
+          <div class="pairs-body-flex">${pairBlocks}</div>
+          <div class="pool-wrap">
+            <div class="pool-hdr">
+              <span class="pool-lbl">Available</span>
+              <span class="pool-ct">${poolAnimals.length} animal${poolAnimals.length!==1?'s':''}</span>
+            </div>
+            <div class="pair-pool" data-pool-sp="${$esc(sp)}">${poolHtml}</div>
+          </div>
           <div class="upgrade-box">
-            <div style="color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Stat Upgrade Recommendations</div>
+            <div style="color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Upgrade Recommendations</div>
             ${upgHtml}
           </div>
         </div>`;
@@ -4905,6 +5026,204 @@ function showUndoToast(msg, fn) {
 // ── INIT ─────────────────────────────────────────────────────────
 // The startup modal handles loading; it calls closeStartup() when done.
 initStorage();
+
+// ═══════════════════════════════════════════════════════════════
+//  v0.23 DESIGN HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+// Species icons for tile display
+const _SP_ICONS = {DR:'🦖',SR:'🦎',BM:'🦅',WO:'🐺',BE:'🐻',MA:'🐲'};
+function _spIcon(name){ return _SP_ICONS[(name||'').slice(0,2)] || '🐾'; }
+
+// Build a filled tile for inside a pair slot
+function _buildPairTile(a, sp, pairIdx, sex, makeBadge) {
+  const sc  = a.sex === 'M' ? 'm' : 'f';
+  const tot = getTotal(a.stats, sp);
+  const gBadge = makeBadge ? makeBadge(a) : '';
+  const goalMark = (gBadge && gBadge.includes('goal-match')) ? '<span class="tile-goal">✓G</span>' : '';
+  const rmSp = $esc(sp);
+  const rmSex = sex.toLowerCase();
+  return `<div class="animal-tile ${sc}" draggable="true"
+    data-aid="${a.id}" data-psp="${$esc(sp)}" data-pi="${pairIdx}" data-sex="${sex}"
+    title="${$esc(a.name)} · ${a.bl} · ${tot}"
+  ><span class="tile-icon">${_spIcon(a.name)}</span
+  ><span class="tile-name">${a.name}</span
+  ><span class="tile-bl">${a.bl}</span
+  ><span class="tile-stat">${tot}</span
+  >${goalMark}<button class="tile-rm" onclick="event.stopPropagation();updatePair('${rmSp}',${pairIdx},'${rmSex}','')">✕</button
+  ></div>`;
+}
+
+// Build a draggable pool tile
+function _buildPoolTile(a, sp) {
+  const sc  = a.sex === 'M' ? 'm' : 'f';
+  const tot = getTotal(a.stats, sp);
+  return `<div class="animal-tile pool-tile ${sc}" draggable="true"
+    data-aid="${a.id}" data-psp="${$esc(sp)}" data-pool="1"
+    onclick="viewAnimal(${a.id})"
+    title="${$esc(a.name)} · ${a.bl} · ${tot}"
+  ><span class="tile-icon">${_spIcon(a.name)}</span
+  ><span class="tile-name">${a.name}</span
+  ><span class="tile-bl">${a.bl}</span
+  ><span class="tile-stat">${tot}</span
+  ></div>`;
+}
+
+// Show hidden pool tiles for a species
+function _togglePool(btn) {
+  const sp = btn.dataset.sp;
+  const ids = JSON.parse(btn.dataset.all || '[]');
+  const pool = btn.closest('.pair-pool');
+  ids.forEach(id => {
+    const a = animals.find(x => x.id === id);
+    if (a) {
+      const tile = document.createElement('div');
+      tile.innerHTML = _buildPoolTile(a, sp);
+      const t = tile.firstChild;
+      pool.insertBefore(t, btn);
+      _bindTileDrag(t, pool.closest('.pair-species-card'));
+    }
+  });
+  btn.remove();
+}
+
+// ── Drag-and-drop state ───────────────────────────────────────
+let _pairDrag = null;
+
+function _bindTileDrag(tile, card) {
+  tile.addEventListener('dragstart', e => {
+    const a = animals.find(x => x.id === +tile.dataset.aid);
+    if (!a) return;
+    _pairDrag = {
+      id: a.id, name: a.name, sex: a.sex,
+      sp: tile.dataset.psp,
+      fromPool: !!tile.dataset.pool,
+      fromPi: tile.dataset.pi !== undefined ? +tile.dataset.pi : null,
+      fromSex: tile.dataset.sex || null
+    };
+    e.dataTransfer.effectAllowed = 'move';
+    tile.classList.add('dragging');
+  });
+  tile.addEventListener('dragend', () => {
+    tile.classList.remove('dragging');
+    _pairDrag = null;
+    document.querySelectorAll('.over-ok,.over-bad').forEach(el => el.classList.remove('over-ok','over-bad'));
+  });
+}
+
+function _initPairCardDnD(card) {
+  // Bind drag on all tiles in this card
+  card.querySelectorAll('.animal-tile[draggable]').forEach(tile => _bindTileDrag(tile, card));
+
+  // Slot drop zones
+  card.querySelectorAll('.slot-outer').forEach(slot => {
+    slot.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (!_pairDrag) return;
+      const ok = _pairDrag.sex === slot.dataset.sex;
+      slot.classList.remove('over-ok','over-bad');
+      slot.classList.add(ok ? 'over-ok' : 'over-bad');
+      e.dataTransfer.dropEffect = ok ? 'move' : 'none';
+    });
+    slot.addEventListener('dragleave', () => slot.classList.remove('over-ok','over-bad'));
+    slot.addEventListener('drop', e => {
+      e.preventDefault();
+      slot.classList.remove('over-ok','over-bad');
+      if (!_pairDrag) return;
+      if (_pairDrag.sex !== slot.dataset.sex) {
+        showToast(`⚠ ${_pairDrag.sex === 'M' ? '♂ Male' : '♀ Female'} can't go in a ${slot.dataset.sex === 'M' ? '♂' : '♀'} slot`);
+        _pairDrag = null;
+        return;
+      }
+      const tSp = slot.dataset.sp, tPi = +slot.dataset.pi, tSex = slot.dataset.sex.toLowerCase();
+      const name = _pairDrag.name;
+      // If dragged from another slot, clear source directly to avoid double-render
+      if (!_pairDrag.fromPool && _pairDrag.fromPi !== null) {
+        const fSp = _pairDrag.sp, fPi = _pairDrag.fromPi, fSex = _pairDrag.fromSex.toLowerCase();
+        if (pairsMap[fSp] && pairsMap[fSp][fPi]) {
+          const oldA = animals.find(x => x.name === pairsMap[fSp][fPi][fSex]);
+          if (oldA && oldA.status === 'Breed') oldA.status = '?';
+          pairsMap[fSp][fPi][fSex] = '';
+        }
+      }
+      updatePair(tSp, tPi, tSex, name);
+      _pairDrag = null;
+    });
+  });
+
+  // Pool drop zone — return slotted animal to pool
+  const pool = card.querySelector('.pair-pool');
+  if (pool) {
+    pool.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (_pairDrag && !_pairDrag.fromPool) pool.classList.add('pool-over');
+    });
+    pool.addEventListener('dragleave', () => pool.classList.remove('pool-over'));
+    pool.addEventListener('drop', e => {
+      e.preventDefault();
+      pool.classList.remove('pool-over');
+      if (!_pairDrag || _pairDrag.fromPool) { _pairDrag = null; return; }
+      updatePair(_pairDrag.sp, +_pairDrag.fromPi, _pairDrag.fromSex.toLowerCase(), '');
+      _pairDrag = null;
+    });
+  }
+}
+
+// ── Radar chart for view panel ────────────────────────────────
+function _drawViewRadar(stats, bo, statKeys) {
+  const canvas = document.getElementById('vr-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cx = canvas.width / 2, cy = canvas.height / 2 + 4;
+  const maxR = 65, n = statKeys.length, maxVal = 10;
+  const ang = i => (Math.PI * 2 * i / n) - Math.PI / 2;
+  const ptX = (i, r) => cx + r * Math.cos(ang(i));
+  const ptY = (i, r) => cy + r * Math.sin(ang(i));
+
+  // Grid rings
+  [.2,.4,.6,.8,1].forEach(f => {
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const r = maxR * f;
+      i === 0 ? ctx.moveTo(ptX(i,r), ptY(i,r)) : ctx.lineTo(ptX(i,r), ptY(i,r));
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(106,125,80,.18)'; ctx.lineWidth = 1; ctx.stroke();
+  });
+  // Axes
+  for (let i = 0; i < n; i++) {
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(ptX(i, maxR), ptY(i, maxR));
+    ctx.strokeStyle = 'rgba(106,125,80,.15)'; ctx.lineWidth = 1; ctx.stroke();
+  }
+  // Stat polygon
+  ctx.beginPath();
+  statKeys.forEach((s, i) => {
+    const r = maxR * ((stats[s] || 0) / maxVal);
+    i === 0 ? ctx.moveTo(ptX(i,r), ptY(i,r)) : ctx.lineTo(ptX(i,r), ptY(i,r));
+  });
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(200,122,26,.32)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(200,122,26,.8)'; ctx.lineWidth = 1.5; ctx.stroke();
+  // B/O vertex in red
+  const boIdx = statKeys.indexOf(bo);
+  if (boIdx >= 0) {
+    const boR = maxR * ((stats[bo] || 0) / maxVal);
+    ctx.beginPath(); ctx.arc(ptX(boIdx,boR), ptY(boIdx,boR), 3, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(192,64,64,.9)'; ctx.fill();
+  }
+  // Axis labels only (no values on radar)
+  statKeys.forEach((s, i) => {
+    const r = maxR + 13;
+    const x = ptX(i, r), y = ptY(i, r);
+    const isBO = s === bo;
+    ctx.font = `bold 8px Arial`;
+    ctx.fillStyle = isBO ? '#c04040' : 'rgba(106,125,80,.9)';
+    ctx.textAlign = x < cx - 2 ? 'right' : x > cx + 2 ? 'left' : 'center';
+    ctx.textBaseline = y < cy - 2 ? 'bottom' : y > cy + 2 ? 'top' : 'middle';
+    ctx.fillText(s, x, y);
+  });
+}
+
 </script>
 </body>
 </html>

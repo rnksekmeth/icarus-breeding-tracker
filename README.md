@@ -1,5 +1,10 @@
 # 🦖 Icarus Breeding Tracker
 
+![version](https://img.shields.io/badge/version-v0.23-c87a1a?style=flat-square&labelColor=1d2019)
+![no install](https://img.shields.io/badge/no%20install-single%20file-6a7d50?style=flat-square&labelColor=1d2019)
+![browser](https://img.shields.io/badge/browser-Chrome%20%2F%20Edge-4a7080?style=flat-square&labelColor=1d2019)
+![data](https://img.shields.io/badge/data-stays%20on%20your%20computer-58615a?style=flat-square&labelColor=1d2019)
+
 A herd tracker and breeding planner for the game [Icarus](https://store.steampowered.com/app/1149460/Icarus/). Track your animals, plan breeding pairs, manage bloodlines and phenotypes, and record lineage — all in a single file with no install, no account, and no internet required.
 
 ---
@@ -84,7 +89,7 @@ Shows all your animals in a sortable, filterable table. Key features:
 - **Edit** an animal with the edit button; a **Cancel** button lets you exit without saving changes
 - **⭐ Favorite** — click the star button on any row to mark an animal as a favourite; favourited animals are never suggested for culling by the pair optimizer but can still be moved to reserve or taken out of rotation
 - **Nicknames** — if an animal has a nickname set, the nickname is shown in bold and the original generated name appears dimly beside it
-- **Click any animal name** to open a read-only **Animal Viewer** panel — shows full details, stats, current pair assignment, the optimizer's suggestion for that animal, and quick-action buttons to change status, assign to or remove from a pair slot, or jump to the edit form
+- **Click any row** to open a read-only **Animal Viewer** panel — shows full details, a radar chart of stat values, current pair assignment, the optimizer's suggestion for that animal, and quick-action buttons to change status, assign to or remove from a pair slot, or jump to the edit form
 - **🪦 Show Dead** / **🛸 Show Station** toggles to include or exclude those animals from the view
 - **⚡ Optimize Pairs** button in the section header — opens the pair optimizer for all species (see Breeding Pairs)
 
@@ -92,7 +97,16 @@ Shows all your animals in a sortable, filterable table. Key features:
 
 Set up your active breeding pairs per species. The app enforces global exclusivity — an animal can only appear in one pair slot at a time.
 
-When an animal is added to a pair slot (manually or via the optimizer), their status is automatically set to **Breed**. When removed or replaced, their status reverts to **Undecided** — unless you had set it to something else deliberately (Reserve, Station, etc.), in which case it is left as-is. Dune Raptors and Swamp Raptors can be cross-bred; their animals appear in each other's pair slots. Cross-breed offspring are either a DR or SR — determined by which species tab the pair is in.
+Each pair shows two **tile slots** styled after the in-game item input slots — chamfered tiles (opposing corners cut) for the male ♂ and female ♀ sides. Below the pair slots, an **animal pool** shows all unassigned animals for that species as draggable tiles.
+
+**Assigning animals:**
+
+- **Drag from pool** — drag a tile from the pool into a male or female slot
+- **Drag between slots** — drag directly from one slot to another (including across pairs)
+- **Remove** — click the ✕ button on an assigned tile to return the animal to the pool
+- **View** — click any pool tile to open the animal viewer
+
+When placed in a slot, the animal's status is automatically set to **Breed**. When removed or replaced, their status reverts to **Undecided** — unless you had set it to something else deliberately (Reserve, Station, etc.), in which case it is left as-is. Dune Raptors and Swamp Raptors can be cross-bred; their animals appear in each other's pair slots. Cross-breed offspring are either a DR or SR — determined by which species tab the pair is in.
 
 Each pair slot shows a goal badge:
 - **✓ Goal N** — this animal matches one of your species goals

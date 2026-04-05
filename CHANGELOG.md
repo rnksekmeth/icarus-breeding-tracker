@@ -4,6 +4,20 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.23 – Icarus design system
+**2026-04-05**
+
+- **New visual design** — full palette overhaul to match the in-game aesthetic: dark olive-charcoal backgrounds, olive-green section headers, amber stat values; replaces the old blue-navy scheme
+- **Pairs: drag-and-drop tile slots** — pair assignment now uses chamfered tile slots (top-left + bottom-right corners cut, matching Icarus item slot style); animals are shown as draggable tiles and can be dragged from the pool into male/female slots, between slots, or back to the pool; the underlying assignment logic is unchanged
+- **Pairs: animal pool** — each species card now shows a pool of available (unassigned) animals below the pair slots as draggable tiles; clicking a pool tile opens the animal viewer
+- **Herd: full-row click** — clicking anywhere on an animal's herd row (except buttons and dropdowns) opens the animal viewer panel, replacing the name-only clickable area
+- **View panel: radar chart** — the animal view panel now shows an amber polygon radar chart of stat values; axis labels only; the breed-out stat vertex is highlighted in red
+- **View panel: stat layout** — stats now shown as two-column rows (label | value) that never truncate, replacing the 7-column grid
+- **View panel: sex colors** — male/female indicators now use the muted blue/mauve palette matching the tile system
+- **Remove button** — tile ✕ button uses vivid `#e06060` red (matching the SAVAGE bloodline badge)
+
+---
+
 ## v0.22 – Animal viewer & smart pairing
 **2026-04-05**
 
