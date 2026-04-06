@@ -1394,7 +1394,7 @@ let _saveTimer  = null;
 // v4 – no schema change (cross-breeding was config + UI-only)
 // v5 – goals[]: species-level goals replace per-pair bl/ph; phenoWeights/blPriority extended to -3..3; statGoal added
 /** Single source of truth for the displayed app version — update this on every release. */
-const APP_VERSION  = 'v0.24 – Side panel, tile polish & goal charts';
+const APP_VERSION  = 'v0.25 – Pair DnD fix & optimizer stat priority';
 document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('app-version'); if (el) el.textContent = APP_VERSION; });
 const DATA_VERSION = 5;
 
@@ -1937,7 +1937,7 @@ function buildOptimizePlanForSpecies(sp, globallyAssigned) {
     let sorted = [...cands].sort((a, b) => scoreForOptimize(sp, b) - scoreForOptimize(sp, a));
     // Prefer bloodline diversity if possible
     if (avoidBls && avoidBls.size) {
-      const diff = sorted.filter(a => !avoidBls.has(a.bl));
+      const diff = sorted.filter(a => !avoidBls.has(a.bl) && scoreForOptimize(sp, a) >= 0);
       if (diff.length) sorted = diff;
     }
     return sorted[0] || null;
@@ -4770,6 +4770,7 @@ function renderPairs() {
           </div>
         </div>`;
       grid.appendChild(card);
+      _initPairCardDnD(card);
     }
   }
   requestAnimationFrame(() => applyMasonry('pairs-grid'));
@@ -5073,6 +5074,27 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
+/**
+ * Show a lightweight confirm dialog (reuses opt-modal styling).
+ * onConfirm is called if the user clicks Yes.
+ */
+function showConfirm(msg, onConfirm) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `<div class="opt-modal" style="max-width:380px;text-align:center">
+    <p style="margin:0 0 18px;font-size:13px;line-height:1.5;color:#ccc">${msg}</p>
+    <div class="opt-modal-btns" style="justify-content:center">
+      <button class="btn-secondary" id="_cfm_no">Cancel</button>
+      <button class="btn-primary" id="_cfm_yes">Yes, replace</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  const close = () => document.body.removeChild(overlay);
+  overlay.querySelector('#_cfm_yes').onclick = () => { close(); onConfirm(); };
+  overlay.querySelector('#_cfm_no').onclick  = () => { close(); };
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+}
+
 /** Show a toast with an Undo link. fn is called if the user clicks Undo within 5 s. */
 let _toastUndo = null;
 function showUndoToast(msg, fn) {
@@ -5235,7 +5257,7 @@ function _initPairCardDnD(card) {
       slot.classList.add(ok ? 'over-ok' : 'over-bad');
       e.dataTransfer.dropEffect = ok ? 'move' : 'none';
     });
-    slot.addEventListener('dragleave', () => slot.classList.remove('over-ok','over-bad'));
+    slot.addEventListener('dragleave', e => { if (!slot.contains(e.relatedTarget)) slot.classList.remove('over-ok','over-bad'); });
     slot.addEventListener('drop', e => {
       e.preventDefault();
       slot.classList.remove('over-ok','over-bad');
@@ -5247,16 +5269,30 @@ function _initPairCardDnD(card) {
       }
       const tSp = slot.dataset.sp, tPi = +slot.dataset.pi, tSex = slot.dataset.sex.toLowerCase();
       const name = _pairDrag.name;
-      // If dragged from another slot, clear source directly to avoid double-render
-      if (!_pairDrag.fromPool && _pairDrag.fromPi !== null) {
-        const fSp = _pairDrag.sp, fPi = _pairDrag.fromPi, fSex = _pairDrag.fromSex.toLowerCase();
-        if (pairsMap[fSp] && pairsMap[fSp][fPi]) {
-          const oldA = animals.find(x => x.name === pairsMap[fSp][fPi][fSex]);
-          if (oldA && oldA.status === 'Breed') oldA.status = '?';
-          pairsMap[fSp][fPi][fSex] = '';
+      const dragSnapshot = { ..._pairDrag };
+      // Check if target slot is already occupied
+      const occupantName = pairsMap[tSp]?.[tPi]?.[tSex];
+      const doPlace = () => {
+        // If dragged from another slot, clear source directly to avoid double-render
+        if (!dragSnapshot.fromPool && dragSnapshot.fromPi !== null) {
+          const fSp = dragSnapshot.sp, fPi = dragSnapshot.fromPi, fSex = dragSnapshot.fromSex.toLowerCase();
+          if (pairsMap[fSp] && pairsMap[fSp][fPi]) {
+            const oldA = animals.find(x => x.name === pairsMap[fSp][fPi][fSex]);
+            if (oldA && oldA.status === 'Breed') oldA.status = '?';
+            pairsMap[fSp][fPi][fSex] = '';
+          }
         }
+        updatePair(tSp, tPi, tSex, name);
+      };
+      if (occupantName && occupantName !== name) {
+        showConfirm(`Set ${occupantName} to Reserve and replace with ${name}?`, () => {
+          const displacedA = animals.find(x => x.name === occupantName);
+          if (displacedA) displacedA.status = 'Reserve';
+          doPlace();
+        });
+      } else {
+        doPlace();
       }
-      updatePair(tSp, tPi, tSex, name);
       _pairDrag = null;
     });
   });

@@ -4,6 +4,19 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.25 – Pair DnD fix & optimizer stat priority
+**2026-04-06**
+
+### Breeding Pairs
+- **Drag and drop fixed** — pair slot tiles in the Pairs tab now correctly accept drops; event listeners were previously only attached during Goals rendering, meaning DnD was silently non-functional in the Pairs tab
+- **Drag highlight fixed** — slot highlight no longer flickers when the cursor moves over a child element inside the slot (fixes the classic `dragleave`/`relatedTarget` bug)
+- **Occupied slot confirmation** — dropping an animal onto an already-filled slot now shows a confirmation dialog ("Set [name] to Reserve and replace with [name]?") instead of silently overwriting; displaced animal is set to Reserve status if confirmed
+
+### Optimizer
+- **Stat goal takes priority over bloodline diversity** — the bloodline diversity preference (spreading pairs across different bloodlines) no longer overrides a significantly better animal; diversity is now only applied among candidates with a non-negative score, so a negatively-weighted animal (e.g. Wild bloodline, base phenotype) can no longer be favored over a high-stat positive animal purely for variety
+
+---
+
 ## v0.24 – Side panel, tile polish & goal charts
 **2026-04-05**
 
