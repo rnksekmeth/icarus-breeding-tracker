@@ -1394,7 +1394,7 @@ let _saveTimer  = null;
 // v4 – no schema change (cross-breeding was config + UI-only)
 // v5 – goals[]: species-level goals replace per-pair bl/ph; phenoWeights/blPriority extended to -3..3; statGoal added
 /** Single source of truth for the displayed app version — update this on every release. */
-const APP_VERSION  = 'v0.25 – Pair DnD fix & optimizer stat priority';
+const APP_VERSION  = 'v0.25b – Pair pool cross-breed fix';
 document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('app-version'); if (el) el.textContent = APP_VERSION; });
 const DATA_VERSION = 5;
 
@@ -4683,7 +4683,8 @@ function renderPairs() {
     }).join('');
 
     // ── Pool: animals available to drag into pair slots ──────────
-    const usedInPairs = new Set(pairs.flatMap(p => [p.m, p.f]).filter(Boolean));
+    // Use all pairs across all species so cross-breed animals already slotted elsewhere don't show as available
+    const usedInPairs = new Set(Object.values(pairsMap).flatMap(ps => ps.flatMap(p => [p.m, p.f])).filter(Boolean));
     const poolAnimals = allPairAnimals.filter(a => !usedInPairs.has(a.name));
     const POOL_MAX = 8;
     let poolHtml = poolAnimals.slice(0, POOL_MAX).map(a => _buildPoolTile(a, sp)).join('');

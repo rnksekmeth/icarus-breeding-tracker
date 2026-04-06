@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.25b – Pair pool cross-breed fix
+**2026-04-06**
+
+### Breeding Pairs
+- **Cross-breed pool fix** — animals already slotted in any pair (including another species' pairs) no longer appear as available in the pool; previously only the current species' pairs were checked, so e.g. a SR in an SR slot would still show as available under DR
+
+---
+
 ## v0.25 – Pair DnD fix & optimizer stat priority
 **2026-04-06**
 
