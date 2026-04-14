@@ -611,10 +611,36 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
   <div class="form-row">
     <div class="field"><label>Species</label>
       <select id="f-species" onchange="onSpeciesChange()">
-        <option value="Dune Raptor">&#x1F996; Dune Raptor [DR]</option>
-        <option value="Geothermal Raptor">&#x1F995; Geothermal Raptor [GR]</option>
-        <option value="Moa">&#x1F426; Moa [BM]</option>
-        <option value="Slinker">&#x1F98E; Slinker [SL]</option>
+        <optgroup label="🐴 Mounts">
+          <option value="Dune Raptor">🦖 Dune Raptor [DR]</option>
+          <option value="Geothermal Raptor">🦎 Geothermal Raptor [GR]</option>
+          <option value="Moa">🦅 Moa [BM]</option>
+          <option value="Slinker">🦎 Slinker [SL]</option>
+          <option value="Arctic Moa">🐦 Arctic Moa [AM]</option>
+          <option value="Buffalo">🦬 Buffalo [BF]</option>
+          <option value="Draven">🐪 Draven [DV]</option>
+          <option value="Horse">🐴 Horse [HR]</option>
+          <option value="Terrenus">🐂 Terrenus [TE]</option>
+          <option value="Tusker">🦏 Tusker [TK]</option>
+          <option value="Ubis">🦩 Ubis [UB]</option>
+          <option value="Woolly Mammoth">🦣 Woolly Mammoth [WM]</option>
+          <option value="Zebra">🦓 Zebra [ZB]</option>
+        </optgroup>
+        <optgroup label="⚔️ Attack Pets">
+          <option value="Forest Wolf">🐺 Forest Wolf [WO]</option>
+          <option value="Gribbler">🐀 Gribbler [GB]</option>
+          <option value="Hyena">🐕 Hyena [HY]</option>
+          <option value="Skulk">🦎 Skulk [SK]</option>
+          <option value="Snow Wolf">🐺 Snow Wolf [SW]</option>
+          <option value="Storca">🦖 Storca [SC]</option>
+          <option value="Wild Boar">🐗 Wild Boar [WB]</option>
+        </optgroup>
+        <optgroup label="🌾 Utility Pets">
+          <option value="Cattle">🐄 Cattle – Cow/Bull [CT]</option>
+          <option value="Chicken">🐔 Chicken/Rooster [CK]</option>
+          <option value="Pig">🐷 Pig [PG]</option>
+          <option value="Sheep">🐑 Sheep/Ram [SH]</option>
+        </optgroup>
       </select></div>
     <div class="field"><label>Sex</label>
       <select id="f-sex" onchange="updateName()">
@@ -631,7 +657,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
     <div class="field"><label>Phenotype</label><select id="f-phenotype" onchange="updateName()"></select></div>
     <div class="field"><label>Gen</label><input type="number" id="f-gen" min="0" max="99" value="1" class="wide"></div>
   </div>
-  <div class="form-row">
+  <div class="form-row" id="parent-fields-row">
     <div class="field" style="flex:1;min-width:220px">
       <label>Parent 1 <span style="font-size:10px;color:#555;text-transform:none">(name, #ID, or Unknown)</span></label>
       <div class="parent-field-row">
@@ -648,6 +674,10 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
       </div>
       <div class="parent-compare" id="pc2"></div>
     </div>
+  </div>
+  <div id="no-breed-notice" style="display:none;font-size:11px;color:var(--dim);padding:4px 0 6px;border-top:1px solid var(--bdr);margin-top:4px;">
+    ⚠ This species cannot currently be bred — parents not tracked.
+    <span id="no-breed-source"></span>
   </div>
   <div class="prob-panel" id="prob-panel"></div>
   <div id="entry-reserve-info" style="font-size:11px;color:#aaa;margin-bottom:4px;display:none;">
@@ -723,12 +753,15 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
   </div>
   <div class="filters" id="filters-bar">
     <div class="filter-row">
+      <span class="filter-label">CATEGORY:</span>
+      <button class="filter-btn active" data-filter-type="category" onclick="setFilter('category','all',this)">All</button>
+      <button class="filter-btn" data-filter-type="category" onclick="setFilter('category','Mount',this)">🐴 Mounts</button>
+      <button class="filter-btn" data-filter-type="category" onclick="setFilter('category','Attack Pet',this)">⚔️ Attack Pets</button>
+      <button class="filter-btn" data-filter-type="category" onclick="setFilter('category','Utility Pet',this)">🌾 Utility</button>
+      <span class="filter-sep">|</span>
       <span class="filter-label">SPECIES:</span>
       <button class="filter-btn active" data-filter-type="species" onclick="setFilter('species','all',this)">All</button>
-      <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Dune Raptor',this)">&#x1F996; DR</button>
-      <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Geothermal Raptor',this)">&#x1F995; GR</button>
-      <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Moa',this)">&#x1F426; BM</button>
-      <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Slinker',this)">&#x1F98E; SL</button>
+      <span id="species-filter-pills"></span>
       <span class="filter-sep">|</span>
       <span class="filter-label">STATUS:</span>
       <button class="filter-btn active" data-filter-type="status" onclick="setFilter('status','all',this)">All</button>
@@ -1039,43 +1072,97 @@ const BLOODLINE_INFO = {
  * Each phenotype: { label, weight }
  * suffix for name is auto-derived: P0=base (empty), P1..PN = " P1 Name" or " P1"
  */
+// category: 'Mount' | 'Attack Pet' | 'Utility Pet'
+// breedable: can produce offspring (default true)
+// tameable:  found and tamed in the wild (false = station/mission only for first animals)
 const SPECIES_DATA = {
-  'Dune Raptor': { short:'DR', color:'#e8a020', wiki:'https://icarus.wiki.gg/wiki/Dune_Raptor', defaultPairs:4, phenotypes:[
+  // ── MOUNTS ──────────────────────────────────────────────────────
+  'Dune Raptor':       { category:'Mount',      short:'DR', color:'#e8a020', wiki:'https://icarus.wiki.gg/wiki/Dune_Raptor',       defaultPairs:4, breedable:true,  tameable:true,  phenotypes:[
     {label:'Dune Raptor (base)', weight:2000},
     {label:'Dune P1', weight:50}, {label:'Dune P2', weight:50},
     {label:'Dune P3', weight:50}, {label:'Dune P4', weight:50},
     {label:'Dune P5', weight:50},
-    {label:'Dune P6', weight:5}, {label:'Dune P7', weight:5}]},
-  'Geothermal Raptor': { short:'GR', color:'#2e8b57', wiki:'https://icarus.wiki.gg/wiki/Geothermal_Raptor', defaultPairs:1, phenotypes:[
+    {label:'Dune P6', weight:5},  {label:'Dune P7', weight:5}]},
+  'Geothermal Raptor': { category:'Mount',      short:'GR', color:'#2e8b57', wiki:'https://icarus.wiki.gg/wiki/Geothermal_Raptor', defaultPairs:1, breedable:true,  tameable:true,  phenotypes:[
     {label:'Geothermal Raptor (base)', weight:2000},
-    {label:'Swamp P1', weight:50}, {label:'Swamp P2', weight:50},
-    {label:'Swamp P3', weight:50}, {label:'Swamp P4', weight:50},
-    {label:'Swamp P5', weight:50},
-    {label:'Swamp P6', weight:5}, {label:'Swamp P7', weight:5}]},
-  'Moa': { short:'BM', color:'#4169e1', wiki:'https://icarus.wiki.gg/wiki/Moa', defaultPairs:4, phenotypes:[
-    {label:'Normal (base)',    weight:2000},
-    {label:'Chocolate',        weight:50},
-    {label:'Blue',             weight:50},
-    {label:'Camo',             weight:50},
-    {label:'Red/Pink',         weight:25},
-    {label:'Peacock/Kea',      weight:25},
-    {label:'Green',            weight:25},
-    {label:'Black',            weight:5}]},
-  'Slinker': { short:'SL', color:'#9b59b6', wiki:'https://icarus.wiki.gg/wiki/Slinker', defaultPairs:2, phenotypes:[
+    {label:'Geothermal P1', weight:50}, {label:'Geothermal P2', weight:50},
+    {label:'Geothermal P3', weight:50}, {label:'Geothermal P4', weight:50},
+    {label:'Geothermal P5', weight:50},
+    {label:'Geothermal P6', weight:5},  {label:'Geothermal P7', weight:5}]},
+  'Moa':               { category:'Mount',      short:'BM', color:'#4169e1', wiki:'https://icarus.wiki.gg/wiki/Moa',               defaultPairs:4, breedable:true,  tameable:true,  phenotypes:[
+    {label:'Normal (base)', weight:2000},
+    {label:'Chocolate',     weight:50},
+    {label:'Blue',          weight:50},
+    {label:'Camo',          weight:50},
+    {label:'Red/Pink',      weight:25},
+    {label:'Peacock/Kea',   weight:25},
+    {label:'Green',         weight:25},
+    {label:'Black',         weight:5}]},
+  'Slinker':           { category:'Mount',      short:'SL', color:'#9b59b6', wiki:'https://icarus.wiki.gg/wiki/Slinker',           defaultPairs:2, breedable:true,  tameable:true,  phenotypes:[
     {label:'Slinker (base)', weight:2000},
     {label:'Slinker P1', weight:50}, {label:'Slinker P2', weight:50},
     {label:'Slinker P3', weight:5},
     {label:'Slinker P4', weight:50}, {label:'Slinker P5', weight:50},
-    {label:'Slinker P6', weight:5}]}
+    {label:'Slinker P6', weight:5}]},
+  'Buffalo':           { category:'Mount',      short:'BF', color:'#8b6914', wiki:'https://icarus.wiki.gg/wiki/Buffalo',           defaultPairs:2, breedable:true,  tameable:true,  phenotypes:[
+    {label:'Buffalo (base)', weight:2000},
+    {label:'Buffalo P1', weight:50}, {label:'Buffalo P2', weight:50},
+    {label:'Buffalo P3', weight:50}, {label:'Buffalo P4', weight:50},
+    {label:'Buffalo P5', weight:50},
+    {label:'Buffalo P6', weight:5},  {label:'Buffalo P7', weight:5}]},
+  'Arctic Moa':        { category:'Mount',      short:'AM', color:'#89b4c8', wiki:'https://icarus.wiki.gg/wiki/Arctic_Moa',        defaultPairs:2, breedable:true,  tameable:true,  phenotypes:[
+    {label:'Arctic Moa (base)', weight:2000}]},
+  'Draven':            { category:'Mount',      short:'DV', color:'#c9a040', wiki:'https://icarus.wiki.gg/wiki/Draven',            defaultPairs:2, breedable:true,  tameable:true,  phenotypes:[
+    {label:'Draven (base)', weight:2000}]},
+  'Horse':             { category:'Mount',      short:'HR', color:'#c8904a', wiki:'https://icarus.wiki.gg/wiki/Horse',             defaultPairs:1, breedable:false, tameable:false, phenotypes:[
+    {label:'Brown (base)', weight:2000},
+    {label:'White',        weight:500},
+    {label:'Black',        weight:200}]},
+  'Terrenus':          { category:'Mount',      short:'TE', color:'#9a8060', wiki:'https://icarus.wiki.gg/wiki/Terrenus',          defaultPairs:2, breedable:true,  tameable:true,  phenotypes:[
+    {label:'Terrenus (base)', weight:2000}]},
+  'Tusker':            { category:'Mount',      short:'TK', color:'#8a9aaa', wiki:'https://icarus.wiki.gg/wiki/Tusker',            defaultPairs:2, breedable:true,  tameable:true,  phenotypes:[
+    {label:'Tusker (base)', weight:2000}]},
+  'Ubis':              { category:'Mount',      short:'UB', color:'#c85090', wiki:'https://icarus.wiki.gg/wiki/Ubis',              defaultPairs:2, breedable:true,  tameable:true,  phenotypes:[
+    {label:'Ubis (base)', weight:2000}]},
+  'Woolly Mammoth':    { category:'Mount',      short:'WM', color:'#6a4a2a', wiki:'https://icarus.wiki.gg/wiki/Woolly_Mammoth',    defaultPairs:1, breedable:false, tameable:true,  phenotypes:[
+    {label:'Woolly Mammoth (base)', weight:2000}]},
+  'Zebra':             { category:'Mount',      short:'ZB', color:'#a0a0a0', wiki:'https://icarus.wiki.gg/wiki/Zebra',             defaultPairs:1, breedable:false, tameable:true,  phenotypes:[
+    {label:'Zebra (base)', weight:2000}]},
+
+  // ── ATTACK PETS ─────────────────────────────────────────────────
+  'Gribbler':          { category:'Attack Pet', short:'GB', color:'#8a7050', wiki:'https://icarus.wiki.gg/wiki/Gribbler',          defaultPairs:1, breedable:false, tameable:true,  phenotypes:[
+    {label:'Gribbler (base)', weight:2000},
+    {label:'Gribbler P1', weight:50}, {label:'Gribbler P2', weight:50},
+    {label:'Gribbler P3', weight:50}, {label:'Gribbler P4', weight:50},
+    {label:'Gribbler P5', weight:50},
+    {label:'Gribbler P6', weight:5},  {label:'Gribbler P7', weight:5}]},
+  'Hyena':             { category:'Attack Pet', short:'HY', color:'#c89050', wiki:'https://icarus.wiki.gg/wiki/Hyena',             defaultPairs:1, breedable:false, tameable:true,  phenotypes:[
+    {label:'Hyena (base)', weight:2000}]},
+  'Skulk':             { category:'Attack Pet', short:'SK', color:'#5a6a6a', wiki:'https://icarus.wiki.gg/wiki/Skulk',             defaultPairs:1, breedable:false, tameable:true,  phenotypes:[
+    {label:'Skulk (base)', weight:2000}]},
+  'Snow Wolf':         { category:'Attack Pet', short:'SW', color:'#a0c0d8', wiki:'https://icarus.wiki.gg/wiki/Snow_Wolf',         defaultPairs:1, breedable:true,  tameable:true,  phenotypes:[
+    {label:'Snow Wolf (base)', weight:2000}]},
+  'Wild Boar':         { category:'Attack Pet', short:'WB', color:'#6a5040', wiki:'https://icarus.wiki.gg/wiki/Boar',              defaultPairs:1, breedable:false, tameable:true,  phenotypes:[
+    {label:'Wild Boar (base)', weight:2000}]},
+  'Forest Wolf':       { category:'Attack Pet', short:'WO', color:'#708060', wiki:'https://icarus.wiki.gg/wiki/Wolf',              defaultPairs:2, breedable:true,  tameable:true,  phenotypes:[
+    {label:'Wolf (base)', weight:2000},
+    {label:'Wolf P1', weight:50}, {label:'Wolf P2', weight:50},
+    {label:'Wolf P3', weight:50}, {label:'Wolf P4', weight:50},
+    {label:'Wolf P5', weight:50},
+    {label:'Wolf P6', weight:5},  {label:'Wolf P7', weight:5}]},
+  'Storca':            { category:'Attack Pet', short:'SC', color:'#5a8a7a', wiki:'https://icarus.wiki.gg/wiki/Storca',            defaultPairs:1, breedable:false, tameable:true,  phenotypes:[
+    {label:'Storca (base)', weight:2000}]},
+
+  // ── UTILITY PETS (Livestock) ─────────────────────────────────────
+  'Cattle':            { category:'Utility Pet', short:'CT', color:'#c08840', wiki:'https://icarus.wiki.gg/wiki/Pets',             defaultPairs:2, breedable:true,  tameable:false, phenotypes:[
+    {label:'Cattle (base)', weight:2000}]},
+  'Chicken':           { category:'Utility Pet', short:'CK', color:'#e8c040', wiki:'https://icarus.wiki.gg/wiki/Pets',            defaultPairs:2, breedable:true,  tameable:false, phenotypes:[
+    {label:'Chicken (base)', weight:2000}]},
+  'Sheep':             { category:'Utility Pet', short:'SH', color:'#d0cac0', wiki:'https://icarus.wiki.gg/wiki/Pets',             defaultPairs:2, breedable:true,  tameable:false, phenotypes:[
+    {label:'Sheep (base)', weight:2000}]},
+  'Pig':               { category:'Utility Pet', short:'PG', color:'#e09080', wiki:'https://icarus.wiki.gg/wiki/Pets#Pig',         defaultPairs:2, breedable:true,  tameable:false, phenotypes:[
+    {label:'Pig (base)', weight:2000}]}
 };
-// ── FUTURE SPECIES (not yet implemented) ─────────────────────────
-// Mounts (rideable): Bison, Deer, Horse (Desert/Forest/Snow), Mammoth,
-//   Mega Tortoise, Ostrich, Polar Bear, Razorback, Rhinox, Stag, Wolf, Zebra
-// Station-exclusive pets: Arctic Fox, Arctic Wolf, Bat, Crow, Fennec Fox, Fox,
-//   Hamster, Rabbit, Rat, Raven, Snow Owl, Squirrel
-// Note: When adding new species, review pair management UI — consider a
-//   species selector at the top of the Pairs tab and minimising inactive pairs
-//   to avoid the tab becoming unmanageable with 15+ species.
 
 // ── CROSS-BREEDING CONFIG ─────────────────────────────────────────
 // Cross-breeding removed — mechanic was bugged (DR/GR share skill trees).
@@ -1098,7 +1185,7 @@ let speciesOrder = [];   // user-defined order of species cards
 let cardWidths   = {};   // { [sp]: 1 | 2 } — 1=normal, 2=double-wide
 let nextSpAid = {};       // per-species sequential counters { DR:1, SR:1, ... }
 let sortCol = 'total', sortAsc = false;
-let filterSpecies = 'all', filterStatus = 'all', filterSex = 'all';
+let filterSpecies = 'all', filterStatus = 'all', filterSex = 'all', filterCategory = 'all';
 let filterBloodline = 'all', filterPhenotype = 'all', filterMinTotal = 0;
 let showDead = false, showStation = false;
 let editingId = null;
@@ -1403,7 +1490,7 @@ let _saveTimer  = null;
 // v5 – goals[]: species-level goals replace per-pair bl/ph; phenoWeights/blPriority extended to -3..3; statGoal added
 // v6 – rename 'Swamp Raptor' → 'Geothermal Raptor' in all animal, pair, and goal data
 /** Single source of truth for the displayed app version — update this on every release. */
-const APP_VERSION  = 'v0.27b – Pentest XSS audit & browser security';
+const APP_VERSION  = 'v0.28 – New species, categories & breedable flag';
 document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('app-version'); if (el) el.textContent = APP_VERSION; });
 const DATA_VERSION = 6;
 
@@ -2742,9 +2829,20 @@ function renderGoals() {
   const goalsChips = $id('goals-chips-row');
   if (goalsChips) goalsChips.innerHTML = '';
 
+  const CATEGORY_LABELS_G = {'Mount':'🐴 Mounts','Attack Pet':'⚔️ Attack Pets','Utility Pet':'🌾 Utility Pets'};
+  let _lastGoalCat = null;
   for (const sp of getSpeciesOrder()) {
     const cfg = SPECIES_DATA[sp];
     if (!cfg) continue;
+    const cat = cfg.category || 'Mount';
+    if (cat !== _lastGoalCat) {
+      _lastGoalCat = cat;
+      const hdr = document.createElement('div');
+      hdr.className = 'span-2';
+      hdr.style.cssText = 'font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;padding:4px 0 2px;border-bottom:1px solid var(--bdr);margin-top:4px;';
+      hdr.textContent = CATEGORY_LABELS_G[cat] || cat;
+      grid.appendChild(hdr);
+    }
     const goals = goalsMap[sp];
     const n = pairCounts[sp] || cfg.defaultPairs;
     const card = document.createElement('div');
@@ -3322,14 +3420,29 @@ function buildStatsRow() {
 function onSpeciesChange() {
   dismissPairAssign();
   const sp  = $val('f-species');
+  const cfg = SPECIES_DATA[sp] || {};
   const sel = $id('f-phenotype');
   sel.innerHTML = '';
-  (SPECIES_DATA[sp]?.phenotypes ?? []).forEach((p, i) => {
+  (cfg.phenotypes ?? []).forEach((p, i) => {
     const opt = document.createElement('option');
     opt.value = p.label;
     opt.textContent = i === 0 ? p.label : `P${i} · ${p.label}`;
     sel.appendChild(opt);
   });
+
+  // Show/hide parent fields based on breedable flag
+  const breedable = cfg.breedable !== false;
+  const parentRow  = $id('parent-fields-row');
+  const noBreedEl  = $id('no-breed-notice');
+  const srcEl      = $id('no-breed-source');
+  if (parentRow) parentRow.style.display = breedable ? '' : 'none';
+  if (noBreedEl) noBreedEl.style.display  = breedable ? 'none' : '';
+  if (srcEl && !breedable) {
+    srcEl.textContent = cfg.tameable === false
+      ? '(Obtained from station or special mission.)'
+      : '(Tame only — breeding not yet available in game.)';
+  }
+
   buildStatsRow();
   updateName();
 }
@@ -3707,6 +3820,7 @@ function setFilter(type, val, btn) {
   if (type === 'species')   filterSpecies   = val;
   if (type === 'status')    filterStatus    = val;
   if (type === 'sex')       filterSex       = val;
+  if (type === 'category')  { filterCategory = val; filterSpecies = 'all'; document.querySelectorAll('[data-filter-type="species"]').forEach(b => b.classList.toggle('active', b.dataset.filterVal === 'all' || !b.dataset.filterVal)); }
   if (type === 'bloodline') filterBloodline = val;
   if (type === 'phenotype') filterPhenotype = val;
   // Update active state only for buttons in the same filter group
@@ -3804,13 +3918,14 @@ function renderHerd() {
     (showDead    || a.status !== 'Dead') &&
     (showStation || a.status !== 'Station')
   );
-  const buildDynamicPills = (containerId, filterType, currentVal, getVal) => {
+  const buildDynamicPills = (containerId, filterType, currentVal, getVal, getLabel) => {
     const container = $id(containerId);
     if (!container) return;
     const vals = [...new Set(baseAnimals.map(getVal).filter(Boolean))].sort();
     const makeBtn = v => {
       const active = currentVal === v ? ' active' : '';
-      return `<button class="filter-btn${active}" data-filter-type="${filterType}" onclick="setFilter('${$esc(filterType)}','${$esc(v)}',this)">${$h(v)}</button>`;
+      const label  = getLabel ? getLabel(v) : v;
+      return `<button class="filter-btn${active}" data-filter-type="${filterType}" onclick="setFilter('${$esc(filterType)}','${$esc(v)}',this)">${$h(label)}</button>`;
     };
     const allActive = currentVal === 'all' ? ' active' : '';
     container.innerHTML = `<button class="filter-btn${allActive}" data-filter-type="${filterType}" onclick="setFilter('${filterType}','all',this)">All</button>` +
@@ -3818,10 +3933,12 @@ function renderHerd() {
   };
   buildDynamicPills('filter-bloodline-pills', 'bloodline', filterBloodline, a => a.bl);
   buildDynamicPills('filter-phenotype-pills', 'phenotype', filterPhenotype, a => a.ph ? getPhenoFilterLabel(a.sp, a.ph) : null);
+  buildDynamicPills('species-filter-pills',   'species',   filterSpecies,   a => a.sp, sp => { const c = SPECIES_DATA[sp]; return c ? `${_spIcon(sp)} ${c.short}` : sp; });
 
   // ── Apply filters ─────────────────────────────────────────────────
   if (!showDead)     list = list.filter(a => a.status !== 'Dead');
   if (!showStation)  list = list.filter(a => a.status !== 'Station');
+  if (filterCategory  !== 'all') list = list.filter(a => (SPECIES_DATA[a.sp]?.category || '') === filterCategory);
   if (filterSpecies   !== 'all') list = list.filter(a => a.sp === filterSpecies);
   if (filterStatus    !== 'all') list = list.filter(a => a.status === filterStatus);
   if (filterSex       !== 'all') list = list.filter(a => a.sex === filterSex);
@@ -4687,9 +4804,20 @@ function renderPairs() {
     if (cur) addSel.value = cur;
   }
 
+  const CATEGORY_LABELS = {'Mount':'🐴 Mounts','Attack Pet':'⚔️ Attack Pets','Utility Pet':'🌾 Utility Pets'};
+  let _lastPairCat = null;
   for (const sp of getSpeciesOrder()) {
     const cfg = SPECIES_DATA[sp];
     if (!cfg) continue;
+    const cat = cfg.category || 'Mount';
+    if (cat !== _lastPairCat) {
+      _lastPairCat = cat;
+      const hdr = document.createElement('div');
+      hdr.className = 'span-2';
+      hdr.style.cssText = 'font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;padding:4px 0 2px;border-bottom:1px solid var(--bdr);margin-top:4px;';
+      hdr.textContent = CATEGORY_LABELS[cat] || cat;
+      grid.appendChild(hdr);
+    }
     const n = pairCounts[sp] || 1;
     const pairs = (pairsMap[sp] || []).slice(0, n);
     const goals = goalsMap[sp] || {};
@@ -5228,8 +5356,13 @@ initStorage();
 // ═══════════════════════════════════════════════════════════════
 
 // Species icons for tile display
-const _SP_ICONS = {DR:'🦖',GR:'🦎',BM:'🦅',WO:'🐺',BE:'🐻',MA:'🐲'};
-function _spIcon(name){ return _SP_ICONS[(name||'').slice(0,2)] || '🐾'; }
+const _SP_ICONS = {
+  DR:'🦖', GR:'🦎', BM:'🦅', SL:'🦎',  // existing
+  BF:'🦬', AM:'🐦', DV:'🐪', HR:'🐴', TE:'🐂', TK:'🦏', UB:'🦩', WM:'🦣', ZB:'🦓', // mounts
+  GB:'🐀', HY:'🐕', SK:'🦎', SW:'🐺', WB:'🐗', WO:'🐺', SC:'🦖',                    // attack pets
+  CT:'🐄', CK:'🐔', SH:'🐑', PG:'🐷',                                                 // utility
+};
+function _spIcon(sp){ const cfg = SPECIES_DATA[sp]; return _SP_ICONS[cfg?.short || ''] || '🐾'; }
 
 // Build a filled tile for inside a pair slot
 function _buildPairTile(a, sp, pairIdx, sex, makeBadge) {
@@ -5250,7 +5383,7 @@ function _buildPairTile(a, sp, pairIdx, sex, makeBadge) {
     title="${$esc(a.name)} · ${$h(a.bl)} · ${tot}"
     style="--ph-border:${phRarityCol}"
     onclick="viewAnimal(${a.id})"
-  ><span class="tile-icon">${_spIcon(a.name)}</span
+  ><span class="tile-icon">${_spIcon(a.sp)}</span
   ><span class="tile-name">${tileId}</span
   ><span class="tile-bl-badge" style="color:${blCol};border-color:${blCol}">${$h(a.bl)}</span
   ><span class="tile-stat">${tot}</span
@@ -5273,7 +5406,7 @@ function _buildPoolTile(a, sp) {
     onclick="viewAnimal(${a.id})"
     title="${$esc(a.name)} · ${$h(a.bl)} · ${tot}"
     style="--ph-border:${phRarityCol}"
-  ><span class="tile-icon">${_spIcon(a.name)}</span
+  ><span class="tile-icon">${_spIcon(a.sp)}</span
   ><span class="tile-name">${tileId}</span
   ><span class="tile-bl-badge" style="color:${blCol};border-color:${blCol}">${$h(a.bl)}</span
   ><span class="tile-stat">${tot}</span

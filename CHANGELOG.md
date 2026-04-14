@@ -4,6 +4,47 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.28 – New species, categories & breedable flag
+**2026-04-14**
+
+### New Species — Mounts (13 total, up from 4)
+- **Arctic Moa** [AM] — breedable, P0 only
+- **Buffalo** [BF] — breedable, P0–P7
+- **Draven** [DV] — breedable, P0 only
+- **Horse** [HR] — station-only, not breedable; comes in Brown (base), White, Black
+- **Terrenus** [TE] — breedable, P0 only
+- **Tusker** [TK] — breedable, P0 only
+- **Ubis** [UB] — breedable, P0 only
+- **Woolly Mammoth** [WM] — tameable but not breedable, P0 only
+- **Zebra** [ZB] — mission-tame only, not breedable, P0 only
+
+### New Species — Attack Pets
+- **Forest Wolf** [WO] — breedable, P0–P7
+- **Gribbler** [GB] — tameable only, P0–P7
+- **Hyena** [HY] — tameable only, P0 only
+- **Skulk** [SK] — tameable only, P0 only
+- **Snow Wolf** [SW] — breedable, P0 only
+- **Storca** [SC] — tameable only, P0 only
+- **Wild Boar** [WB] — tameable only, P0 only
+
+### New Species — Utility Pets (Livestock)
+- **Cattle** [CT] — Cow (F) / Bull (M); station-obtained, breedable, P0
+- **Chicken** [CK] — Hen (F) / Rooster (M); station-obtained, breedable, P0
+- **Pig** [PG] — station-obtained, breedable, P0
+- **Sheep** [SH] — Ewe (F) / Ram (M); station-obtained, breedable, P0
+
+### Categories
+- All species now have a category: **Mount**, **Attack Pet**, or **Utility Pet**
+- Species dropdown in the entry form is grouped by category using native optgroup
+- **Category filter pills** added to My Herd tab (filter by type alongside species/status/sex)
+- **Category section headers** appear in Pairs and Goals tabs between species cards
+
+### Breedable flag
+- Non-breedable species (Horse, Zebra, Woolly Mammoth, Gribbler, Hyena, Skulk, Wild Boar, Storca) hide the parent fields in the entry form with a note explaining why
+- Flag defaults to true for all existing species; no data migration needed
+
+---
+
 ## v0.27b – Pentest XSS audit & browser security
 **2026-04-14**
 
