@@ -143,8 +143,8 @@ button{cursor:pointer;border:none;border-radius:4px;font-size:12px;}
 .advice-temp .advice-score{color:var(--tmp);}
 .advice-actions{display:flex;align-items:center;gap:6px;padding-top:5px;}
 /* Probability panel */
-.prob-hdr{font-size:11px;color:var(--blu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
-.prob-theory-notice{background:rgba(255,170,0,.1);border:1px solid #5a3800;border-radius:4px;padding:5px 10px;margin-bottom:10px;font-size:11px;color:var(--tmp);font-weight:bold;text-align:center;}
+.prob-hdr{font-size:11px;color:var(--blu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+.prob-hdr .prob-toggle{font-size:10px;color:var(--dim);margin-left:8px;flex-shrink:0;}
 .prob-section{margin-bottom:10px;}
 .prob-section:last-child{margin-bottom:0;}
 .prob-section-hdr{font-size:10px;color:var(--acc);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;padding-bottom:3px;border-bottom:1px solid var(--bdr);}
@@ -1395,10 +1395,11 @@ let _saveTimer  = null;
 // v3 – no schema change (pair exclusivity was UI-only)
 // v4 – no schema change (cross-breeding was config + UI-only)
 // v5 – goals[]: species-level goals replace per-pair bl/ph; phenoWeights/blPriority extended to -3..3; statGoal added
+// v6 – rename 'Swamp Raptor' → 'Geothermal Raptor' in all animal, pair, and goal data
 /** Single source of truth for the displayed app version — update this on every release. */
-const APP_VERSION  = 'v0.26 – Favicon, level field, breed log & GR rename';
+const APP_VERSION  = 'v0.26b – Numeric sort, GR migration & odds toggle';
 document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('app-version'); if (el) el.textContent = APP_VERSION; });
-const DATA_VERSION = 5;
+const DATA_VERSION = 6;
 
 // The version of the data that was last loaded from disk/storage.
 // Set by applyData() and loadFromLocalStorage(); used by migrateMemory().
@@ -1531,6 +1532,19 @@ function migrateMemory() {
       if (!g.blPriority.Unstable) g.blPriority.Unstable = 2;
     }
     dirty = true;
+  }
+
+  // ── v5 → v6: rename Swamp Raptor → Geothermal Raptor in all data ──
+  if (loadedDataVersion < 6) {
+    const OLD = 'Swamp Raptor', NEW = 'Geothermal Raptor';
+    animals.forEach(a => {
+      if (a.sp === OLD) { a.sp = NEW; dirty = true; }
+      if (a.ph && a.ph.startsWith('Swamp Raptor')) { a.ph = a.ph.replace('Swamp Raptor', 'Geothermal Raptor'); dirty = true; }
+    });
+    // Migrate pairsMap keys
+    if (pairsMap[OLD]) { pairsMap[NEW] = pairsMap[OLD]; delete pairsMap[OLD]; dirty = true; }
+    // Migrate goalsMap keys
+    if (goalsMap[OLD]) { goalsMap[NEW] = goalsMap[OLD]; delete goalsMap[OLD]; dirty = true; }
   }
 
   // ── Always-run baseline: fill required fields on all animals ──────
@@ -3175,7 +3189,11 @@ function renderProbPanel() {
   const cfg = SPECIES_DATA[sp];
   const totalWeight = cfg.phenotypes.reduce((s, p) => s + (p.weight || 1), 0);
 
-  let html = `<div class="prob-hdr">Breeding Odds · 40% ♀ / 40% ♂ / 20% mutation</div>`;
+  const isCollapsed = panel.dataset.collapsed === '1';
+  const toggleLabel = isCollapsed ? '▶ Show' : '▼ Hide';
+  let html = `<div class="prob-hdr" onclick="this.parentElement.dataset.collapsed=this.parentElement.dataset.collapsed==='1'?'0':'1';renderProbPanel()"><span>Breeding Odds · 40% ♀ / 40% ♂ / 20% mutation</span><span class="prob-toggle">${toggleLabel}</span></div>`;
+  if (isCollapsed) { panel.innerHTML = html; panel.classList.add('show'); return; }
+  html += `<div class="prob-body">`;
 
   // Phenotype
   html += `<div class="prob-section"><div class="prob-section-hdr">Phenotype Inheritance</div>`;
@@ -3218,7 +3236,7 @@ function renderProbPanel() {
     });
     html += `</div>`;
   }
-  html += `<div class="prob-theory-notice" style="margin-top:10px;margin-bottom:0">⚠ THEORY ONLY — Percentages are unconfirmed estimates based on standard breeding mechanics. Actual in-game odds may differ.</div>`;
+  html += `</div>`;
   panel.innerHTML = html;
   panel.classList.add('show');
 }
@@ -3714,7 +3732,7 @@ function getSortVal(a, col) {
   if (col === 'bloodline') return (a.bl  || '').toLowerCase();
   if (col === 'phenotype') return (a.ph  || '').toLowerCase();
   if (col === 'sex')       return (a.sex || '').toLowerCase();
-  if (col === 'name')      return (a.name || '').toLowerCase();
+  if (col === 'name')      return (a.sp || '') + String(a.spId || 0).padStart(6, '0');
   if (col === 'status')    return (a.status || '').toLowerCase();
   const stL = STATS.map(s => s.toLowerCase());
   if (stL.includes(col)) return a.stats[col.toUpperCase()] || 0;

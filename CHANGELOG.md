@@ -4,6 +4,21 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.26b – Numeric sort, GR data migration & odds panel toggle
+**2026-04-14**
+
+### My Herd
+- **Numeric name sort** — Name column now sorts by species ID numerically (DR9 → DR10 → DR100) instead of lexicographically
+
+### Breeding Pairs
+- **Breeding Odds collapsible** — the panel header is now clickable to collapse/expand; collapsed state persists while the panel is open
+- **Removed theory warning** — "THEORY ONLY" notice removed from the Breeding Odds panel
+
+### Data
+- **v6 migration** — existing save data with `Swamp Raptor` animals, pairs and goals is automatically renamed to `Geothermal Raptor` on first load; runs once and saves immediately
+
+---
+
 ## v0.26 – Favicon, level field, breed log & GR rename
 **2026-04-14**
 
