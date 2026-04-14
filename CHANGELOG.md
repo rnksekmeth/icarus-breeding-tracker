@@ -4,6 +4,29 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.26 – Favicon, level field, breed log & GR rename
+**2026-04-14**
+
+### UI
+- **Favicon** — added raptor footprint tab icon (dark background, orange claw); no more generic browser globe icon
+
+### Animals
+- **Level field** — optional level input (1–50) on the Add/Edit Animal form; displayed as a badge in the Animal View panel
+- **Mutation rate estimate** — Unstable animals with a level set show an estimated phenotype/bloodline mutation rate in the viewer (scales from ~20% at level 1 to ~65% at level 50)
+
+### Log
+- **Breed outcomes** — adding a bred animal now logs the bloodline, phenotype and stat total: `🥚 [name] bred — [bl] / [ph] / [X] stats`; a new "Bred" filter button in the log makes these easy to find
+- Tamed animals now log as `Added [name] (tamed)` to distinguish from bred entries
+
+### Breeding Pairs
+- **Removed DR/GR cross-breeding** — `CROSS_BREEDS` emptied and cross-breed banner removed from the Pairs tab; mechanic was bugged due to DR and GR sharing skill trees
+- **Share My Herd colours** — card colours now match the app's dark green theme (`--bg`, `--card`, `--acc`, `--bdr`) instead of the old blue palette
+
+### Species
+- **Swamp Raptor renamed to Geothermal Raptor** — abbreviation updated from SR to GR across all tabs, filters, species data, icons and wiki links
+
+---
+
 ## v0.25b – Pair pool cross-breed fix
 **2026-04-06**
 

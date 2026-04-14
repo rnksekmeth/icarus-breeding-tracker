@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Icarus Breeding Tracker</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%23131512'/%3E%3Cg stroke='%23c87a1a' stroke-width='2.8' stroke-linecap='round'%3E%3Cline x1='16' y1='27' x2='16' y2='14'/%3E%3Cline x1='16' y1='14' x2='8' y2='5'/%3E%3Cline x1='16' y1='14' x2='16' y2='4'/%3E%3Cline x1='16' y1='14' x2='24' y2='5'/%3E%3C/g%3E%3C/svg%3E">
 <style>
 :root {
   --bg:#131512;--panel:#191c18;--card:#1d2019;
@@ -41,6 +42,7 @@
 .log-type-pair{background:rgba(204,136,255,.15);color:var(--pur);}
 .log-type-delete{background:rgba(255,85,85,.15);color:var(--red);}
 .log-type-suggestion{background:rgba(255,170,0,.15);color:var(--tmp);}
+.log-type-breed{background:rgba(90,173,90,.15);color:#7dd87d;}
 .log-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;align-items:center;}
 .log-search{background:var(--inp);color:var(--wht);border:1px solid var(--bdr);border-radius:4px;padding:5px 10px;font-size:12px;outline:none;width:200px;}
 .log-search:focus{border-color:var(--acc);}
@@ -609,7 +611,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
     <div class="field"><label>Species</label>
       <select id="f-species" onchange="onSpeciesChange()">
         <option value="Dune Raptor">&#x1F996; Dune Raptor [DR]</option>
-        <option value="Swamp Raptor">&#x1F995; Swamp Raptor [SR]</option>
+        <option value="Geothermal Raptor">&#x1F995; Geothermal Raptor [GR]</option>
         <option value="Moa">&#x1F426; Moa [BM]</option>
         <option value="Slinker">&#x1F98E; Slinker [SL]</option>
       </select></div>
@@ -698,6 +700,8 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
       </select></div>
     <div class="field" style="flex:1"><label>Notes</label>
       <input type="text" id="f-notes" placeholder="Optional notes&#x2026;" style="width:100%"></div>
+    <div class="field" style="width:90px"><label>Level <span style="color:var(--dim);font-weight:normal;font-size:10px">opt.</span></label>
+      <input type="number" id="f-level" min="1" max="50" placeholder="1–50" class="wide"></div>
     <div class="field" style="justify-content:flex-end;flex-direction:row;gap:8px">
       <button class="btn-sm" id="clear-form-btn" onclick="clearEntryForm()" style="height:34px;padding:0 16px;color:var(--dim)">🗑 Clear</button>
       <button class="btn-sm" id="cancel-edit-btn" onclick="cancelEdit()" style="display:none;height:34px;padding:0 16px">✕ Cancel Edit</button>
@@ -721,7 +725,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
       <span class="filter-label">SPECIES:</span>
       <button class="filter-btn active" data-filter-type="species" onclick="setFilter('species','all',this)">All</button>
       <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Dune Raptor',this)">&#x1F996; DR</button>
-      <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Swamp Raptor',this)">&#x1F995; SR</button>
+      <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Geothermal Raptor',this)">&#x1F995; GR</button>
       <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Moa',this)">&#x1F426; BM</button>
       <button class="filter-btn" data-filter-type="species" onclick="setFilter('species','Slinker',this)">&#x1F98E; SL</button>
       <span class="filter-sep">|</span>
@@ -862,6 +866,7 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
     <button class="filter-btn"        data-log-filter="edit"    onclick="setLogFilter('edit',this)">&#x270F; Edited</button>
     <button class="filter-btn"        data-log-filter="status"  onclick="setLogFilter('status',this)">&#x1F504; Status</button>
     <button class="filter-btn"        data-log-filter="pair"    onclick="setLogFilter('pair',this)">&#x1F500; Pairs</button>
+    <button class="filter-btn"        data-log-filter="breed"   onclick="setLogFilter('breed',this)">&#x1F95A; Bred</button>
     <button class="filter-btn"        data-log-filter="delete"  onclick="setLogFilter('delete',this)">&#x1F5D1; Deleted</button>
     <button class="filter-btn"        data-log-filter="suggestion" onclick="setLogFilter('suggestion',this)">&#x1F4A1; Suggestions</button>
     <input type="text" class="log-search" id="log-search-input" placeholder="&#x1F50D; Search log..." oninput="renderLog()">
@@ -1040,8 +1045,8 @@ const SPECIES_DATA = {
     {label:'Dune P3', weight:50}, {label:'Dune P4', weight:50},
     {label:'Dune P5', weight:50},
     {label:'Dune P6', weight:5}, {label:'Dune P7', weight:5}]},
-  'Swamp Raptor': { short:'SR', color:'#2e8b57', wiki:'https://icarus.wiki.gg/wiki/Swamp_Raptor', defaultPairs:1, phenotypes:[
-    {label:'Swamp Raptor (base)', weight:2000},
+  'Geothermal Raptor': { short:'GR', color:'#2e8b57', wiki:'https://icarus.wiki.gg/wiki/Geothermal_Raptor', defaultPairs:1, phenotypes:[
+    {label:'Geothermal Raptor (base)', weight:2000},
     {label:'Swamp P1', weight:50}, {label:'Swamp P2', weight:50},
     {label:'Swamp P3', weight:50}, {label:'Swamp P4', weight:50},
     {label:'Swamp P5', weight:50},
@@ -1072,11 +1077,8 @@ const SPECIES_DATA = {
 //   to avoid the tab becoming unmanageable with 15+ species.
 
 // ── CROSS-BREEDING CONFIG ─────────────────────────────────────────
-// Add species pairs here if more cross-breed combinations are introduced in future.
-const CROSS_BREEDS = {
-  'Dune Raptor':  ['Swamp Raptor'],
-  'Swamp Raptor': ['Dune Raptor'],
-};
+// Cross-breeding removed — mechanic was bugged (DR/GR share skill trees).
+const CROSS_BREEDS = {};
 
 // ── STORAGE KEYS ─────────────────────────────────────────────────
 const KEYS = {
@@ -1158,7 +1160,7 @@ function resetFormUI() {
     if (el) { el.value = ''; el.classList.remove('maxed', 'zero'); }
   });
   // Clear all text entry fields
-  ['f-p1', 'f-p2', 'f-notes', 'f-custom-name', 'f-nickname'].forEach(id => {
+  ['f-p1', 'f-p2', 'f-notes', 'f-custom-name', 'f-nickname', 'f-level'].forEach(id => {
     const el = $id(id);
     if (el) el.value = '';
   });
@@ -1394,7 +1396,7 @@ let _saveTimer  = null;
 // v4 – no schema change (cross-breeding was config + UI-only)
 // v5 – goals[]: species-level goals replace per-pair bl/ph; phenoWeights/blPriority extended to -3..3; statGoal added
 /** Single source of truth for the displayed app version — update this on every release. */
-const APP_VERSION  = 'v0.25b – Pair pool cross-breed fix';
+const APP_VERSION  = 'v0.26 – Favicon, level field, breed log & GR rename';
 document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('app-version'); if (el) el.textContent = APP_VERSION; });
 const DATA_VERSION = 5;
 
@@ -3537,6 +3539,7 @@ function saveAnimal() {
   const p2raw  = $val('f-p2');
   const status = $val('f-status');
   const notes  = $val('f-notes');
+  const level  = parseInt($id('f-level')?.value) || null;
   const stats  = getFormStats();
 
   const resolveParent = raw => {
@@ -3590,7 +3593,7 @@ function saveAnimal() {
 
   const nickname = ($id('f-nickname')?.value || '').trim();
   const favorite = editingId ? (oldAnimal?.favorite ?? false) : false;
-  const animal = { id, spId: animalSpId, sp, sex, bl, ph, gen, p1, p2, isBred, stats, total, name, nickname, favorite, status, notes };
+  const animal = { id, spId: animalSpId, sp, sex, bl, ph, gen, p1, p2, isBred, stats, total, name, nickname, favorite, status, notes, ...(level ? { level } : {}) };
 
   if (editingId) {
     const i = animals.findIndex(a => a.id === editingId);
@@ -3608,7 +3611,13 @@ function saveAnimal() {
   }
 
   saveAndRefreshFull();
-  addLog(wasEditing ? `✏ Edited ${name}` : `➕ Added ${name}`, wasEditing ? 'edit' : 'add');
+  if (wasEditing) {
+    addLog(`✏ Edited ${name}`, 'edit');
+  } else if (isBred) {
+    addLog(`🥚 ${name} bred — ${bl} / ${ph} / ${total} stats`, 'breed');
+  } else {
+    addLog(`➕ Added ${name} (tamed)`, 'add');
+  }
 
   const fb = $id('save-feedback');
   fb.textContent = `Saved ${formatSpId(sp, animalSpId)}: ${name}`;
@@ -3870,6 +3879,7 @@ function editAnimal(id) {
   $id('f-p2').value = a.p2 || ''; onParentInput(2);
   $id('f-status').value = a.status || '?';
   $id('f-notes').value = a.notes || '';
+  const lvlEl = $id('f-level'); if (lvlEl) lvlEl.value = a.level || '';
   STATS.forEach(s => {
     const el = $id(`stat-${s}`);
     if (el) { el.value = a.stats[s] || 0; onStatInput(el, s); }
@@ -4249,14 +4259,17 @@ async function shareHerd() {
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // Background
-  ctx.fillStyle = '#0a1628';
+  // Background — matches app --bg
+  ctx.fillStyle = '#131512';
   ctx.fillRect(0, 0, W, H);
 
-  // Header
-  ctx.fillStyle = '#112040';
+  // Header — matches app --panel
+  ctx.fillStyle = '#191c18';
   ctx.fillRect(0, 0, W, HDR + PAD);
-  ctx.fillStyle = '#f0f0f0';
+  // Header accent bar at bottom of header
+  ctx.fillStyle = '#c87a1a';
+  ctx.fillRect(0, HDR + PAD - 2, W, 2);
+  ctx.fillStyle = '#cdd3c5';
   ctx.font = 'bold 18px system-ui, sans-serif';
   ctx.fillText('🦖 Icarus Breeding Tracker', PAD, PAD + 22);
   const speciesFilterSp = ($id('share-species-pick') || {}).value;
@@ -4265,7 +4278,7 @@ async function shareHerd() {
     species_filter: speciesFilterSp ? `Best ${SPECIES_DATA[speciesFilterSp]?.short || speciesFilterSp}` : 'Species Filter',
     breeders:'Active Breeders', all:'All Active', manual:'Custom Selection'
   }[mode] || mode;
-  ctx.fillStyle = '#88aabb';
+  ctx.fillStyle = '#58615a';
   ctx.font = '12px system-ui, sans-serif';
   ctx.fillText(modeLabel + ' · ' + list.length + ' animal' + (list.length>1?'s':''), PAD, PAD + 40);
 
@@ -4279,8 +4292,8 @@ async function shareHerd() {
     const tot  = getTotal(animal.stats, animal.sp);
     const sIcon = STATUS_ICON[animal.status] || '';
 
-    // Card background
-    ctx.fillStyle = '#112040';
+    // Card background — matches app --card
+    ctx.fillStyle = '#1d2019';
     _roundRect(ctx, x, y, CW, CH, 6);
     ctx.fill();
 
@@ -4301,7 +4314,7 @@ async function shareHerd() {
 
     // Animal name (truncate to fit)
     const nameMax = CW - 42;
-    ctx.fillStyle = '#f0f0f0';
+    ctx.fillStyle = '#cdd3c5';
     ctx.font = 'bold 12px system-ui, sans-serif';
     let name = animal.name || '—';
     while (ctx.measureText(name).width > nameMax && name.length > 4) name = name.slice(0,-1);
@@ -4313,8 +4326,8 @@ async function shareHerd() {
     ctx.font = '11px system-ui, sans-serif';
     ctx.fillText(animal.bl || '—', x + 12, y + 47);
 
-    // Divider
-    ctx.strokeStyle = '#1e3a5a';
+    // Divider — matches app --bdr
+    ctx.strokeStyle = '#22261f';
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(x+8, y+53); ctx.lineTo(x+CW-8, y+53); ctx.stroke();
 
@@ -4325,16 +4338,16 @@ async function shareHerd() {
     statKeys.forEach((k, si) => {
       const sx = x + 10 + si * sW;
       const v  = animal.stats[k] ?? 0;
-      ctx.fillStyle = '#556677';
+      ctx.fillStyle = '#58615a';
       ctx.fillText(k, sx, y + 66);
-      ctx.fillStyle = '#ddeeff';
+      ctx.fillStyle = '#cdd3c5';
       ctx.font = 'bold 11px system-ui, sans-serif';
       ctx.fillText(v, sx, y + 80);
       ctx.font = '9px system-ui, sans-serif';
     });
 
-    // Total
-    ctx.fillStyle = '#ffcc55';
+    // Total — matches app --acc
+    ctx.fillStyle = '#c87a1a';
     ctx.font = 'bold 13px system-ui, sans-serif';
     ctx.fillText('Σ ' + tot, x + 12, y + CH - 10);
 
@@ -4351,7 +4364,7 @@ async function shareHerd() {
   });
 
   // Footer
-  ctx.fillStyle = '#334455';
+  ctx.fillStyle = '#3a3f3c';
   ctx.font = '10px system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('icarus.wiki.gg/wiki/Breeding  ·  Made with Icarus Breeding Tracker', W/2, H - 10);
@@ -4533,10 +4546,11 @@ function viewAnimal(id) {
     ${dot}
     <h3 style="color:var(--acc);font-size:14px;margin:0;flex:1;line-height:1.2">${displayName(a)}${a.nickname ? `<br><span style="color:var(--dim);font-size:10px;font-weight:normal">${a.name}</span>` : ''}</h3>
   </div>
-  <div class="view-badges">${blBadge}${phBadge}${genBadge}${sexBadge}</div>
+  <div class="view-badges">${blBadge}${phBadge}${genBadge}${sexBadge}${a.level ? `<span class="view-badge-gen">LV ${a.level}</span>` : ''}</div>
   <div style="font-size:11px;margin-bottom:4px">
     <span style="color:var(--dim)">Parents:</span> ${parentSpans}
     ${currentPairNote ? `<br>${currentPairNote}` : ''}
+    ${a.level && a.bl === 'Unstable' ? `<br><span style="color:#7dd87d;font-size:10px">⚡ Est. mutation rate: ~${Math.round(20 + (a.level/50)*45)}%</span>` : ''}
   </div>
   <div style="font-size:12px;margin-bottom:6px">
     <strong style="color:${pct>=92?'#00cc55':pct>=75?'#ffd700':'#ff9944'}">${tot} / ${maxT}</strong>
@@ -4703,12 +4717,7 @@ function renderPairs() {
     if (!upgHtml) upgHtml = `<div style="color:var(--dim);font-size:11px;padding:4px 0">Add animals to see recommendations.</div>`;
 
     const bo = getBreedOut(sp);
-    const crossNote = crossPartners.length ? `
-      <div style="font-size:11px;color:var(--yel);background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.2);border-radius:4px;padding:5px 10px;margin-bottom:8px;">
-        🔀 <strong>Cross-breeding:</strong> ${crossPartners.map(s => SPECIES_DATA[s].short).join('/')} animals can be placed in these slots.
-        Offspring will be <strong>${[cfg.short, ...crossPartners.map(s => SPECIES_DATA[s].short)].join(" or ")}</strong>. &nbsp;
-        <span style="color:var(--dim);">⚠ The developers have stated this mechanic will change in a future update when DR and SR receive separate skill trees.</span>
-      </div>` : '';
+    const crossNote = '';
 
     const isCollapsed = collapsedPairSpecies.has(sp);
 
@@ -5150,7 +5159,7 @@ initStorage();
 // ═══════════════════════════════════════════════════════════════
 
 // Species icons for tile display
-const _SP_ICONS = {DR:'🦖',SR:'🦎',BM:'🦅',WO:'🐺',BE:'🐻',MA:'🐲'};
+const _SP_ICONS = {DR:'🦖',GR:'🦎',BM:'🦅',WO:'🐺',BE:'🐻',MA:'🐲'};
 function _spIcon(name){ return _SP_ICONS[(name||'').slice(0,2)] || '🐾'; }
 
 // Build a filled tile for inside a pair slot
