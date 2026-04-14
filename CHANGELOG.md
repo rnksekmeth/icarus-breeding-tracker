@@ -4,6 +4,30 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.27b – Pentest XSS audit & browser security
+**2026-04-14**
+
+Active penetration testing with crafted JSON payloads confirmed 5 critical and 8 high-severity XSS vulnerabilities that survived v0.27, plus two browser security gaps identified from an OWASP/HTML5 security review. All fixed.
+
+### Security — Confirmed exploitable XSS (CRITICAL)
+- **Parent names in renderHerd** — `p1`/`p2` fields rendered as raw HTML in the herd table; `<img src=x onerror=alert(1)>` as a parent name executed on herd tab load
+- **Parent names in viewAnimal panel** — same field injected unescaped into the animal view panel
+- **Suggestion animal names** — `r.sugM.name` and `r.sugF.name` in Goals tab recommendations unescaped
+- **Upgrade rec animal names** — `better.name` and `reserve.name` in upgrade rows unescaped
+- **Goal bloodline/phenotype labels** — `r.goal.bl` and `r.goal.ph` from user `goalsMap` injected raw into `goalLabel` HTML
+
+### Security — HIGH
+- **blBadge in viewAnimal** — `a.bl` unescaped in the bloodline badge chip
+- **phDisp fallback** — `a.ph` raw value used as fallback when `phenoDisplay()` returned empty; affected both renderHerd and viewAnimal
+- **Warning strings** — `r.sugM.bl` bloodline name in pair warnings unescaped
+- **Advice panel** — `r.currentName`, `r.goal.bl`, `r.goal.ph`, `bl` in upgrade/temp/equal advice items unescaped
+
+### Security — Browser
+- **Reverse tabnabbing** — added `rel="noopener noreferrer"` to all 5 `target="_blank"` links; without this an opened page can navigate the original tab via `window.opener`
+- **Clickjacking** — added `frame-ancestors 'none'` to the CSP meta tag; `frame-src` only controls what *this page* embeds — `frame-ancestors` is what prevents *this page* from being embedded in a malicious iframe
+
+---
+
 ## v0.27 – Security hardening
 **2026-04-14**
 

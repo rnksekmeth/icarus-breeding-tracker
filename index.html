@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' 'self'; img-src 'self' data: blob:; connect-src 'none'; font-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' 'self'; img-src 'self' data: blob:; connect-src 'none'; font-src 'none'; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'">
 <title>Icarus Breeding Tracker</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%23131512'/%3E%3Cg stroke='%23c87a1a' stroke-width='2.8' stroke-linecap='round'%3E%3Cline x1='16' y1='27' x2='16' y2='14'/%3E%3Cline x1='16' y1='14' x2='8' y2='5'/%3E%3Cline x1='16' y1='14' x2='16' y2='4'/%3E%3Cline x1='16' y1='14' x2='24' y2='5'/%3E%3C/g%3E%3C/svg%3E">
 <style>
@@ -964,15 +964,15 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
         Found a bug? Have a feature request or suggestion? Submit it directly on GitHub — no account required to view existing issues, but a free GitHub account is needed to post.
       </p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <a href="https://github.com/rnksekmeth/icarus-breeding-tracker/issues/new?labels=bug&template=bug_report.md" target="_blank"
+        <a href="https://github.com/rnksekmeth/icarus-breeding-tracker/issues/new?labels=bug&template=bug_report.md" target="_blank" rel="noopener noreferrer"
           style="background:var(--red2);color:var(--red);border:1px solid var(--red2);padding:7px 16px;border-radius:4px;font-size:12px;font-weight:bold;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
           🐛 Report a Bug
         </a>
-        <a href="https://github.com/rnksekmeth/icarus-breeding-tracker/issues/new?labels=enhancement&template=feature_request.md" target="_blank"
+        <a href="https://github.com/rnksekmeth/icarus-breeding-tracker/issues/new?labels=enhancement&template=feature_request.md" target="_blank" rel="noopener noreferrer"
           style="background:var(--grn2);color:var(--grn);border:1px solid var(--grn2);padding:7px 16px;border-radius:4px;font-size:12px;font-weight:bold;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
           ✨ Feature Request
         </a>
-        <a href="https://github.com/rnksekmeth/icarus-breeding-tracker/issues" target="_blank"
+        <a href="https://github.com/rnksekmeth/icarus-breeding-tracker/issues" target="_blank" rel="noopener noreferrer"
           style="background:var(--panel);color:var(--dim);border:1px solid var(--bdr);padding:7px 16px;border-radius:4px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
           📋 View All Issues
         </a>
@@ -1403,7 +1403,7 @@ let _saveTimer  = null;
 // v5 – goals[]: species-level goals replace per-pair bl/ph; phenoWeights/blPriority extended to -3..3; statGoal added
 // v6 – rename 'Swamp Raptor' → 'Geothermal Raptor' in all animal, pair, and goal data
 /** Single source of truth for the displayed app version — update this on every release. */
-const APP_VERSION  = 'v0.27 – Security hardening';
+const APP_VERSION  = 'v0.27b – Pentest XSS audit & browser security';
 document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('app-version'); if (el) el.textContent = APP_VERSION; });
 const DATA_VERSION = 6;
 
@@ -2617,15 +2617,15 @@ function renderSuggestions(sp) {
   if (s.goalRecs.length) {
     html += `<div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin-bottom:4px">Pair recommendations</div>`;
     s.goalRecs.forEach(r => {
-      const goalLabel = `Goal ${r.goalIdx + 1}: ${r.goal.bl || 'any bl'} × ${r.goal.ph ? (phenoDisplay(sp, r.goal.ph) || r.goal.ph) : 'any ph'}`;
+      const goalLabel = `Goal ${r.goalIdx + 1}: ${$h(r.goal.bl) || 'any bl'} × ${r.goal.ph ? ($h(phenoDisplay(sp, r.goal.ph)) || $h(r.goal.ph)) : 'any ph'}`;
       const mStr = r.sugM
-        ? `<span style="color:#88ddff;cursor:pointer" class="view-name-link" onclick="viewAnimal(${r.sugM.id})">♂ ${r.sugM.name} (${getTotal(r.sugM.stats,sp)})</span>`
+        ? `<span style="color:#88ddff;cursor:pointer" class="view-name-link" onclick="viewAnimal(${r.sugM.id})">♂ ${$h(r.sugM.name)} (${getTotal(r.sugM.stats,sp)})</span>`
         : '<span style="color:#555">♂ none available</span>';
       const fStr = r.sugF
-        ? `<span style="color:#ffaacc;cursor:pointer" class="view-name-link" onclick="viewAnimal(${r.sugF.id})">♀ ${r.sugF.name} (${getTotal(r.sugF.stats,sp)})</span>`
+        ? `<span style="color:#ffaacc;cursor:pointer" class="view-name-link" onclick="viewAnimal(${r.sugF.id})">♀ ${$h(r.sugF.name)} (${getTotal(r.sugF.stats,sp)})</span>`
         : '<span style="color:#555">♀ none available</span>';
       const warnings = [];
-      if (r.sameNegBl) warnings.push(`⚠ both have ${r.sugM.bl} (neg) — high offspring inheritance risk`);
+      if (r.sameNegBl) warnings.push(`⚠ both have ${$h(r.sugM.bl)} (neg) — high offspring inheritance risk`);
       if (r.sameNegPh) warnings.push(`⚠ both have same negative phenotype — high inheritance risk`);
       html += `<div class="suggestion-row">
         <span class="sug-badge" style="min-width:90px">${goalLabel}</span>
@@ -2711,9 +2711,9 @@ function renderSuggestions(sp) {
       html += `<div class="suggestion-row">
         <span class="sug-badge" style="color:var(--acc)">↑ +${diff}</span>
         <div class="sug-animal">
-          <span style="color:#88aaff">${better.name} (${betTot})</span> beats current reserve
-          <span style="color:#666"> ${reserve.name} (${resTot})</span> — same desired trait
-          <br><span class="sug-reason">Consider swapping ${reserve.name} out of reserve</span>
+          <span style="color:#88aaff">${$h(better.name)} (${betTot})</span> beats current reserve
+          <span style="color:#666"> ${$h(reserve.name)} (${resTot})</span> — same desired trait
+          <br><span class="sug-reason">Consider swapping ${$h(reserve.name)} out of reserve</span>
         </div>
       </div>`;
     });
@@ -3135,10 +3135,10 @@ function renderAdvice() {
   const hasGoodNews = results.some(r => ['upgrade','empty','temp'].includes(r.type));
 
   results.forEach(r => {
-    const goalDesc = r.goal.bl ? r.goal.bl + (r.goal.ph ? ` / ${r.goal.ph}` : '') : 'No goal set';
+    const goalDesc = r.goal.bl ? $h(r.goal.bl) + (r.goal.ph ? ` / ${$h(r.goal.ph)}` : '') : 'No goal set';
     const delBtn = r.currentId
       ? `<div class="advice-actions" style="margin-top:6px;">
-          <span style="font-size:10px;color:var(--dim);margin-right:6px;">${r.currentName}:</span>
+          <span style="font-size:10px;color:var(--dim);margin-right:6px;">${$h(r.currentName)}:</span>
           <button class="btn-sm" style="font-size:10px;padding:2px 7px;color:#88aaff;border-color:#88aaff;" onclick="setAdviceStatus(${r.currentId},'Reserve')">🔶 Reserve</button>
           <button class="btn-sm" style="font-size:10px;padding:2px 7px;color:#666;border-color:#444;" onclick="setAdviceStatus(${r.currentId},'Dead')">🪦 Cull</button>
           <button class="btn-sm" style="font-size:10px;padding:2px 7px;" onclick="setAdviceStatus(${r.currentId},'?')">❓ Undecided</button>
@@ -3146,7 +3146,7 @@ function renderAdvice() {
       : '';
 
     if (r.type === 'empty') {
-      const blNote = r.goal.bl ? (r.newBlMatch ? `✓ ${bl} matches goal` : `Goal wants ${r.goal.bl}`) : '';
+      const blNote = r.goal.bl ? (r.newBlMatch ? `✓ ${$h(bl)} matches goal` : `Goal wants ${$h(r.goal.bl)}`) : '';
       html += `<div class="advice-item advice-upgrade">
         <span class="advice-icon">✓</span>
         <div class="advice-body"><div class="advice-title">Fill empty slot — Pair ${r.pi+1}</div>
@@ -3157,11 +3157,11 @@ function renderAdvice() {
       const blNote2 = r.replacesTemp ? `Replaces temp breeder with goal bloodline ${bl}`
         : r.newBlMatch && !r.curBlMatch ? `Gains goal bloodline (${bl})`
         : r.newBlMatch && r.curBlMatch  ? `Both match goal bloodline`
-        : r.goal.bl ? `Goal: ${r.goal.bl}` : '';
+        : r.goal.bl ? `Goal: ${$h(r.goal.bl)}` : '';
       html += `<div class="advice-item advice-upgrade">
         <span class="advice-icon">${r.replacesTemp ? '!!' : '>'}</span>
         <div class="advice-body">
-          <div class="advice-title">${r.replacesTemp ? 'Replace temp breeder — ' : 'Replace '}${r.currentName} — Pair ${r.pi+1}</div>
+          <div class="advice-title">${r.replacesTemp ? 'Replace temp breeder — ' : 'Replace '}${$h(r.currentName)} — Pair ${r.pi+1}</div>
           <div class="advice-detail">${[statNote, blNote2].filter(Boolean).join(' · ')}</div>
           ${delBtn}</div>
         <span class="advice-score">+${r.delta}</span></div>`;
@@ -3170,7 +3170,7 @@ function renderAdvice() {
         <span class="advice-icon">⚡</span>
         <div class="advice-body">
           <div class="advice-title">Temporary Stat Boost — Pair ${r.pi+1}</div>
-          <div class="advice-detail">Stats: +${r.totalDelta} (${total} vs ${r.currentTotal}) · ${bl} goal: ${r.goal.bl || 'none'} · Mark as Temp${r.curBlMatch ? ' · Caution: current holds goal bloodline' : ''}</div>
+          <div class="advice-detail">Stats: +${r.totalDelta} (${total} vs ${r.currentTotal}) · ${$h(bl)} goal: ${$h(r.goal.bl) || 'none'} · Mark as Temp${r.curBlMatch ? ' · Caution: current holds goal bloodline' : ''}</div>
           ${delBtn}</div>
         <span class="advice-score">+${r.totalDelta}</span></div>`;
     } else if (r.type === 'equal') {
@@ -3178,8 +3178,8 @@ function renderAdvice() {
       html += `<div class="advice-item ${blUp ? 'advice-upgrade' : 'advice-keep'}">
         <span class="advice-icon">${blUp ? '^' : '='}</span>
         <div class="advice-body">
-          <div class="advice-title">${blUp ? 'Swap (bloodline upgrade) — ' : 'Equal to '}${r.currentName} — Pair ${r.pi+1}</div>
-          <div class="advice-detail">Stats equal (${total})${blUp ? ` · Gains goal bloodline ${bl}` : ''}</div>
+          <div class="advice-title">${blUp ? 'Swap (bloodline upgrade) — ' : 'Equal to '}${$h(r.currentName)} — Pair ${r.pi+1}</div>
+          <div class="advice-detail">Stats equal (${total})${blUp ? ` · Gains goal bloodline ${$h(bl)}` : ''}</div>
           ${delBtn}</div>
         <span class="advice-score">0</span></div>`;
     } else {
@@ -3189,14 +3189,14 @@ function renderAdvice() {
           <span class="advice-icon">~</span>
           <div class="advice-body">
             <div class="advice-title">Bloodline Upgrade (lower stats) — Pair ${r.pi+1}</div>
-            <div class="advice-detail">Stats: ${r.totalDelta} (${total} vs ${r.currentTotal}) · Matches goal bloodline ${bl}</div>
+            <div class="advice-detail">Stats: ${r.totalDelta} (${total} vs ${r.currentTotal}) · Matches goal bloodline ${$h(bl)}</div>
             ${delBtn}</div>
           <span class="advice-score" style="color:var(--acc)">${r.delta}</span></div>`;
       } else {
         html += `<div class="advice-item advice-discard">
           <span class="advice-icon">v</span>
           <div class="advice-body">
-            <div class="advice-title">Weaker — Pair ${r.pi+1} (${r.currentName})</div>
+            <div class="advice-title">Weaker — Pair ${r.pi+1} (${$h(r.currentName)})</div>
             <div class="advice-detail">Stats: ${r.totalDelta}${r.goal.bl && r.curBlMatch ? ' · Current holds goal bloodline' : ''}</div>
             ${delBtn}</div>
           <span class="advice-score">${r.delta}</span></div>`;
@@ -3865,14 +3865,14 @@ function renderHerd() {
 
     // Phenotype display with rarity color
     const phColor = phenoColor(a.sp, a.ph);
-    const phDisp  = a.ph ? phenoDisplay(a.sp, a.ph) || a.ph : '—';
+    const phDisp  = a.ph ? phenoDisplay(a.sp, a.ph) || $h(a.ph) : '—';
 
     const parents = (() => {
       const parts = [a.p1, a.p2].filter(p => p && p !== 'Unknown');
       if (!parts.length) return [a.p1, a.p2].filter(Boolean).join(' × ') || '—';
       return parts.map(p => {
         const pa = animals.find(x => x.name === p);
-        return pa ? `<span class="view-name-link" onclick="viewAnimal(${pa.id})">${p}</span>` : `<span style="color:#aaa">${p}</span>`;
+        return pa ? `<span class="view-name-link" onclick="viewAnimal(${pa.id})">${$h(p)}</span>` : `<span style="color:#aaa">${$h(p)}</span>`;
       }).join(' × ');
     })();
 
@@ -4582,7 +4582,7 @@ function viewAnimal(id) {
 
   const dot = `<span class="species-dot" style="background:${spCfg.color||'#888'};display:inline-block;width:9px;height:9px;border-radius:50%"></span>`;
   const phColor  = phenoColor(a.sp, a.ph);
-  const phDisp   = a.ph ? phenoDisplay(a.sp, a.ph) || a.ph : '—';
+  const phDisp   = a.ph ? phenoDisplay(a.sp, a.ph) || $h(a.ph) : '—';
   const parents  = [a.p1, a.p2].filter(p => p && p !== 'Unknown').join(' × ') || '—';
   const sexSym   = a.sex === 'M' ? '♂ Male' : a.sex === 'F' ? '♀ Female' : a.sex || '?';
   const sexColor = a.sex === 'M' ? 'var(--male)' : a.sex === 'F' ? 'var(--fem)' : 'var(--dim)';
@@ -4590,14 +4590,14 @@ function viewAnimal(id) {
   // Bloodline badge color
   const blCol = BLOODLINE_COLOR[a.bl] || '#888';
   // Badge chips
-  const blBadge = `<span class="view-badge" style="color:${blCol}">${a.bl || '—'}</span>`;
-  const phBadge = phDisp ? `<span class="view-badge" style="color:${phColor}">${phDisp}</span>` : '';
+  const blBadge = `<span class="view-badge" style="color:${blCol}">${$h(a.bl) || '—'}</span>`;
+  const phBadge = phDisp ? `<span class="view-badge" style="color:${phColor}">${$h(phDisp)}</span>` : '';
   const genBadge = `<span class="view-badge-gen">GEN ${a.gen || 1}</span>`;
   const sexBadge = `<span class="view-badge" style="color:${sexColor};border-color:${sexColor}">${sexSym}</span>`;
   // Clickable parents
   const parentSpans = [a.p1, a.p2]
     .filter(p => p && p !== 'Unknown')
-    .map(p => { const pa = animals.find(x => x.name === p); return pa ? `<span class="view-name-link" onclick="viewAnimal(${pa.id})">${p}</span>` : `<span style="color:#aaa">${p}</span>`; })
+    .map(p => { const pa = animals.find(x => x.name === p); return pa ? `<span class="view-name-link" onclick="viewAnimal(${pa.id})">${$h(p)}</span>` : `<span style="color:#aaa">${$h(p)}</span>`; })
     .join(' <span style="color:var(--dim)">×</span> ') || '<span style="color:var(--dim)">—</span>';
 
   const panel = document.getElementById('animal-view-panel');
@@ -4804,7 +4804,7 @@ function renderPairs() {
         <span class="species-dot" style="background:${cfg.color}"></span>${sp}
         <span class="goals-shortcode">${cfg.short}</span>
         <span style="font-size:10px;color:#888;font-weight:normal;text-transform:none">breed out: <span style="color:var(--red)">${bo}</span></span>
-        <a href="${cfg.wiki?.startsWith('https://') ? cfg.wiki : '#'}" target="_blank" title="Open ${sp} wiki page"
+        <a href="${cfg.wiki?.startsWith('https://') ? cfg.wiki : '#'}" target="_blank" rel="noopener noreferrer" title="Open ${sp} wiki page"
           style="font-size:10px;color:#5bc8d4;text-decoration:none;font-weight:normal;text-transform:none;border:1px solid #2a4a6a;padding:1px 7px;border-radius:4px;">📖 Wiki</a>
         <button class="card-width-btn" onclick="toggleCardWidth('${$esc(sp)}')" title="Toggle Narrow/Wide">${isWide ? '◧ Narrow' : '▣ Wide'}</button>
         <span class="pairs-controls">
@@ -4822,7 +4822,7 @@ function renderPairs() {
           <span class="card-drag-handle" title="Drag to reorder">⠿</span>
           <span class="species-dot" style="background:${cfg.color}"></span>${sp} <span class="goals-shortcode">${cfg.short}</span>
           <span style="font-size:10px;color:#888;font-weight:normal;text-transform:none;margin-left:4px">breed out: <span style="color:var(--red)">${bo}</span></span>
-          <a href="${cfg.wiki?.startsWith('https://') ? cfg.wiki : '#'}" target="_blank" title="Open ${sp} wiki page"
+          <a href="${cfg.wiki?.startsWith('https://') ? cfg.wiki : '#'}" target="_blank" rel="noopener noreferrer" title="Open ${sp} wiki page"
             style="font-size:10px;color:#5bc8d4;text-decoration:none;font-weight:normal;text-transform:none;margin-left:8px;border:1px solid #2a4a6a;padding:1px 7px;border-radius:4px;">📖 Wiki</a>
           <button class="card-width-btn" onclick="toggleCardWidth('${$esc(sp)}')" title="Toggle Narrow/Wide">${isWide ? '◧ Narrow' : '▣ Wide'}</button>
           <span class="pairs-controls">
