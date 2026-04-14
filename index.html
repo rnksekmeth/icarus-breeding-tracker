@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' 'self'; img-src 'self' data: blob:; connect-src 'none'; font-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'">
 <title>Icarus Breeding Tracker</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%23131512'/%3E%3Cg stroke='%23c87a1a' stroke-width='2.8' stroke-linecap='round'%3E%3Cline x1='16' y1='27' x2='16' y2='14'/%3E%3Cline x1='16' y1='14' x2='8' y2='5'/%3E%3Cline x1='16' y1='14' x2='16' y2='4'/%3E%3Cline x1='16' y1='14' x2='24' y2='5'/%3E%3C/g%3E%3C/svg%3E">
 <style>
@@ -1114,7 +1115,12 @@ const collapsedGoalSections = new Set(); // section-level collapse keys: "${sp}:
 // ── DOM HELPERS ──────────────────────────────────────────────────
 const $id  = id  => document.getElementById(id);
 const $val = id  => ($id(id)?.value ?? '').trim();
-const $esc = str => str.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+// $h: HTML-encode for safe innerHTML insertion (prevents XSS from user/file data)
+const $h   = str => String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+// $esc: JS-string-escape for onclick attribute values (single-quoted JS string context).
+// MUST escape backslashes FIRST — otherwise a \ in user data creates \\' which JS reads as
+// (escaped backslash) + (string-closing quote), breaking out of the string entirely.
+const $esc = str => $h(String(str ?? '').replace(/\\/g,'\\\\')).replace(/&#39;/g,"\\'");
 
 
 // ── SHARED UI HELPERS ────────────────────────────────────────────────
@@ -1183,7 +1189,7 @@ function resetFormUI() {
  */
 function pairOptionLabel(a, sp) {
   const dn         = displayName(a);
-  const origSuffix = a.nickname ? ` \u00b7 ${a.name}` : '';
+  const origSuffix = a.nickname ? ` \u00b7 ${$h(a.name)}` : '';
   return `${dn}${origSuffix} (${getTotal(a.stats, sp || a.sp)})${a.status === 'Temp' ? ' T' : ''}`;
 }
 
@@ -1201,7 +1207,7 @@ function renderPairUpgradeRow(best, weak, sex, sp) {
   const delta = getTotal(best.stats, sp) - getTotal(weak.stats, sp);
   return `<div class="upg-row">
     <span class="upg-label">Best ${sex}</span>
-    <span class="upg-name">${displayName(best)}${best.status === 'Temp' ? ' T' : ''}</span>
+    <span class="upg-name">${$h(displayName(best))}${best.status === 'Temp' ? ' T' : ''}</span>
     <span class="upg-total">${getTotal(best.stats, sp)}</span>
     <span class="upg-delta ${delta < 0 ? 'neg' : ''}">${delta > 0 ? '+' + delta : delta === 0 ? '=' : delta}</span>
     <span class="upg-action ${delta > 0 ? 'good' : delta < 0 ? 'neg' : 'ok'}">${delta > 0 ? 'swap ' + displayName(weak) : delta === 0 ? '= equal' : 'no upgrade'}</span>
@@ -1397,7 +1403,7 @@ let _saveTimer  = null;
 // v5 – goals[]: species-level goals replace per-pair bl/ph; phenoWeights/blPriority extended to -3..3; statGoal added
 // v6 – rename 'Swamp Raptor' → 'Geothermal Raptor' in all animal, pair, and goal data
 /** Single source of truth for the displayed app version — update this on every release. */
-const APP_VERSION  = 'v0.26b – Numeric sort, GR migration & odds toggle';
+const APP_VERSION  = 'v0.27 – Security hardening';
 document.addEventListener('DOMContentLoaded', () => { const el = document.getElementById('app-version'); if (el) el.textContent = APP_VERSION; });
 const DATA_VERSION = 6;
 
@@ -1424,25 +1430,65 @@ function getAllData() {
  * Restore in-memory state from a saved data object (loaded from herd_data.json).
  * Missing fields default gracefully so older save files load without errors.
  */
+/** Sanitise a plain-text string from user data — strip to string, cap length */
+function _sanitizeStr(v, maxLen = 200) {
+  if (v === null || v === undefined) return '';
+  return String(v).slice(0, maxLen);
+}
+
 function applyData(d) {
-  loadedDataVersion = d.version || 1;
-  animals    = d.herd       || [];
-  pairsMap   = d.pairs      || {};
-  goalsMap   = d.goals      || {};
-  pairCounts = d.pairCounts || {};
-  nextSpAid  = d.nextSpAid  || {};
-  phenoStats = d.phenoStats || {};
-  blStats    = d.blStats    || {};
-  speciesOrder = d.speciesOrder || [];
-  cardWidths   = d.cardWidths   || {};
+  // Guard against prototype pollution — only accept plain objects
+  if (!d || typeof d !== 'object' || Array.isArray(d)) return;
+  loadedDataVersion = typeof d.version === 'number' ? d.version : 1;
+
+  // Animals: accept only array, sanitize all string fields
+  animals = Array.isArray(d.herd) ? d.herd.filter(a => a && typeof a === 'object' && !Array.isArray(a)).map(a => ({
+    id:       typeof a.id === 'number' ? a.id : Date.now() + Math.random(),
+    spId:     typeof a.spId === 'number' ? a.spId : 0,
+    sp:       _sanitizeStr(a.sp),
+    sex:      _sanitizeStr(a.sex, 1),
+    bl:       _sanitizeStr(a.bl),
+    ph:       _sanitizeStr(a.ph),
+    gen:      typeof a.gen === 'number' ? a.gen : 1,
+    p1:       _sanitizeStr(a.p1),
+    p2:       _sanitizeStr(a.p2),
+    isBred:   !!a.isBred,
+    stats:    (a.stats && typeof a.stats === 'object' && !Array.isArray(a.stats))
+              ? Object.fromEntries(Object.entries(a.stats).map(([k,v]) => [String(k).slice(0,6), Math.max(0, Math.min(10, parseInt(v) || 0))]))
+              : {},
+    total:    typeof a.total === 'number' ? a.total : 0,
+    name:     _sanitizeStr(a.name),
+    nickname: _sanitizeStr(a.nickname),
+    favorite: !!a.favorite,
+    status:   _sanitizeStr(a.status, 20),
+    notes:    _sanitizeStr(a.notes, 500),
+    ...(typeof a.level === 'number' ? { level: Math.max(1, Math.min(50, a.level)) } : {}),
+  })) : [];
+
+  // Maps: only accept plain objects, not arrays or primitives
+  const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+  pairsMap   = isObj(d.pairs)      ? d.pairs      : {};
+  goalsMap   = isObj(d.goals)      ? d.goals      : {};
+  pairCounts = isObj(d.pairCounts) ? d.pairCounts : {};
+  nextSpAid  = isObj(d.nextSpAid)  ? d.nextSpAid  : {};
+  phenoStats = isObj(d.phenoStats) ? d.phenoStats : {};
+  blStats    = isObj(d.blStats)    ? d.blStats    : {};
+  cardWidths = isObj(d.cardWidths) ? d.cardWidths : {};
+
+  speciesOrder = Array.isArray(d.speciesOrder) ? d.speciesOrder.filter(s => typeof s === 'string') : [];
   collapsedPairSpecies.clear();
-  (d.collapsedPairs     || []).forEach(s => collapsedPairSpecies.add(s));
+  (Array.isArray(d.collapsedPairs)     ? d.collapsedPairs     : []).forEach(s => typeof s === 'string' && collapsedPairSpecies.add(s));
   collapsedGoalCards.clear();
-  (d.collapsedGoalCards || []).forEach(s => collapsedGoalCards.add(s));
+  (Array.isArray(d.collapsedGoalCards) ? d.collapsedGoalCards : []).forEach(s => typeof s === 'string' && collapsedGoalCards.add(s));
   collapsedGoalSections.clear();
-  (d.collapsedGoalSecs  || []).forEach(s => collapsedGoalSections.add(s));
-  logEntries = d.logEntries || [];
-  logMax     = d.logMax     ?? 100;
+  (Array.isArray(d.collapsedGoalSecs)  ? d.collapsedGoalSecs  : []).forEach(s => typeof s === 'string' && collapsedGoalSections.add(s));
+
+  logEntries = Array.isArray(d.logEntries) ? d.logEntries.filter(e => e && typeof e === 'object').map(e => ({
+    ts:   typeof e.ts === 'number' ? e.ts : Date.now(),
+    msg:  _sanitizeStr(e.msg, 500),
+    type: _sanitizeStr(e.type, 20),
+  })) : [];
+  logMax = typeof d.logMax === 'number' ? Math.max(10, Math.min(1000, d.logMax)) : 100;
 }
 
 /** Write the full data snapshot to the chosen file */
@@ -1640,7 +1686,8 @@ async function continueWithStoredFile() {
     const perm = await handle.requestPermission({ mode: 'readwrite' });
     if (perm !== 'granted') { showToast('Permission denied'); return; }
     const text = await (await handle.getFile()).text();
-    applyData(JSON.parse(text));
+    let _pd; try { _pd = JSON.parse(text); } catch { showToast('Invalid save file — JSON could not be parsed'); return; }
+    applyData(_pd);
     fileHandle  = handle;
     storageMode = 'file';
     closeStartup();
@@ -1656,7 +1703,8 @@ async function openExistingFile() {
       types: [{ description: 'Herd Data', accept: { 'application/json': ['.json'] } }]
     });
     const text = await (await handle.getFile()).text();
-    applyData(JSON.parse(text));
+    let _pd2; try { _pd2 = JSON.parse(text); } catch { showToast('Invalid save file — JSON could not be parsed'); return; }
+    applyData(_pd2);
     fileHandle  = handle;
     storageMode = 'file';
     await storeHandleInDB(handle);
@@ -2147,13 +2195,13 @@ function showOptimizeModal(sp) {
       ? plan.proposedPairs.map((p, i) => {
           const mA = animals.find(a => a.name === p.m);
           const fA = animals.find(a => a.name === p.f);
-          const mConfl = p.mConflict ? `<span style="color:#ffd700;font-size:10px;margin-left:4px" title="Currently in ${p.mConflict.sp} Pair ${p.mConflict.pairIdx+1} — will be moved">⚠ in pair</span>` : '';
-          const fConfl = p.fConflict ? `<span style="color:#ffd700;font-size:10px;margin-left:4px" title="Currently in ${p.fConflict.sp} Pair ${p.fConflict.pairIdx+1} — will be moved">⚠ in pair</span>` : '';
+          const mConfl = p.mConflict ? `<span style="color:#ffd700;font-size:10px;margin-left:4px" title="Currently in ${$h(p.mConflict.sp)} Pair ${p.mConflict.pairIdx+1} — will be moved">⚠ in pair</span>` : '';
+          const fConfl = p.fConflict ? `<span style="color:#ffd700;font-size:10px;margin-left:4px" title="Currently in ${$h(p.fConflict.sp)} Pair ${p.fConflict.pairIdx+1} — will be moved">⚠ in pair</span>` : '';
           const mD = mA
-            ? `<span style="color:#88aaff">♂ ${displayName(mA)}</span><span style="color:#555;font-size:10px"> (${getTotal(mA.stats, plan.sp)})</span>${mConfl}`
+            ? `<span style="color:#88aaff">♂ ${$h(displayName(mA))}</span><span style="color:#555;font-size:10px"> (${getTotal(mA.stats, plan.sp)})</span>${mConfl}`
             : '<span style="color:#555">— empty —</span>';
           const fD = fA
-            ? `<span style="color:#ff88aa">♀ ${displayName(fA)}</span><span style="color:#555;font-size:10px"> (${getTotal(fA.stats, plan.sp)})</span>${fConfl}`
+            ? `<span style="color:#ff88aa">♀ ${$h(displayName(fA))}</span><span style="color:#555;font-size:10px"> (${getTotal(fA.stats, plan.sp)})</span>${fConfl}`
             : '<span style="color:#555">— empty —</span>';
           const badge = p.goalLabel ? `<span class="opt-goal-badge">${p.goalLabel}</span>` : '';
           const pi = planIndexOf(plan);
@@ -2170,7 +2218,7 @@ function showOptimizeModal(sp) {
           const lbl = s.action === 'cull' ? 'Cull' : s.action === 'store' ? 'Store' : s.action === 'reserve' ? 'Reserve' : 'Keep';
           const pii = planIndexOf(plan);
           return `<div class="opt-action-row">
-            <span class="opt-action-name">${fav}${displayName(s.animal)} <span style="color:#555;font-size:10px">(${tot})</span></span>
+            <span class="opt-action-name">${fav}${$h(displayName(s.animal))} <span style="color:#555;font-size:10px">(${tot})</span></span>
             <span class="${cls}">${actionIcons[s.action]} ${lbl}</span>
             <span class="opt-reason">${s.reason}</span>
             <button class="btn-sm" style="font-size:10px;padding:1px 8px;flex-shrink:0" onclick="applyOptimizeSingleSuggestion(${pii},${si},this)">Apply</button>
@@ -2252,7 +2300,7 @@ function applyOptimizeSingleSuggestion(planIdx, suggIdx, btn) {
   else if (s.action === 'store')   tgt.status = 'Station';
   else if (s.action === 'reserve') tgt.status = 'Reserve';
   const label = { cull:'Dead/Culled', store:'On Station', reserve:'Reserve', keep:'Keep' }[s.action] || s.action;
-  const msg = `⚡ ${displayName(tgt)} → ${label}`;
+  const msg = `⚡ ${$h(displayName(tgt))} → ${label}`;
   addLog(msg, 'status');
   showToast(msg);
   saveAndRefresh();
@@ -2595,14 +2643,14 @@ function renderSuggestions(sp) {
       const phCol = phenoColor(sp, animal.ph) || '#aaa';
       const meetsStatGoal = tot >= s.statGoal;
       const tags = [
-        blStars ? `<span style="color:${blCol}">${animal.bl} ${blStars}</span>` : '',
+        blStars ? `<span style="color:${blCol}">${$h(animal.bl)} ${blStars}</span>` : '',
         phStars ? `<span style="color:${phCol}">${phenoDisplay(sp, animal.ph) || animal.ph} ${phStars}</span>` : '',
         animal.bl === 'Unstable' && !blStars ? `<span style="color:${blCol}">Unstable ★(breed)</span>` : '',
         !meetsStatGoal ? `<span style="color:#888">below stat goal (${tot}/${s.statGoal})</span>` : '',
       ].filter(Boolean).join(' · ');
       html += `<div class="suggestion-row">
         <span class="sug-badge">${STATUS_ICON[animal.status] || ''} ${animal.sex === 'M' ? '♂' : '♀'} ${tot}</span>
-        <div class="sug-animal"><span class="view-name-link" onclick="viewAnimal(${animal.id})">${animal.name}</span>${tags ? `<br><span class="sug-reason">${tags}</span>` : ''}</div>
+        <div class="sug-animal"><span class="view-name-link" onclick="viewAnimal(${animal.id})">${$h(animal.name)}</span>${tags ? `<br><span class="sug-reason">${tags}</span>` : ''}</div>
       </div>`;
     });
   }
@@ -2614,10 +2662,10 @@ function renderSuggestions(sp) {
       const tot = getTotal(animal.stats, sp);
       const blScore = blP[animal.bl] ?? 0;
       const phScore = phW[animal.ph] ?? 0;
-      const traitWarning = blScore < 0 ? `${animal.bl} (${blScore}★)` : phScore < 0 ? `${animal.ph} (${phScore}★)` : '';
+      const traitWarning = blScore < 0 ? `${$h(animal.bl)} (${blScore}★)` : phScore < 0 ? `${$h(animal.ph)} (${phScore}★)` : '';
       html += `<div class="suggestion-row">
         <span class="sug-badge" style="color:#e74c3c">${STATUS_ICON[animal.status] || ''} ${animal.sex === 'M' ? '♂' : '♀'} ${tot}</span>
-        <div class="sug-animal"><span class="view-name-link" onclick="viewAnimal(${animal.id})">${animal.name}</span><br>
+        <div class="sug-animal"><span class="view-name-link" onclick="viewAnimal(${animal.id})">${$h(animal.name)}</span><br>
           <span class="sug-reason" style="color:#e74c3c">⚠ ${traitWarning} — use as Temp until an offspring exceeds these stats without the trait · avoid pairing with same-${blW < 0 ? 'bloodline' : 'phenotype'} animal</span>
         </div>
       </div>`;
@@ -2632,8 +2680,8 @@ function renderSuggestions(sp) {
       const blCol = BLOODLINE_COLOR[animal.bl] || '#aaa';
       html += `<div class="suggestion-row">
         <span class="sug-badge">${STATUS_ICON[animal.status] || ''} ${animal.sex === 'M' ? '♂' : '♀'} ${tot}</span>
-        <div class="sug-animal"><span class="view-name-link" onclick="viewAnimal(${animal.id})">${animal.name}</span><br>
-          <span class="sug-reason">Has <span style="color:${blCol}">${animal.bl}</span> — stats low vs herd best · Reserve until better partner available</span>
+        <div class="sug-animal"><span class="view-name-link" onclick="viewAnimal(${animal.id})">${$h(animal.name)}</span><br>
+          <span class="sug-reason">Has <span style="color:${blCol}">${$h(animal.bl)}</span> — stats low vs herd best · Reserve until better partner available</span>
         </div>
       </div>`;
     });
@@ -2646,7 +2694,7 @@ function renderSuggestions(sp) {
       const goalLabel = `Goal ${goalIdx + 1}: ${goal.bl || 'any bl'} × ${goal.ph || 'any ph'}`;
       html += `<div class="suggestion-row" style="background:rgba(0,204,85,.06);border:1px solid #0e3a1e;border-radius:4px;padding:6px 10px;margin-bottom:4px;">
         <span class="sug-badge" style="color:var(--grn)">✓ ${goalLabel}</span>
-        <div class="sug-animal"><span class="view-name-link" onclick="viewAnimal(${animal.id})">${animal.name}</span> is a bred match
+        <div class="sug-animal"><span class="view-name-link" onclick="viewAnimal(${animal.id})">${$h(animal.name)}</span> is a bred match
           <br><span class="sug-reason" style="color:var(--grn)">Consider updating this goal or introducing a new breeding direction for this pair</span>
         </div>
       </div>`;
@@ -3168,11 +3216,13 @@ function renderAdvice() {
 
 // ── PROBABILITY PANEL ────────────────────────────────────────────
 function probRow(label, pct, color, indent) {
-  const barW = Math.min(100, pct * 2.5);
+  const barW  = Math.min(100, pct * 2.5);
+  // Validate color is a safe hex/rgb value before injecting into style
+  const safeColor = /^(#[0-9a-fA-F]{3,8}|rgba?\([^)]{1,40}\)|var\(--[a-z0-9-]+\))$/.test(color) ? color : '#888';
   return `<div class="prob-row">
-    <span class="prob-label" style="${indent ? 'padding-left:14px;color:#777' : 'color:#ccc'}">${label}</span>
-    <div class="prob-bar-wrap"><div class="prob-bar" style="width:${barW}%;background:${color}"></div></div>
-    <span class="prob-val" style="color:${color}">${pct.toFixed(1)}%</span></div>`;
+    <span class="prob-label" style="${indent ? 'padding-left:14px;color:#777' : 'color:#ccc'}">${$h(label)}</span>
+    <div class="prob-bar-wrap"><div class="prob-bar" style="width:${barW}%;background:${safeColor}"></div></div>
+    <span class="prob-val" style="color:${safeColor}">${pct.toFixed(1)}%</span></div>`;
 }
 
 function renderProbPanel() {
@@ -3257,8 +3307,8 @@ function buildStatsRow() {
     const blk = document.createElement('div');
     blk.className = `stat-block ${isBO ? 'breed-out-stat' : 'normal-stat'}`;
     const si = STAT_INFO[stat];
-    const tipText = si ? `${si.full}\n${si.desc}` : stat;
-    blk.innerHTML = `<label data-tip="${tipText}">${stat}${isBO ? ' ▼' : ''}</label>
+    const tipText = si ? `${$h(si.full)}\n${$h(si.desc)}` : $h(stat);
+    blk.innerHTML = `<label data-tip="${tipText}">${$h(stat)}${isBO ? ' ▼' : ''}</label>
       <input type="number" id="stat-${stat}" min="0" max="10" value="" placeholder="-"
         oninput="onStatInput(this,'${stat}')"
         onkeydown="onStatKey(event,'${stat}')"
@@ -3293,8 +3343,8 @@ function updateParentDatalist() {
     .map(a => {
       const spId = a.spId ? formatSpId(a.sp, a.spId) : '';
       const icon  = a.status === 'Dead' ? '🪦 ' : a.status === 'Station' ? '🛸 ' : '';
-      const label = `${icon}${spId ? spId + ' · ' : ''}${a.name}`;
-      return `<option value="${a.name}">${label}</option>`;
+      const label = `${icon}${spId ? spId + ' · ' : ''}${$h(a.name)}`;
+      return `<option value="${$h(a.name)}">${label}</option>`;
     }).join('');
 }
 
@@ -3338,8 +3388,8 @@ function onParentInput(n) {
       if (deltas.length) deltaStr = `<div class="pc-delta">vs child: ${deltas.join(' ')}</div>`;
     }
     const idStr = parent.spId ? ` <span style="color:#4a5a7a;font-size:10px">${formatSpId(parent.sp, parent.spId)}</span>` : '';
-    div.innerHTML = `<span class="pc-name">${parent.name}</span>${idStr}
-      <span style="color:var(--dim);font-size:10px">${parent.bl} · ${getTotal(parent.stats, parent.sp)}/${getMaxTotal(parent.sp)}</span>
+    div.innerHTML = `<span class="pc-name">${$h(parent.name)}</span>${idStr}
+      <span style="color:var(--dim);font-size:10px">${$h(parent.bl)} · ${getTotal(parent.stats, parent.sp)}/${getMaxTotal(parent.sp)}</span>
       <div class="pc-stats">${statsStr}</div>${deltaStr}`;
     div.classList.add('show');
   } else {
@@ -3416,13 +3466,14 @@ function updateLogBanner() {
  * Re-render the Log tab list applying the active type filter and text search.
  */
 function _linkifyLogMsg(msg) {
-  let result = msg;
-  // Sort by name length descending to avoid partial matches on shorter names first
+  // HTML-encode the raw message first so user data can never inject tags
+  let result = $h(msg);
+  // Then linkify animal names (search within the already-encoded string)
   const sorted = animals.slice().sort((a,b) => b.name.length - a.name.length);
   sorted.forEach(a => {
-    const escaped = a.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    result = result.replace(new RegExp(`(?<![\w-])${escaped}(?![\w-])`, 'g'),
-      `<span class="view-name-link" onclick="viewAnimal(${a.id})">${a.name}</span>`);
+    const safeSearch = $h(a.name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(`(?<![\\w-])${safeSearch}(?![\\w-])`, 'g'),
+      `<span class="view-name-link" onclick="viewAnimal(${a.id})">${$h(a.name)}</span>`);
   });
   return result;
 }
@@ -3722,7 +3773,7 @@ function setAnimalStatus(id, val) {
   const oldLabel = STATUS_LABEL[a.status] || a.status;
   a.status = val;
   saveAndRefresh();
-  addLog(`${a.name}: ${oldLabel} → ${STATUS_ICON[val]} ${STATUS_LABEL[val]}`, 'status');
+  addLog(`${$h(a.name)}: ${oldLabel} → ${STATUS_ICON[val]} ${STATUS_LABEL[val]}`, 'status');
 }
 
 function getSortVal(a, col) {
@@ -3759,7 +3810,7 @@ function renderHerd() {
     const vals = [...new Set(baseAnimals.map(getVal).filter(Boolean))].sort();
     const makeBtn = v => {
       const active = currentVal === v ? ' active' : '';
-      return `<button class="filter-btn${active}" data-filter-type="${filterType}" onclick="setFilter('${filterType}','${v.replace(/'/g,"\\'")}',this)">${v}</button>`;
+      return `<button class="filter-btn${active}" data-filter-type="${filterType}" onclick="setFilter('${$esc(filterType)}','${$esc(v)}',this)">${$h(v)}</button>`;
     };
     const allActive = currentVal === 'all' ? ' active' : '';
     container.innerHTML = `<button class="filter-btn${allActive}" data-filter-type="${filterType}" onclick="setFilter('${filterType}','all',this)">All</button>` +
@@ -3827,10 +3878,10 @@ function renderHerd() {
 
     const sexColor = a.sex === 'M' ? 'var(--male)' : a.sex === 'F' ? 'var(--fem)' : 'var(--dim)';
     return `<tr class="herd-row" onclick="if(!['BUTTON','SELECT','INPUT','A','SPAN'].includes(event.target.tagName)&&!event.target.closest('.btn-sm,.btn-fav,.status-inline'))viewAnimal(${a.id})" style="${deadStyle}">
-      <td class="name-cell">${spIdBadge}<button class="btn-fav${a.favorite ? ' active' : ''}" onclick="toggleFavorite(${a.id})" title="${a.favorite ? 'Unfavorite' : 'Favorite — protects from cull suggestions'}">★</button><button class="btn-copy" style="padding:2px 6px;font-size:11px;margin-right:4px" onclick="quickCopy('${$esc(a.nickname || a.name)}')">copy</button>${a.nickname ? `<span class="nickname-display view-name-link" onclick="viewAnimal(${a.id})" title="Click to view animal details">${a.nickname}</span><span class="orig-name-dim">${a.name}</span>` : `<span class="view-name-link" onclick="viewAnimal(${a.id})" title="Click to view animal details">${a.name}</span>`}${tempBadge}${reserveBadge}</td>
-      <td data-tip="${a.sp}">${dot}${spCfg.short || a.sp}</td>
+      <td class="name-cell">${spIdBadge}<button class="btn-fav${a.favorite ? ' active' : ''}" onclick="toggleFavorite(${a.id})" title="${a.favorite ? 'Unfavorite' : 'Favorite — protects from cull suggestions'}">★</button><button class="btn-copy" style="padding:2px 6px;font-size:11px;margin-right:4px" onclick="quickCopy('${$esc(a.nickname || a.name)}')">copy</button>${a.nickname ? `<span class="nickname-display view-name-link" onclick="viewAnimal(${a.id})" title="Click to view animal details">${$h(a.nickname)}</span><span class="orig-name-dim">${$h(a.name)}</span>` : `<span class="view-name-link" onclick="viewAnimal(${a.id})" title="Click to view animal details">${$h(a.name)}</span>`}${tempBadge}${reserveBadge}</td>
+      <td data-tip="${$h(a.sp)}">${dot}${spCfg.short || a.sp}</td>
       <td style="text-align:center;color:${sexColor};font-weight:bold">${a.sex === 'M' ? '♂' : a.sex === 'F' ? '♀' : a.sex || '?'}</td>
-      <td class="${blCls}" ${BLOODLINE_INFO[a.bl] ? `data-tip="${BLOODLINE_INFO[a.bl].replace(/"/g,'&quot;')}"` : ''}>${a.bl}</td>
+      <td class="${blCls}" ${BLOODLINE_INFO[a.bl] ? `data-tip="${BLOODLINE_INFO[a.bl].replace(/"/g,'&quot;')}"` : ''}>${$h(a.bl)}</td>
       <td style="color:${phColor};font-size:11px">${phDisp}</td>
       <td style="text-align:center;color:#aaa">${a.gen || 1}</td>
       <td style="font-size:11px;color:#aaa">${parents}</td>
@@ -3853,9 +3904,9 @@ function markDead(id) {
   const a = animals.find(x => x.id === id);
   if (!a) return;
   a.status = 'Dead';
-  addLog(`🪦 ${displayName(a)} marked dead/culled`, 'status');
+  addLog(`🪦 ${$h(displayName(a))} marked dead/culled`, 'status');
   saveAndRefresh();
-  showUndoToast(`🪦 ${displayName(a)} marked dead`, () => reviveAnimal(id));
+  showUndoToast(`🪦 ${$h(displayName(a))} marked dead`, () => reviveAnimal(id));
 }
 
 /** Restore a dead/culled animal back to Undecided status. */
@@ -3863,8 +3914,8 @@ function reviveAnimal(id) {
   const a = animals.find(x => x.id === id);
   if (!a) return;
   a.status = '?';
-  addLog(`↩ ${displayName(a)} restored from dead/culled`, 'status');
-  saveAndRefresh(); showToast(`${displayName(a)} restored`);
+  addLog(`↩ ${$h(displayName(a))} restored from dead/culled`, 'status');
+  saveAndRefresh(); showToast(`${$h(displayName(a))} restored`);
 }
 
 /** Toggle favorite status on an animal — favorites are never suggested for culling */
@@ -3879,9 +3930,9 @@ function toggleFavorite(id) {
   save();
   renderHerd();
   showToast(a.favorite
-    ? `⭐ ${displayName(a)} favorited — won\'t be suggested for culling`
-    : `${displayName(a)} unfavorited`);
-  addLog(a.favorite ? `⭐ ${displayName(a)} favorited` : `${displayName(a)} unfavorited`, 'edit');
+    ? `⭐ ${$h(displayName(a))} favorited — won\'t be suggested for culling`
+    : `${$h(displayName(a))} unfavorited`);
+  addLog(a.favorite ? `⭐ ${$h(displayName(a))} favorited` : `${$h(displayName(a))} unfavorited`, 'edit');
 }
 
 function editAnimal(id) {
@@ -3931,8 +3982,8 @@ function setAdviceStatus(id, status) {
   save();
   renderHerd(); renderPairs();
   const label = STATUS_LABEL[status] || status;
-  showToast(`${a.name} → ${STATUS_ICON[status]} ${label}`);
-  addLog(`${a.name} → ${STATUS_ICON[status]} ${label} (from advice panel)`, 'status');
+  showToast(`${$h(a.name)} → ${STATUS_ICON[status]} ${label}`);
+  addLog(`${$h(a.name)} → ${STATUS_ICON[status]} ${label} (from advice panel)`, 'status');
   // Re-run advice panel so the buttons disappear now the action is taken
   const panel = $id('advice-panel');
   if (panel && panel.classList.contains('show')) buildBreedingAdvice();
@@ -3946,7 +3997,7 @@ function setAdviceStatus(id, status) {
 function deleteAnimal(id, quiet) {
   const a = animals.find(x => x.id === id);
   if (!a) return;
-  if (!quiet && !confirm(`Permanently delete "${a.name}"?\nTip: use 🪦 to mark as Dead instead.`)) return;
+  if (!quiet && !confirm(`Permanently delete "${$h(a.name)}"?\nTip: use 🪦 to mark as Dead instead.`)) return;
   const delName = a.name;
   animals = animals.filter(x => x.id !== id);
   saveAndRefreshFull();
@@ -4168,7 +4219,7 @@ function confirmPairAssignment() {
 
   saveAndRefresh();
   dismissPairAssign();
-  showToast(`✓ ${animal.name} → ${SPECIES_DATA[slot.sp]?.short || slot.sp} Pair ${slot.pairIdx + 1}`);
+  showToast(`✓ ${$h(animal.name)} → ${SPECIES_DATA[slot.sp]?.short || slot.sp} Pair ${slot.pairIdx + 1}`);
 }
 
 function dismissPairAssign() {
@@ -4219,7 +4270,7 @@ function populateShareAnimalList() {
     return `<label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#ccc;cursor:pointer;white-space:nowrap;padding:3px 7px;background:var(--panel);border:1px solid var(--bdr);border-radius:4px;">
       <input type="checkbox" value="${$esc(a.name)}" style="accent-color:var(--acc);">
       <span class="species-dot" style="background:${cfg.color||'#888'};display:inline-block;width:7px;height:7px;border-radius:50%;flex-shrink:0"></span>
-      ${a.name} <span style="color:#888">(${tot})</span>
+      ${$h(a.name)} <span style="color:#888">(${tot})</span>
     </label>`;
   }).join('');
 }
@@ -4323,7 +4374,7 @@ async function shareHerd() {
     // Species badge: "DR – Dune Raptor"
     ctx.fillStyle = cfg.color || '#aaa';
     ctx.font = 'bold 11px monospace';
-    const spLabel = `${cfg.short || animal.sp.slice(0,2)} – ${animal.sp}`;
+    const spLabel = `${cfg.short || animal.sp.slice(0,2)} – ${$h(animal.sp)}`;
     ctx.fillText(spLabel, x + 12, y + 16);
 
     // Status icon
@@ -4512,8 +4563,8 @@ function viewAnimal(id) {
         const btnStyle = isMe ? 'background:rgba(0,204,85,.15);border-color:var(--grn);color:var(--grn)' : occupied ? 'opacity:.6' : '';
         const btnLabel = isMe ? 'Remove' : 'Assign';
         const btnAction = isMe
-          ? `onclick="updatePair('${tsp.replace(/'/g,"\'")}',${i},'${sex.toLowerCase()}','');closeViewPanel()"`
-          : `onclick="updatePair('${tsp.replace(/'/g,"\'")}',${i},'${sex.toLowerCase()}','${a.name.replace(/'/g,"\'")}');closeViewPanel()"`;
+          ? `onclick="updatePair('${$esc(tsp)}',${i},'${$esc(sex.toLowerCase())}','');closeViewPanel()"`
+          : `onclick="updatePair('${$esc(tsp)}',${i},'${$esc(sex.toLowerCase())}','${$esc(a.name)}');closeViewPanel()"`;
         const sexSym = sex === 'M' ? '♂' : '♀';
         pairSlotsHtml += `<div class="view-pair-slot">
           <span style="color:var(--dim);min-width:110px">${tsp !== a.sp ? `[${SPECIES_DATA[tsp]?.short||tsp}] ` : ''}Pair ${i+1} ${sexSym}</span>
@@ -4562,7 +4613,7 @@ function viewAnimal(id) {
 <div class="avp-body">
   <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:2px">
     ${dot}
-    <h3 style="color:var(--acc);font-size:14px;margin:0;flex:1;line-height:1.2">${displayName(a)}${a.nickname ? `<br><span style="color:var(--dim);font-size:10px;font-weight:normal">${a.name}</span>` : ''}</h3>
+    <h3 style="color:var(--acc);font-size:14px;margin:0;flex:1;line-height:1.2">${$h(displayName(a))}${a.nickname ? `<br><span style="color:var(--dim);font-size:10px;font-weight:normal">${$h(a.name)}</span>` : ''}</h3>
   </div>
   <div class="view-badges">${blBadge}${phBadge}${genBadge}${sexBadge}${a.level ? `<span class="view-badge-gen">LV ${a.level}</span>` : ''}</div>
   <div style="font-size:11px;margin-bottom:4px">
@@ -4670,19 +4721,19 @@ function renderPairs() {
 
     const makeBadge = (animal) => {
       if (!animal) return '';
-      if (animal.status === 'Temp') return `<span class="pair-goal-badge goal-temp">Temp (${animal.bl})</span>`;
+      if (animal.status === 'Temp') return `<span class="pair-goal-badge goal-temp">Temp (${$h(animal.bl)})</span>`;
       const gMap = goalsMap[sp] || {};
       const blW = (gMap.blPriority || {})[animal.bl] ?? 0;
       const phW = (gMap.phenoWeights || {})[animal.ph] ?? 0;
       // Negative trait warning
-      if (blW < 0) return `<span class="pair-goal-badge" style="background:rgba(231,76,60,.15);color:#e74c3c;border-color:#c0392b">⚠ ${animal.bl}</span>`;
+      if (blW < 0) return `<span class="pair-goal-badge" style="background:rgba(231,76,60,.15);color:#e74c3c;border-color:#c0392b">⚠ ${$h(animal.bl)}</span>`;
       if (phW < 0) return `<span class="pair-goal-badge" style="background:rgba(231,76,60,.15);color:#e74c3c;border-color:#c0392b">⚠ neg ph</span>`;
       // Species goal match
       const spGoals = gMap.goals || [];
       const matchIdx = spGoals.findIndex(g => (!g.bl || g.bl === animal.bl) && (!g.ph || g.ph === animal.ph));
       if (matchIdx >= 0) return `<span class="pair-goal-badge goal-match">✓ Goal ${matchIdx + 1}</span>`;
       // Positively starred trait
-      if (blW > 0) return `<span class="pair-goal-badge goal-empty">${'★'.repeat(blW)} ${animal.bl}</span>`;
+      if (blW > 0) return `<span class="pair-goal-badge goal-empty">${'★'.repeat(blW)} ${$h(animal.bl)}</span>`;
       return '';
     };
 
@@ -4753,7 +4804,7 @@ function renderPairs() {
         <span class="species-dot" style="background:${cfg.color}"></span>${sp}
         <span class="goals-shortcode">${cfg.short}</span>
         <span style="font-size:10px;color:#888;font-weight:normal;text-transform:none">breed out: <span style="color:var(--red)">${bo}</span></span>
-        <a href="${cfg.wiki}" target="_blank" title="Open ${sp} wiki page"
+        <a href="${cfg.wiki?.startsWith('https://') ? cfg.wiki : '#'}" target="_blank" title="Open ${sp} wiki page"
           style="font-size:10px;color:#5bc8d4;text-decoration:none;font-weight:normal;text-transform:none;border:1px solid #2a4a6a;padding:1px 7px;border-radius:4px;">📖 Wiki</a>
         <button class="card-width-btn" onclick="toggleCardWidth('${$esc(sp)}')" title="Toggle Narrow/Wide">${isWide ? '◧ Narrow' : '▣ Wide'}</button>
         <span class="pairs-controls">
@@ -4771,7 +4822,7 @@ function renderPairs() {
           <span class="card-drag-handle" title="Drag to reorder">⠿</span>
           <span class="species-dot" style="background:${cfg.color}"></span>${sp} <span class="goals-shortcode">${cfg.short}</span>
           <span style="font-size:10px;color:#888;font-weight:normal;text-transform:none;margin-left:4px">breed out: <span style="color:var(--red)">${bo}</span></span>
-          <a href="${cfg.wiki}" target="_blank" title="Open ${sp} wiki page"
+          <a href="${cfg.wiki?.startsWith('https://') ? cfg.wiki : '#'}" target="_blank" title="Open ${sp} wiki page"
             style="font-size:10px;color:#5bc8d4;text-decoration:none;font-weight:normal;text-transform:none;margin-left:8px;border:1px solid #2a4a6a;padding:1px 7px;border-radius:4px;">📖 Wiki</a>
           <button class="card-width-btn" onclick="toggleCardWidth('${$esc(sp)}')" title="Toggle Narrow/Wide">${isWide ? '◧ Narrow' : '▣ Wide'}</button>
           <span class="pairs-controls">
@@ -4854,7 +4905,7 @@ function updateLineageSelector() {
       const sa = animals.filter(a => a.sp === sp && a.status !== 'Dead' && a.status !== 'Station');
       if (!sa.length) return '';
       const opts = sa.sort((a,b) => getTotal(b.stats,sp) - getTotal(a.stats,sp))
-        .map(a => `<option value="${a.name}"${a.name===cur?' selected':''}>${a.spId ? formatSpId(a.sp,a.spId)+' ' : ''}${a.name} (${getTotal(a.stats,sp)})</option>`)
+        .map(a => `<option value="${$h(a.name)}"${a.name===cur?' selected':''}>${a.spId ? formatSpId(a.sp,a.spId)+' ' : ''}${$h(a.name)} (${getTotal(a.stats,sp)})</option>`)
         .join('');
       return `<optgroup label="${cfg.short} – ${sp}">${opts}</optgroup>`;
     }).join('');
@@ -4927,7 +4978,7 @@ function renderNodeHTML(node, showInh) {
       <span class="lin-sex">${sex}</span>
       <span class="lin-name ${!node.inHerd && node.name ? 'missing' : ''}">${node.name || '-- unknown --'}${idStr}</span>
       ${a ? `<span class="lin-total">${dispT}/${maxT3}</span>` : ''}
-      ${a ? `<span class="lin-bl" style="color:${blCol}">${a.bl}</span>` : ''}
+      ${a ? `<span class="lin-bl" style="color:${blCol}">${$h(a.bl)}</span>` : ''}
       ${inHerdTag}
     </div>${statsHtml}${inhHtml}
   </div>`;
@@ -5110,7 +5161,7 @@ function showConfirm(msg, onConfirm) {
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:flex;align-items:center;justify-content:center';
   overlay.innerHTML = `<div class="opt-modal" style="max-width:380px;text-align:center">
-    <p style="margin:0 0 18px;font-size:13px;line-height:1.5;color:#ccc">${msg}</p>
+    <p style="margin:0 0 18px;font-size:13px;line-height:1.5;color:#ccc">${$h(msg)}</p>
     <div class="opt-modal-btns" style="justify-content:center">
       <button class="btn-secondary" id="_cfm_no">Cancel</button>
       <button class="btn-primary" id="_cfm_yes">Yes, replace</button>
@@ -5128,7 +5179,7 @@ let _toastUndo = null;
 function showUndoToast(msg, fn) {
   _toastUndo = fn;
   const t = $id('toast');
-  t.innerHTML = msg + ' <span style="text-decoration:underline;cursor:pointer;margin-left:8px;font-weight:normal;font-size:12px" ' +
+  t.innerHTML = $h(msg) + ' <span style="text-decoration:underline;cursor:pointer;margin-left:8px;font-weight:normal;font-size:12px" ' +
     'onclick="_toastUndo?.();_toastUndo=null;document.getElementById(\'toast\').classList.remove(\'show\')">' +
     'Undo</span>';
   t.classList.add('show');
@@ -5196,12 +5247,12 @@ function _buildPairTile(a, sp, pairIdx, sex, makeBadge) {
   const tileId = a.name.split(' ')[0]; // e.g. "DR02" from "DR02 M42-Unstable P5"
   return `<div class="animal-tile ${sc}" draggable="true"
     data-aid="${a.id}" data-psp="${$esc(sp)}" data-pi="${pairIdx}" data-sex="${sex}"
-    title="${$esc(a.name)} · ${a.bl} · ${tot}"
+    title="${$esc(a.name)} · ${$h(a.bl)} · ${tot}"
     style="--ph-border:${phRarityCol}"
     onclick="viewAnimal(${a.id})"
   ><span class="tile-icon">${_spIcon(a.name)}</span
   ><span class="tile-name">${tileId}</span
-  ><span class="tile-bl-badge" style="color:${blCol};border-color:${blCol}">${a.bl}</span
+  ><span class="tile-bl-badge" style="color:${blCol};border-color:${blCol}">${$h(a.bl)}</span
   ><span class="tile-stat">${tot}</span
   >${goalMark}<button class="tile-rm" onclick="event.stopPropagation();updatePair('${rmSp}',${pairIdx},'${rmSex}','')">✕</button
   ></div>`;
@@ -5220,11 +5271,11 @@ function _buildPoolTile(a, sp) {
   return `<div class="animal-tile pool-tile ${sc}" draggable="true"
     data-aid="${a.id}" data-psp="${$esc(sp)}" data-pool="1"
     onclick="viewAnimal(${a.id})"
-    title="${$esc(a.name)} · ${a.bl} · ${tot}"
+    title="${$esc(a.name)} · ${$h(a.bl)} · ${tot}"
     style="--ph-border:${phRarityCol}"
   ><span class="tile-icon">${_spIcon(a.name)}</span
   ><span class="tile-name">${tileId}</span
-  ><span class="tile-bl-badge" style="color:${blCol};border-color:${blCol}">${a.bl}</span
+  ><span class="tile-bl-badge" style="color:${blCol};border-color:${blCol}">${$h(a.bl)}</span
   ><span class="tile-stat">${tot}</span
   ></div>`;
 }
@@ -5232,7 +5283,7 @@ function _buildPoolTile(a, sp) {
 // Show hidden pool tiles for a species
 function _togglePool(btn) {
   const sp = btn.dataset.sp;
-  const ids = JSON.parse(btn.dataset.all || '[]');
+  let ids; try { ids = JSON.parse(btn.dataset.all || '[]'); } catch { ids = []; }
   const pool = btn.closest('.pair-pool');
   ids.forEach(id => {
     const a = animals.find(x => x.id === id);

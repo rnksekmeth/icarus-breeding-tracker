@@ -4,6 +4,61 @@ All notable changes to this project are documented here.
 
 ---
 
+## v0.27 – Security hardening
+**2026-04-14**
+
+Combines v0.26c and v0.26d (neither was pushed). Full security audit conducted including active penetration testing with crafted JSON payloads.
+
+### Security — XSS
+- **`$h()` function** — HTML-encodes all user data before innerHTML insertion; applied to 51 call sites across all animal text fields (name, nickname, bloodline, phenotype, species, parents, notes)
+- **`probRow` label and color** — phenotype/bloodline labels in Breeding Odds panel HTML-encoded; color values validated against strict regex before style injection
+- **`buildStatsRow` tooltip** — stat tooltips HTML-encoded
+- **`showConfirm` / `showUndoToast`** — msg parameters HTML-encoded before innerHTML
+- **Log renderer** — `_linkifyLogMsg` HTML-encodes raw message before linkification
+
+### Security — onclick injection
+- **`$esc()` backslash bypass fixed** — critical: backslashes are now escaped before HTML encoding, preventing `\\` + `\'` from breaking out of JS single-quoted string context; verified safe against crafted payloads including `\'); alert(1); //`
+- **Filter buttons** — use `$esc()` for filter type and value; display label uses `$h()`
+- **Pair assignment** — `$esc()` used for species, sex and animal name
+- **Optimizer conflict badge** — species name in title attribute now uses `$h()`
+
+### Security — input validation
+- **`applyData` hardened** — all fields type-checked and whitelisted; strings sanitised via `_sanitizeStr()` with max-length caps; stat values clamped to 0–10 integers; booleans coerced; prototype pollution prevented; existing save data preserved through migration system
+- **JSON.parse guarded** — file load paths have explicit try/catch with user-facing error toast on parse failure; pool tile dataset parse also guarded
+- **Wiki URLs validated** — must start with `https://` before injection into href
+
+### Security — infrastructure
+- **Content Security Policy** — meta tag blocks external connections, frames, objects and fonts; images restricted to self/data/blob
+- **Pentest report** — active testing with crafted JSON payloads confirmed no remaining code execution vectors
+
+---
+
+## v0.26b – Numeric sort, GR data migration & odds panel toggle
+**2026-04-14**
+
+### Security
+- **Content Security Policy** — added CSP meta tag blocking all external connections, frames, objects and fonts; restricts image sources to self/data/blob only
+- **probRow XSS** — phenotype and bloodline labels in the Breeding Odds panel are now HTML-encoded; inline color values validated against a strict regex before injection into style attributes
+- **Tooltip XSS** — stat labels in the entry form's data-tip attributes now go through `$h()`
+- **showConfirm / showUndoToast XSS** — msg parameters HTML-encoded before innerHTML insertion
+- **onclick injection** — filter buttons and pair assignment buttons now use `$esc()` instead of a partial single-quote-only escape, closing backslash and attribute breakout vectors
+- **Wiki URL injection** — cfg.wiki URLs validated to start with `https://` before being placed in href; falls back to `#` if invalid
+- **applyData hardened** — all fields from loaded JSON are now type-checked, string fields sanitised via `_sanitizeStr()` (max length enforced), booleans coerced, numbers validated, prototype pollution prevented by rejecting non-plain-object input; existing save data is preserved through the same migration system
+- **JSON.parse guarded** — file load paths now have explicit try/catch around JSON.parse with a user-facing error toast on parse failure; pool-tile dataset parse also guarded
+- **Log renderer** — `_linkifyLogMsg` HTML-encodes the full message before linkification (carried forward from v0.26c)
+
+---
+
+## v0.26c – XSS security fix
+**2026-04-14**
+
+### Security
+- **XSS vulnerability fixed** — animal text fields (name, nickname, bloodline, phenotype, species, parents, notes) are now HTML-encoded via a new `$h()` function before being inserted into innerHTML; previously a crafted JSON file could inject and execute arbitrary HTML/JS
+- **`$esc` hardened** — the onclick attribute escaping function now also HTML-encodes, preventing attribute breakout attacks
+- **Log renderer secured** — `_linkifyLogMsg` now HTML-encodes the raw log message before linkification, so animal names containing tags can no longer inject markup into the log
+
+---
+
 ## v0.26b – Numeric sort, GR data migration & odds panel toggle
 **2026-04-14**
 
