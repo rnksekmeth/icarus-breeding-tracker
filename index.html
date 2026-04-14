@@ -760,7 +760,6 @@ hr{border:none;border-top:1px solid var(--bdr);margin:14px 0;}
       <button class="filter-btn" data-filter-type="category" onclick="setFilter('category','Utility Pet',this)">🌾 Utility</button>
       <span class="filter-sep">|</span>
       <span class="filter-label">SPECIES:</span>
-      <button class="filter-btn active" data-filter-type="species" onclick="setFilter('species','all',this)">All</button>
       <span id="species-filter-pills"></span>
       <span class="filter-sep">|</span>
       <span class="filter-label">STATUS:</span>
@@ -3933,7 +3932,21 @@ function renderHerd() {
   };
   buildDynamicPills('filter-bloodline-pills', 'bloodline', filterBloodline, a => a.bl);
   buildDynamicPills('filter-phenotype-pills', 'phenotype', filterPhenotype, a => a.ph ? getPhenoFilterLabel(a.sp, a.ph) : null);
-  buildDynamicPills('species-filter-pills',   'species',   filterSpecies,   a => a.sp, sp => { const c = SPECIES_DATA[sp]; return c ? `${_spIcon(sp)} ${c.short}` : sp; });
+  // Species pills: always show all species from SPECIES_DATA (filtered by active category),
+  // not just ones that have animals — so you can filter to a species before adding any.
+  (function buildSpeciesPills() {
+    const container = $id('species-filter-pills');
+    if (!container) return;
+    const allActive = filterSpecies === 'all' ? ' active' : '';
+    let btns = `<button class="filter-btn${allActive}" data-filter-type="species" onclick="setFilter('species','all',this)">All</button>`;
+    Object.entries(SPECIES_DATA)
+      .filter(([, cfg]) => filterCategory === 'all' || cfg.category === filterCategory)
+      .forEach(([sp, cfg]) => {
+        const active = filterSpecies === sp ? ' active' : '';
+        btns += `<button class="filter-btn${active}" data-filter-type="species" onclick="setFilter('species','${$esc(sp)}',this)">${_spIcon(sp)} ${$h(cfg.short)}</button>`;
+      });
+    container.innerHTML = btns;
+  })();
 
   // ── Apply filters ─────────────────────────────────────────────────
   if (!showDead)     list = list.filter(a => a.status !== 'Dead');
