@@ -1,12 +1,14 @@
 # 🦖 Icarus Breeding Tracker
 
-![version](https://img.shields.io/badge/version-v0.25b-c87a1a?style=flat-square&labelColor=1d2019)
+![version](https://img.shields.io/badge/version-v0.26b-c87a1a?style=flat-square&labelColor=1d2019)
 ![no install](https://img.shields.io/badge/no%20install-single%20file-6a7d50?style=flat-square&labelColor=1d2019)
 ![browser](https://img.shields.io/badge/browser-Chrome%20%2F%20Edge-4a7080?style=flat-square&labelColor=1d2019)
 ![data](https://img.shields.io/badge/data-stays%20on%20your%20computer-58615a?style=flat-square&labelColor=1d2019)
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/H2H01XD48Q)
 
-A herd tracker and breeding planner for the game [Icarus](https://store.steampowered.com/app/1149460/Icarus/). Track your animals, plan breeding pairs, manage bloodlines and phenotypes, and record lineage — all in a single file with no install, no account, and no internet required.
+A free, open-source herd tracker and breeding planner for the survival game [Icarus by RocketWerkz](https://store.steampowered.com/app/1149460/Icarus/). Track and manage your tamed animals — Dune Raptors, Geothermal Raptors, Slinkers, Moa and more — plan breeding pairs, optimise bloodlines and phenotypes, and record full lineage history. No install, no account, no internet required.
+
+> **Keywords:** Icarus game animal breeding, Icarus taming tracker, Dune Raptor breeding, Slinker breeding, Icarus herd management, Icarus bloodline tracker, Icarus phenotype guide, RocketWerkz Icarus tool
 
 ---
 
